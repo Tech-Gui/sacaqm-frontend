@@ -15,9 +15,9 @@ import { useSensorData } from "../contextProviders/sensorDataContext";
 const AppMap = ({ mapRef, polygonCord, layerColor }) => {
   const [newPlace, setNewPlace] = useState(null);
   const [viewPort, setViewPort] = useState({
-    latitude: -26.25075,
-    longitude: 27.956381,
-    zoom: 17,
+    latitude: -26.193330,
+    longitude: 27.826879,
+    zoom: 11,
   });
 
   const [activeSensor, setActiveSensor] = useState("");
@@ -101,7 +101,7 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
             onMouseOut={() => setSelectedMarker(null)}
             style={{
               cursor: "pointer",
-              background: marker.isActive ? "#00FF00" : "#FF0000",
+              background: marker.isActive ? "#00FF00" : "#c9d1c9",
 
               paddingLeft: "0.25rem",
               paddingRight: "0.25rem",
