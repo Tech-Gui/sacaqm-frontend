@@ -12,7 +12,7 @@ const TempProvider = ({ children }) => {
     const fetchTemperatureData = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:3000/api/sensors/all"
+          "https://sacaqm.onrender.com/api/sensors/all"
         );
 
         // console.log(filteredData);
