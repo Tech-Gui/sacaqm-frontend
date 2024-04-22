@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Sidebar from "../components/SideBar";
+import TopNavBar from "../components/topNavBar";
 import { Card, Container, Image, Spinner } from "react-bootstrap";
 import StatsCard from "../components/statsCard";
 import IconBadge from "../components/iconBadge";
@@ -30,6 +31,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const [temp, setTemp] = useState(0);
   const [hum, setHum] = useState(0);
+  const [sensorName, setSensorName] = useState("Ikusasalethu Sec");
 
   const chartOptions = {
     responsive: true,
@@ -88,6 +90,9 @@ function Dashboard() {
       },
     ],
   };
+
+  // console.log(TemperatureChartData.datasets[0].data.slice(-1)[0])
+  
 
   const pm2p5chartData = {
     labels: dates,
@@ -246,7 +251,74 @@ function Dashboard() {
     ],
   };
 
-  var noxValue = 33.3;
+  const VocchartData = {
+    labels: dates,
+    datasets: [
+      {
+        label: "Voc",
+        data: nodeData
+          .filter((item) => item.sensor_id === selectedSensor)
+          .map((data) => data.voc),
+        fill: true,
+        backgroundColor: function (context) {
+          var ctx = context.chart.ctx;
+          var gradient = ctx.createLinearGradient(0, 0, 0, 200);
+          gradient.addColorStop(0, "rgba(88, 130, 239, 1)");
+          gradient.addColorStop(0.25, "rgba(88, 130, 239, 0.75)");
+          gradient.addColorStop(0.5, "rgba(88, 130, 239, 0.5)");
+          gradient.addColorStop(0.75, "rgba(88, 130, 239, 0.25)");
+          gradient.addColorStop(1, "rgba(88, 130, 239, 0.0)");
+          return gradient;
+        },
+        borderColor: "#ee6ff7",
+        tension: 0.4,
+        borderWidth: 2,
+        fill: true,
+        pointBackgroundColor: "#FFFFFF",
+        // pointRadius: 3,
+        pointBorderColor: "#ee6ff7",
+        pointBorderWidth: 2,
+      },
+    ],
+  };
+
+  const NoxChartData = {
+    labels: dates,
+    datasets: [
+      {
+        label: "Nox",
+        data: nodeData
+          .filter((item) => item.sensor_id === selectedSensor)
+          .map((data) => data.nox),
+        fill: true,
+        backgroundColor: function (context) {
+          var ctx = context.chart.ctx;
+          var gradient = ctx.createLinearGradient(0, 0, 0, 200);
+          gradient.addColorStop(0, "rgba(88, 130, 239, 1)");
+          gradient.addColorStop(0.25, "rgba(88, 130, 239, 0.75)");
+          gradient.addColorStop(0.5, "rgba(88, 130, 239, 0.5)");
+          gradient.addColorStop(0.75, "rgba(88, 130, 239, 0.25)");
+          gradient.addColorStop(1, "rgba(88, 130, 239, 0.0)");
+          return gradient;
+        },
+        borderColor: "#ee6ff7",
+        tension: 0.4,
+        borderWidth: 2,
+        fill: true,
+        pointBackgroundColor: "#FFFFFF",
+        // pointRadius: 3,
+        pointBorderColor: "#ee6ff7",
+        pointBorderWidth: 2,
+      },
+    ],
+  };
+
+  var noxValue = NoxChartData.datasets[0].data.slice(-1)[0]
+  var tempDisplay = TemperatureChartData.datasets[0].data.slice(-1)[0]
+  var vocValue = VocchartData.datasets[0].data.slice(-1)[0]
+  var pm1Value = pm1p0chartData.datasets[0].data.slice(-1)[0]
+  var pm2p05Value = pm2p5chartData.datasets[0].data.slice(-1)[0]
+
 
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
@@ -255,6 +327,18 @@ function Dashboard() {
 
   const handleSensorSelect = (sensorId) => {
     setSelectedSensor(sensorId);
+
+    const sensor = sensorData.find(sensor => sensor["Sensor ID"] === sensorId);
+
+    if (sensor) {
+      console.log(sensor["Station Name"])
+      // return sensor["Station Name"];
+    } else {
+      console.log("Sensor not found")
+      // return "Sensor not found";
+    }
+
+    setSensorName(sensor)
     // onSelectSensor(sensorId);
   };
 
@@ -262,6 +346,18 @@ function Dashboard() {
     // After setting the selectedType, navigate to the analytics page
     navigate("/dashboard");
   };
+
+
+  const getStationNameBySensorId = (sensorId) => {
+    // Loop through each sensor data object
+    for (const sensor of sensorData) {
+      // Check if the current sensor's ID matches the provided sensorId
+      if (sensor["Sensor ID"] === sensorId) {
+        // If there's a match, return the station name
+        return sensor["Station Name"];
+      }
+    }
+  }
 
   return (
     <div
@@ -280,6 +376,9 @@ function Dashboard() {
           maxHeight: "100vh",
           overflowY: "scroll",
         }}>
+
+      <TopNavBar />
+
         <div className="d-flex flex-row justify-content-between">
           <Dropdown onSelect={(eventKey) => handleSensorSelect(eventKey)}>
             <Dropdown.Toggle
@@ -289,7 +388,7 @@ function Dashboard() {
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
               }}>
-              {selectedSensor || "Near You"}
+              {getStationNameBySensorId(selectedSensor) || "Near You"}
             </Dropdown.Toggle>
 
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
@@ -304,6 +403,7 @@ function Dashboard() {
           <Dropdown onSelect={(eventKey) => handlePeriodSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
+              size="sm"
               style={{
                 background: "#2068F3",
                 border: "none",
@@ -321,166 +421,183 @@ function Dashboard() {
           </Dropdown>
         </div>
         <Row>
-          <Col md={8}>
+          <Col lg= {7}  md={12}> {/*this is the map card*/}
             <Card
               className="mt-1 p-2"
               style={{
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                width: "98%",
+                width: "100%",
                 minHeight: "53vh",
               }}>
-              <Row>
-                <h6
-                  style={{
-                    color: "#666",
-                    fontWeight: "bold",
-                    fontSize: "10px",
-                    fontFamily: "Helvetica Neue",
-                    textAlign: "left",
-                  }}>
-                  NEAR YOU
-                </h6>
-
                 <Row>
-                  <Col md={3}>
-                    {" "}
-                    <div style={{ cursor: "pointer" }}>
+                  <h6
+                    style={{
+                      color: "#666",
+                      fontWeight: "bold",
+                      fontSize: "10px",
+                      fontFamily: "Helvetica Neue",
+                      textAlign: "left",
+                    }}>
+                    NEAR YOU
+                  </h6>
+
+                  <Row className="d-flex flex-row" >
+                    <Col sm={1} md={2} lg={2}>
+                      {" "}
+                      <div style={{ cursor: "pointer" }}>
+                        <StatsCard
+                          title="NOX"
+                          value={noxValue} // REPLACE WITH LIVE DATA
+                          wrappedComponent={
+                            <IconBadge
+                              icon={<MdOutlineAir />}
+                              backgroundColor="rgba(255, 216, 0, 0.3)"
+                              color="#990033"
+                              iconSize={16}
+                            />
+                          }
+                        />
+                      </div>
+                    </Col>
+
+                    <Col md={2} lg={2}>
+                      {" "}
                       <StatsCard
-                        title="NOX"
-                        value={noxValue} // REPLACE WITH LIVE DATA
+                        title="VOC"
+                        value={vocValue}
                         wrappedComponent={
                           <IconBadge
-                            icon={<MdOutlineAir />}
-                            backgroundColor="rgba(255, 216, 0, 0.3)"
-                            color="#990033"
-                            iconSize={16}
+                            icon={<GiDustCloud />}
+                            backgroundColor="rgba(0, 0, 255, 0.3)"
+                            color="#00f"
+                            iconSize={15}
                           />
                         }
                       />
-                    </div>
-                  </Col>
+                    </Col>
 
-                  <Col md={3}>
-                    {" "}
-                    <StatsCard
-                      title="VOC"
-                      value="200"
-                      wrappedComponent={
-                        <IconBadge
-                          icon={<GiDustCloud />}
-                          backgroundColor="rgba(0, 0, 255, 0.3)"
-                          color="#00f"
-                          iconSize={15}
-                        />
-                      }
-                    />
-                  </Col>
-                  <Col md={3}>
-                    {" "}
-                    <StatsCard
-                      title="Humidity"
-                      value={`${hum}%`}
-                      wrappedComponent={
-                        <IconBadge
-                          icon={<WiHumidity />}
-                          backgroundColor="rgba(0, 255, 0, 0.3)"
-                          color="#08A045"
-                          iconSize={19}
-                        />
-                      }
-                    />
-                  </Col>
-                  <Col md={3}>
-                    {" "}
-                    <StatsCard
-                      title="Temperature"
-                      value={`${temp}°C`}
-                      wrappedComponent={
-                        <IconBadge
-                          icon={<FaTemperatureThreeQuarters />}
-                          backgroundColor="rgba(255, 87, 51, 0.5)"
-                          color="#F00"
-                          iconSize={15}
-                        />
-                      }
-                    />
-                  </Col>
+                    <Col md={2} lg={2}>
+                      {" "}
+                      <StatsCard
+                        title="PM 1.0"
+                        value={`${pm1Value}`}
+                        wrappedComponent={
+                          <IconBadge
+                            icon={<WiHumidity />}
+                            backgroundColor="rgba(0, 255, 0, 0.3)"
+                            color="#08A045"
+                            iconSize={19}
+                          />
+                        }
+                      />
+                    </Col>
+                    <Col md={2} lg={2}>
+                      {" "}
+                      <StatsCard
+                        title="PM 2.5"
+                        value={`${pm2p05Value}`}
+                        wrappedComponent={
+                          <IconBadge
+                            icon={<FaTemperatureThreeQuarters />}
+                            backgroundColor="rgba(255, 87, 51, 0.5)"
+                            color="#F00"
+                            iconSize={15}
+                          />
+                        }
+                      />
+                    </Col>
+                  </Row>
+
+
+                  <div
+                    style={{width: "100%"
+                  }}
+                    >
+                      <Row>
+                        <Col className="mt-1" style={{ height: "370px" }}>
+                          <AppMap selSensor={selectedSensor} />
+                        </Col>
+                      </Row>
+                  </div>
                 </Row>
-                <Row>
-                  <Col className="mt-1" style={{ height: "370px" }}>
-                    <AppMap selSensor={selectedSensor} />
-                  </Col>
-                </Row>
-              </Row>
+              
             </Card>
           </Col>
-          <Col sm={4}>
-            <Row style={{ paddingRight: "0.8rem" }}>
-              <Card
-                className="mt-1 "
-                style={{
-                  border: "none",
-                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                  minHeight: "26vh",
-                }}>
-                <h6
+
+          <Col lg= {5}  md={12} sm={6} className="m-0">
+
+            <Row>
+              <Col md={6} lg={12}>
+                <Card
+                  className="mt-1 "
                   style={{
-                    color: "#666",
-                    fontWeight: "bold",
-                    fontSize: "10px",
-                    fontFamily: "Helvetica Neue",
-                    textAlign: "left",
-                  }}></h6>
-                {nodeData && nodeData.length > 0 ? (
-                  <ChartCard
-                    data={pm4p0chartData}
-                    options={chartOptions}
-                    title="PM4.0 (μg/m³)"
-                  />
-                ) : (
-                  <div
+                    border: "none",
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                    minHeight: "26vh",
+                  }}>
+                  <h6
                     style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      height: "100%",
-                    }}>
-                    <Spinner animation="border" role="status"></Spinner>
-                  </div>
-                )}
-              </Card>
+                      color: "#666",
+                      fontWeight: "bold",
+                      fontSize: "10px",
+                      fontFamily: "Helvetica Neue",
+                      textAlign: "left",
+                    }}></h6>
+                  {nodeData && nodeData.length > 0 ? (
+                    <ChartCard
+                      data={pm4p0chartData}
+                      options={chartOptions}
+                      title="PM4.0 (μg/m³)"
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "100%",
+                      }}>
+                      <Spinner animation="border" role="status"></Spinner>
+                    </div>
+                  )}
+                </Card>
+              </Col>
+              
+              <Col md={6} lg={12}>
+                <Card
+                  className="mt-2 "
+                  style={{
+                    border: "none",
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                    paddingBottom: "0.2rem",
+                    minHeight: "26vh",
+                  }}>
+                  {nodeData && nodeData.length > 0 ? (
+                    <ChartCard
+                      data={pm10p0chartData}
+                      options={chartOptions}
+                      title="PM10.0 (μg/m³)"
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "100%",
+                      }}>
+                      <Spinner animation="border" role="status"></Spinner>
+                    </div>
+                  )}
+                </Card>
+              </Col>
+
             </Row>
-            <Row style={{ paddingRight: "0.8rem" }}>
-              <Card
-                className="mt-2 "
-                style={{
-                  border: "none",
-                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                  paddingBottom: "0.2rem",
-                  minHeight: "26vh",
-                }}>
-                {nodeData && nodeData.length > 0 ? (
-                  <ChartCard
-                    data={pm10p0chartData}
-                    options={chartOptions}
-                    title="PM10.0 (μg/m³)"
-                  />
-                ) : (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      height: "100%",
-                    }}>
-                    <Spinner animation="border" role="status"></Spinner>
-                  </div>
-                )}
-              </Card>
-            </Row>
+
           </Col>
         </Row>
+        
         <Row>
           <Col md={6}>
             <Card
