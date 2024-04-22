@@ -1,0 +1,101 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 12px;
+  text-align: center;
+  width: 90px;
+}
+
+.completed {
+  background-color: #009925;
+  color: white;
+}
+
+.pending {
+  background-color: #FFBF00;
+  color: black;
+}
+
+.active{
+  background-color: #009925;
+    color: white;
+}
+
+.un {
+  background-color: #C81414;
+  color: white;
+}
+
+.completed-pill {
+  background-color: #009925;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 20px;
+  display: inline-block;
+
+}
+
+.shipped-pill {
+  background-color: #C81414;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.back-button {
+  display: inline-block;
+  padding: 5px 10px;
+  background-color: #fff;
+  /* Gray background color */
+  color: var(--Witz-Primary-Blue, #123B59);
+  /* White text color */
+  border-radius: 10px;
+  border: 1px solid var(--Witz-Primary-Blue, #123B59);
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.back-button:hover {
+  background-color: #999;
+  /* Darker gray when hovered */
+}
+
+.my-modal {
+  width: 90vw;
+    /* Occupy the 90% of the screen width */
+    max-width: 90vw;
+}
+
+.map-container {
+  width: 100%;
+  /* Adjust this to your desired width */
+  height: 46vh;
+  /* Adjust this to your desired height */
+}
+
+.marker {
+  background-color: #ff0000;
+  /* Marker color */
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  /* Marker border color */
+}
