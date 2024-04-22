@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import Dashboard from "./screens/Dashboard";
-import InvoiceDataProvider from "./contextProviders/invoiceContextProvider";
+
 
 import AppMap from "./map/index";
 import AnalyticsScreen from "./screens/Analytics";

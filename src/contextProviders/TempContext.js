@@ -15,7 +15,7 @@ const TempProvider = ({ children }) => {
           "https://sacaqm.onrender.com/api/sensors/all"
         );
 
-        // console.log(filteredData);
+        console.log(response.data);
         setTemperatureData(response.data);
       } catch (error) {
         console.error("Error fetching temperature data:", error);
