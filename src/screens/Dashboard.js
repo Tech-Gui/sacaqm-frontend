@@ -383,6 +383,7 @@ function Dashboard() {
           <Dropdown onSelect={(eventKey) => handleSensorSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
+              size="sm"
               style={{
                 background: "#2068F3",
                 border: "none",
@@ -442,8 +443,8 @@ function Dashboard() {
                     NEAR YOU
                   </h6>
 
-                  <Row className="d-flex flex-row" >
-                    <Col sm={1} md={2} lg={2}>
+                  <Row className="justify-content-center" >
+                    <Col className="mb-1">
                       {" "}
                       <div style={{ cursor: "pointer" }}>
                         <StatsCard
@@ -459,9 +460,11 @@ function Dashboard() {
                           }
                         />
                       </div>
+
+                      
                     </Col>
 
-                    <Col md={2} lg={2}>
+                    <Col className="mb-1">
                       {" "}
                       <StatsCard
                         title="VOC"
@@ -477,7 +480,7 @@ function Dashboard() {
                       />
                     </Col>
 
-                    <Col md={2} lg={2}>
+                    <Col >
                       {" "}
                       <StatsCard
                         title="PM 1.0"
@@ -492,7 +495,7 @@ function Dashboard() {
                         }
                       />
                     </Col>
-                    <Col md={2} lg={2}>
+                    <Col >
                       {" "}
                       <StatsCard
                         title="PM 2.5"
