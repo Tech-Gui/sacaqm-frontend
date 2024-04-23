@@ -13,27 +13,29 @@ function DailyLoadingReport({ data }) {
             <th style={headerStyle}>STATION</th>
             <th style={headerStyle}>PROVINCE</th>
             <th style={headerStyle}>CITY</th>
-            <th style={headerStyle}>PM1.0</th>
+            <th style={headerStyle}>ACTIVE</th>
+            {/* <th style={headerStyle}>PM1.0</th>
             <th style={headerStyle}>PM2.5</th>
             <th style={headerStyle}>PM4.0</th>
             <th style={headerStyle}>PM10.0</th>
             <th style={headerStyle}>NOX</th>
-            <th style={headerStyle}>VOC</th>
+            <th style={headerStyle}>VOC</th> */}
           </tr>
         </thead>
         <tbody>
           {data.map((item, index) => (
             <tr key={index}>
-              <td>{item.RANK}</td>
+              <td>{item.SENSOR_ID}</td>
               <td>{item.STATION}</td>
               <td>{item.PROVINCE}</td>
               <td>{item.CITY}</td>
-              <td>{item.PM1_0}</td>
+              <td>{item.ACTIVE}</td>
+              {/* <td>{item.PM1_0}</td>
               <td>{item.PM2_5}</td>
               <td>{item.PM4_0}</td>
               <td>{item.PM10_0}</td>
               <td>{item.NOX}</td>
-              <td>{item.VOC}</td>
+              <td>{item.VOC}</td> */}
             </tr>
           ))}
         </tbody>
