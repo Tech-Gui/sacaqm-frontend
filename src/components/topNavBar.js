@@ -8,6 +8,7 @@ import React, { useState } from "react";
 import { RxDashboard, RxPinLeft } from "react-icons/rx";
 import { GiTruck } from "react-icons/gi";
 import { IoPieChartSharp } from "react-icons/io5";
+import { FaInfoCircle } from "react-icons/fa";
 import { FaFileInvoiceDollar } from "react-icons/fa";
 import { IoIosPeople } from "react-icons/io";
 import { GiCoalWagon } from "react-icons/gi";
@@ -56,6 +57,13 @@ function TopNavBar() {
             to="/analytics">
             <IoPieChartSharp size={20} />
             <span style={{ marginLeft: "0.5rem" }}>Analytics</span>
+          </Nav.Link>
+
+          <Nav.Link
+            as={Link}
+            to="/information">
+            <FaInfoCircle size={20} />
+            <span style={{ marginLeft: "0.5rem" }}>More Information</span>
           </Nav.Link>
 
 

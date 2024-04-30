@@ -10,6 +10,7 @@ import { IoIosPeople } from "react-icons/io";
 import { GiCoalWagon } from "react-icons/gi";
 import { BiSupport } from "react-icons/bi";
 import { SiMicrosoftexcel } from "react-icons/si";
+import { FaInfoCircle } from "react-icons/fa";
 import { RiAlarmWarningFill } from "react-icons/ri";
 
 function Sidebar() {
@@ -76,6 +77,18 @@ function Sidebar() {
             }}>
             <IoPieChartSharp size={30} />
             <span style={{ marginLeft: "1rem" }}>Analytics</span>
+          </Nav.Link>
+
+
+          <Nav.Link
+            as={Link}
+            to="/information"
+            style={{
+              textAlign: "left",
+              color: isLinkActive("/information") ? "#1B2791" : "#3DA2E6",
+            }}>
+            <FaInfoCircle size={30} />
+            <span style={{ marginLeft: "1rem" }}>More Information</span>
           </Nav.Link>
         </Nav>
       </Navbar.Collapse>
