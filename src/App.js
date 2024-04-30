@@ -2,7 +2,8 @@ import React, { useEffect } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import Dashboard from "./screens/Dashboard";
-
+import Information from "./screens/Information";
+import InvoiceDataProvider from "./contextProviders/invoiceContextProvider";
 
 import AppMap from "./map/index";
 import AnalyticsScreen from "./screens/Analytics";
@@ -28,6 +29,7 @@ function App() {
 
                 <Route path="/analytics" element={<AnalyticsScreen />} />
                 <Route path="/stations" element={<Stations />} />
+                <Route path="/information" element={<Information />} />
               </Routes>
             </TempProvider>
           </SensorDataProvider>
