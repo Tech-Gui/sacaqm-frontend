@@ -3,7 +3,7 @@ import "./App.css";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import Dashboard from "./screens/Dashboard";
 import Information from "./screens/Information";
-import InvoiceDataProvider from "./contextProviders/invoiceContextProvider";
+// import InvoiceDataProvider from "./contextProviders/invoiceContextProvider";
 
 import AppMap from "./map/index";
 import AnalyticsScreen from "./screens/Analytics";
