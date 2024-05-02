@@ -23,7 +23,7 @@ function App() {
           <SensorDataProvider>
             <TempProvider>
               <Routes>
-                <Route path="/" element={<Stations />} />
+                <Route path="/" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/test" element={<AppMap />} />
 
