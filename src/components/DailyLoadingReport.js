@@ -8,12 +8,12 @@ function DailyLoadingReport({ data }) {
     <div style={{ height: tableHeight, overflowY: "scroll" }} className="mt-2">
       <Table striped hover>
         <thead>
-          <tr>
-            <th style={headerStyle}>ID</th>
+          <tr> 
             <th style={headerStyle}>STATION</th>
             <th style={headerStyle}>PROVINCE</th>
             <th style={headerStyle}>CITY</th>
             <th style={headerStyle}>ACTIVE</th>
+            <th style={headerStyle}>ID</th>
             {/* <th style={headerStyle}>PM1.0</th>
             <th style={headerStyle}>PM2.5</th>
             <th style={headerStyle}>PM4.0</th>
@@ -25,11 +25,11 @@ function DailyLoadingReport({ data }) {
         <tbody>
           {data.map((item, index) => (
             <tr key={index}>
-              <td>{item.SENSOR_ID}</td>
               <td>{item.STATION}</td>
               <td>{item.PROVINCE}</td>
               <td>{item.CITY}</td>
               <td>{item.ACTIVE}</td>
+              <td>{item.SENSOR_ID}</td>
               {/* <td>{item.PM1_0}</td>
               <td>{item.PM2_5}</td>
               <td>{item.PM4_0}</td>
