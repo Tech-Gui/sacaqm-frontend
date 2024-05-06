@@ -431,7 +431,7 @@ function Dashboard() {
                 width: "100%",
                 minHeight: "53vh",
               }}>
-                <Row>
+                <Row className="d-flex justify-content-center">
                   <h6
                     style={{
                       color: "#666",
@@ -439,11 +439,12 @@ function Dashboard() {
                       fontSize: "10px",
                       fontFamily: "Helvetica Neue",
                       textAlign: "left",
+                      paddingLeft: "1.5rem"
                     }}>
                     NEAR YOU
                   </h6>
 
-                  <Row className="justify-content-center" >
+                  <Row className="d-flex justify-content-between" style={{marginLeft: '0.5rem', marginRight: '0.5rem'}}>
                     <Col className="mb-1">
                       {" "}
                       <div style={{ cursor: "pointer" }}>
@@ -513,12 +514,12 @@ function Dashboard() {
                   </Row>
 
 
-                  <div
-                    style={{width: "100%"
+                  <div 
+                    style={{width: "100%", padding: "1.5rem"
                   }}
                     >
-                      <Row>
-                        <Col className="mt-1" style={{ height: "370px" }}>
+                      <Row className="d-flex justify-content-center" >
+                        <Col className="mt-1" style={{ height: "19rem", }}>
                           <AppMap selSensor={selectedSensor} />
                         </Col>
                       </Row>
