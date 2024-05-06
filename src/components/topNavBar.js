@@ -34,7 +34,7 @@ function TopNavBar() {
         <Navbar.Toggle aria-controls="responsive-navbar-nav" />
         <Navbar.Collapse id="responsive-navbar-nav ">
     
-          <Nav className='ml-auto'>
+          <Nav className='ml-auto' style={{textAlign: "right"}}>
 
           <Nav.Link
             as={Link}
@@ -56,14 +56,14 @@ function TopNavBar() {
             as={Link}
             to="/analytics">
             <IoPieChartSharp size={20} />
-            <span style={{ marginLeft: "0.5rem" }}>Analytics</span>
+            <span style={{ marginLeft: "1.9rem" }}>Analytics</span>
           </Nav.Link>
 
           <Nav.Link
             as={Link}
             to="/information">
             <FaInfoCircle size={20} />
-            <span style={{ marginLeft: "0.5rem" }}>More Information</span>
+            <span style={{ marginLeft: "1.45rem" }}>More Info</span>
           </Nav.Link>
 
 

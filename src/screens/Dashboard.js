@@ -449,7 +449,7 @@ function Dashboard() {
                       <div style={{ cursor: "pointer" }}>
                         <StatsCard
                           title="NOX"
-                          value={noxValue} // REPLACE WITH LIVE DATA
+                          value = {nodeData && nodeData.length > 0 ? noxValue : "...."}
                           wrappedComponent={
                             <IconBadge
                               icon={<MdOutlineAir />}
@@ -468,7 +468,7 @@ function Dashboard() {
                       {" "}
                       <StatsCard
                         title="VOC"
-                        value={vocValue}
+                        value={nodeData && nodeData.length > 0 ? vocValue : "...."}
                         wrappedComponent={
                           <IconBadge
                             icon={<GiDustCloud />}
@@ -484,7 +484,7 @@ function Dashboard() {
                       {" "}
                       <StatsCard
                         title="PM 1.0"
-                        value={`${pm1Value}`}
+                        value={nodeData && nodeData.length > 0 ? pm1Value : "...."}
                         wrappedComponent={
                           <IconBadge
                             icon={<WiHumidity />}
@@ -499,7 +499,7 @@ function Dashboard() {
                       {" "}
                       <StatsCard
                         title="PM 2.5"
-                        value={`${pm2p05Value}`}
+                        value={nodeData && nodeData.length > 0 ? pm2p05Value : "...."}
                         wrappedComponent={
                           <IconBadge
                             icon={<FaTemperatureThreeQuarters />}

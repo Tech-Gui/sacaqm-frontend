@@ -14,7 +14,7 @@ function StatsCard({ title, value, wrappedComponent, change }) {
   return (
     <Card
       style={{
-        width: "11rem",
+        width: "auto",
         height: "4rem",
         border: "none",
         background: "#E6E8F3",

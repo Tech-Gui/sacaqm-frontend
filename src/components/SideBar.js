@@ -38,14 +38,14 @@ function Sidebar() {
         <img
           src="logo.png"
           alt="Imat Tech Logo"
-          style={{ maxHeight: "150px", maxWidth: "auto" }}
+          style={{ maxHeight: "150px", maxWidth: "auto", marginBottom: "$)%" }}
         />
       </Navbar.Brand>
 
       <Navbar.Toggle aria-controls="basic-navbar-nav" onClick={toggleSidebar} />
 
       <Navbar.Collapse id="basic-navbar-nav" className={!isOpen && "d-none d-lg-block"}>
-        <Nav className="flex-column gap-4">
+        <Nav className="flex-column gap-4 " style={{padding: "2rem", textAlign: "right" }}>
           <Nav.Link
             as={Link}
             to="/dashboard"
@@ -88,7 +88,7 @@ function Sidebar() {
               color: isLinkActive("/information") ? "#1B2791" : "#3DA2E6",
             }}>
             <FaInfoCircle size={30} />
-            <span style={{ marginLeft: "1rem" }}>More Information</span>
+            <span style={{ marginLeft: "1rem" }}>More Info</span>
           </Nav.Link>
         </Nav>
       </Navbar.Collapse>
