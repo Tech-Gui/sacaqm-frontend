@@ -3,9 +3,7 @@ import axios from "axios";
 import Sidebar from "../components/SideBar";
 import TopNavBar from "../components/topNavBar";
 import { Button, Card, Col, Container, Form, Modal } from "react-bootstrap";
-import { AiOutlinePlus } from "react-icons/ai";
-import DailyLoadingReport from "../components/DailyLoadingReport";
-import { DLRdata } from "../dummyData/DLRDummy";
+
 import Accordion from 'react-bootstrap/Accordion';
 import IconBadge from "../components/iconBadge";
 
@@ -37,7 +35,7 @@ const Information = () => {
               <Accordion.Body>
               <img src="https://images.unsplash.com/photo-1578604665675-9aee692f6ddc?q=80&w=1531&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
               alt="Description of the image" 
-              style={{ maxWidth: "100%", height: "auto" }}
+              style={{ maxWidth: "60%", height: "auto" }}
               />
                 Air quality is crucial for public health as it directly impacts respiratory and cardiovascular well-being. 
                 Pollutants such as particulate matter (PM), nitrogen dioxide (NO2), sulfur dioxide (SO2), ozone (O3), and 
@@ -66,91 +64,144 @@ const Information = () => {
               style={{ maxWidth: "100%", height: "auto" }}
               />
 
-              <IconBadge
-                icon={<GiDustCloud />}
-                backgroundColor="rgba(0, 0, 255, 0.3)"
-                color="#00f"
-                iconSize={15}
-              />
-              PM1.0: Ultrafine particles measuring 1.0 micrometer or smaller in diameter, capable of deeply penetrating the respiratory 
-              system and potentially entering the bloodstream.
               <br/>
               <br/>
-              <IconBadge
-                icon={<GiDustCloud />}
-                backgroundColor="rgba(0, 0, 255, 0.3)"
-                color="#00f"
-                iconSize={15}
-              />
-              PM2.5: Fine inhalable particles with a diameter of 2.5 micrometers or smaller, originating from various sources like 
+
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <IconBadge
+                  icon={<GiDustCloud />}
+                  backgroundColor="rgba(0, 0, 255, 0.3)"
+                  color="#0f0"
+                  iconSize={15}
+                />
+                <span style={{ marginLeft: '5px' }}>
+                  PM1.0: Ultrafine particles measuring 1.0 micrometer or smaller in diameter, capable of deeply penetrating the respiratory system and potentially entering the bloodstream.
+                </span>
+              </div>
+
+              <br/>
+              <br/>
+
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <IconBadge
+                    icon={<GiDustCloud />}
+                    backgroundColor="rgba(0, 0, 255, 0.3)"
+                    color="#FF0000"
+                    iconSize={15}
+                  />
+                <span style={{ marginLeft: '5px' }}>
+                PM2.5: Fine inhalable particles with a diameter of 2.5 micrometers or smaller, originating from various sources like 
               vehicle exhaust, wildfires, and industrial emissions, posing significant health risks due to their ability to lodge deep into the lungs.
 
+                </span>
+              </div>
+
+
               <br/>
               <br/>
+
+              <div style={{ display: 'flex', alignItems: 'center' }}>
               <IconBadge
                 icon={<GiDustCloud />}
                 backgroundColor="rgba(0, 0, 255, 0.3)"
                 color="#00f"
                 iconSize={15}
               />
-              PM4: Particulate matter with a diameter of 4 micrometers or smaller, comprising a mix of solid and liquid particles suspended in the air,
+                <span style={{ marginLeft: '5px' }}>
+                PM4: Particulate matter with a diameter of 4 micrometers or smaller, comprising a mix of solid and liquid particles suspended in the air,
               with potential health impacts similar to PM2.5 but larger in size.
+                </span>
+              </div>
+              
 
               <br/>
               <br/>
+
+              <div style={{ display: 'flex', alignItems: 'center' }}>
               <IconBadge
                 icon={<GiDustCloud />}
                 backgroundColor="rgba(0, 0, 255, 0.3)"
-                color="#00f"
+                color="#800080"
                 iconSize={15}
               />
-              PM10.0: Coarse particles measuring 10 micrometers or smaller, consisting of dust, pollen, mold spores, and other airborne materials, 
+                <span style={{ marginLeft: '5px' }}>
+                PM10.0: Coarse particles measuring 10 micrometers or smaller, consisting of dust, pollen, mold spores, and other airborne materials, 
               capable of causing respiratory irritation and exacerbating respiratory conditions.
+                </span>
+              </div>
+
+              
 
               <br/>
               <br/>
+
+              <div style={{ display: 'flex', alignItems: 'center' }}>
               <IconBadge
-                icon={<GiDustCloud />}
-                backgroundColor="rgba(0, 0, 255, 0.3)"
-                color="#00f"
-                iconSize={15}
+               icon={<MdOutlineAir />}
+               backgroundColor="rgba(255, 216, 0, 0.3)"
+               color="#990033"
+               iconSize={16}
               />
-              NOX (Nitrogen Oxides): A group of highly reactive gases, including nitrogen monoxide (NO) and nitrogen dioxide (NO2), produced mainly from 
+                <span style={{ marginLeft: '5px' }}>
+                NOX (Nitrogen Oxides): A group of highly reactive gases, including nitrogen monoxide (NO) and nitrogen dioxide (NO2), produced mainly from 
               vehicle emissions and industrial processes, contributing to air pollution, respiratory diseases, and the formation of ground-level ozone.
+                </span>
+              </div>
+
 
               <br/>
               <br/>
+
+              <div style={{ display: 'flex', alignItems: 'center' }}>
               <IconBadge
-                icon={<GiDustCloud />}
-                backgroundColor="rgba(0, 0, 255, 0.3)"
-                color="#00f"
-                iconSize={15}
+               icon={<MdOutlineAir />}
+               backgroundColor="rgba(255, 216, 0, 0.3)"
+               color="#990033"
+               iconSize={16}
               />
-              VOC (Volatile Organic Compounds): Organic chemicals with high vapor pressure at room temperature, released from various sources such as vehicle 
+                <span style={{ marginLeft: '5px' }}>
+                VOC (Volatile Organic Compounds): Organic chemicals with high vapor pressure at room temperature, released from various sources such as vehicle 
               exhaust, paints, cleaning products, and building materials,
                posing health risks including eye, nose, and throat irritation, as well as long-term effects on the central nervous system and other organs.
+                </span>
+              </div>
+              
+              <br/>
+              <br/>
 
-              <br/>
-              <br/>
+
+              <div style={{ display: 'flex', alignItems: 'center' }}>
               <IconBadge
                 icon={<WiHumidity />}
                 backgroundColor="rgba(0, 255, 0, 0.3)"
                 color="#08A045"
                 iconSize={19}
               />
-              Humidity: The amount of water vapor present in the air, influencing indoor air quality, comfort levels, and the growth of mold and other allergens, 
+                <span style={{ marginLeft: '5px' }}>
+                Humidity: The amount of water vapor present in the air, influencing indoor air quality, comfort levels, and the growth of mold and other allergens, 
               with high humidity potentially exacerbating respiratory conditions and promoting microbial growth.
+                </span>
+              </div>
 
               <br/>
               <br/>
+
+              <div style={{ display: 'flex', alignItems: 'center' }}>
               <IconBadge
                 icon={<FaTemperatureThreeQuarters />}
                 backgroundColor="rgba(255, 87, 51, 0.5)"
                 color="#F00"
                 iconSize={15}
-              /> Temperature: A measure of the warmth or coldness of the air, affecting human comfort, respiratory health, and the transmission of infectious 
+              />
+                <span style={{ marginLeft: '5px' }}>
+                Temperature: A measure of the warmth or coldness of the air, affecting human comfort, respiratory health, and the transmission of infectious 
               diseases, with extreme temperatures posing risks of heatstroke or hypothermia, especially to vulnerable populations.
 
+                </span>
+              </div>
+
+
+              
               <br/>
               <br/>
 
