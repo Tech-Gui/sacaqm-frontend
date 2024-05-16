@@ -33,26 +33,25 @@ const Information = () => {
             <Accordion.Item eventKey="0">
               <Accordion.Header>About Air Quality</Accordion.Header>
               <Accordion.Body>
-              <img src="https://images.unsplash.com/photo-1578604665675-9aee692f6ddc?q=80&w=1531&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
-              alt="Description of the image" 
-              style={{ maxWidth: "60%", height: "auto" }}
-              />
-                Air quality is crucial for public health as it directly impacts respiratory and cardiovascular well-being. 
-                Pollutants such as particulate matter (PM), nitrogen dioxide (NO2), sulfur dioxide (SO2), ozone (O3), and 
-                carbon monoxide (CO) are known to exacerbate respiratory conditions like asthma and increase the risk of 
-                cardiovascular diseases. Vulnerable populations, including children, the elderly, and individuals with 
-                pre-existing health conditions, are particularly susceptible to the adverse effects of poor air quality. 
-                Therefore, monitoring air quality levels and implementing effective pollution reduction strategies are 
-                essential for safeguarding public health and minimizing the incidence of respiratory and cardiovascular ailments.
-                <br/>
-                <br/>
-                Furthermore, poor air quality can have broader environmental and economic implications, including reduced crop yields, 
-                damage to ecosystems, and increased healthcare costs associated with treating air pollution-related illnesses. 
-                Addressing air quality issues requires a multi-faceted approach involving regulatory measures, technological advancements 
-                in emission control, public awareness campaigns, and sustainable urban planning. 
-                By prioritizing efforts to improve air quality, communities can mitigate health risks, enhance environmental sustainability,
-                 and promote overall well-being for present and future generations.
-                 <br/>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ flex: 1, marginRight: 20 }}>
+                  <img
+                    src="https://images.unsplash.com/photo-1578604665675-9aee692f6ddc?q=80&w=1531&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                    alt="Description of the image"
+                    style={{ maxWidth: '100%', height: 'auto' }}
+                  />
+                </div>
+                <div style={{ flex: 2 }}>
+                  <p>
+                    Air quality is crucial for public health as it directly impacts respiratory and cardiovascular well-being. Pollutants such as particulate matter (PM), nitrogen dioxide (NO2), sulfur dioxide (SO2), ozone (O3), and carbon monoxide (CO) are known to exacerbate respiratory conditions like asthma and increase the risk of cardiovascular diseases. Vulnerable populations, including children, the elderly, and individuals with pre-existing health conditions, are particularly susceptible to the adverse effects of poor air quality. Therefore, monitoring air quality levels and implementing effective pollution reduction strategies are essential for safeguarding public health and minimizing the incidence of respiratory and cardiovascular ailments.
+                  </p>
+                  <br />
+                  <p>
+                    Furthermore, poor air quality can have broader environmental and economic implications, including reduced crop yields, damage to ecosystems, and increased healthcare costs associated with treating air pollution-related illnesses. Addressing air quality issues requires a multi-faceted approach involving regulatory measures, technological advancements in emission control, public awareness campaigns, and sustainable urban planning. By prioritizing efforts to improve air quality, communities can mitigate health risks, enhance environmental sustainability, and promote overall well-being for present and future generations.
+                  </p>
+                </div>
+              </div>
+
               </Accordion.Body>
             </Accordion.Item>
             <Accordion.Item eventKey="1">
@@ -204,6 +203,73 @@ const Information = () => {
               
               <br/>
               <br/>
+
+              </Accordion.Body>
+            </Accordion.Item>
+
+        <Accordion.Item eventKey="2">
+              <Accordion.Header>Using our site</Accordion.Header>
+              <Accordion.Body>
+              <div style={{ display: 'flex', flexWrap: 'wrap' , flexDirection: 'row' , alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ flex: 1, marginRight: 20 }}>
+                 <img src="https://github.com/Tech-Gui/sacaqm-frontend/blob/main/src/map-screen.png?raw=true"
+                  alt="Description of the image" 
+                  style={{ maxWidth: "100%", minWidth: "300px" , height: "auto" }}
+                  />
+                </div>
+                <div style={{ flex: 2 }}>
+                  You can use our map to view the sensors that we have currently running. Hovering on them will show you the metadata such as the location and the status of the sensor.
+                  Clicking on the sensors on the map will show you the data from those nodes. Clicking the small cards on the map highlighted in red will take you to the analytics page.
+                </div>
+              </div>
+
+              <br/>
+              <br/>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ flex: 1, marginRight: 20 }}>
+                <img src="https://github.com/Tech-Gui/sacaqm-frontend/blob/main/src/buttons-screen.png?raw=true"
+                  alt="Description of the image" 
+                  style={{ maxWidth: "100%", height: "auto" }}
+                  />
+                </div>
+                <div style={{ flex: 2 }}>
+                  The drop down buttons allow the you to choose the name of the sensor you want to view, as well as filter on the dates allowing you to view data that goes as far back as 30 days.
+                </div>
+              </div>
+
+              <br/>
+              <br/>
+
+              <div style={{ display: 'flex' , flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
+              
+                <div style={{ flex: 1, marginRight: 20 }}>
+                <img src="https://github.com/Tech-Gui/sacaqm-frontend/blob/main/src/graph-screen.PNG?raw=true"
+                  alt="Description of the image" 
+                  style={{ maxWidth: "100%" , minWidth: "300px" , width: "500px" ,  height: "auto" }}
+                  />
+                </div>
+                <div style={{ flex: 2 }}>
+                  The charts show the graphs for the respective metrics, the x-axis shows the date and the y-axis shows the value of the metric. Clicking on them will allow you to view the metric in futher analysis.
+                </div>
+              </div>
+
+              <br/>
+              <br/>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ flex: 1, marginRight: 20 }}>
+                <img src="https://github.com/Tech-Gui/sacaqm-frontend/blob/main/src/analytics-screen.png?raw=true"
+                  alt="Description of the image" 
+                  style={{ maxWidth: "100%", height: "auto" }}
+                  />
+                </div>
+                <div style={{ flex: 2 }}>
+                  The "Analytics" page allows you to view a metric in further detail. The dropdown buttons allow you to select the sensor and time period. The dropdown on the chart  will allow you to choose the metric you want to analyze.
+                </div>
+              </div>
+
+
 
               </Accordion.Body>
             </Accordion.Item>
