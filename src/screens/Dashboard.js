@@ -517,11 +517,11 @@ function Dashboard() {
 
 
                   <div 
-                    style={{width: "100%", padding: "1.5rem"
+                    style={{width: "100%", padding: "1.5rem", paddingTop: "0,2rem"
                   }}
                     >
                       <Row className="d-flex justify-content-center" >
-                        <Col className="mt-1" style={{ height: "19rem", }}>
+                        <Col className="" style={{ height: "25rem", }}>
                           <AppMap selSensor={selectedSensor} />
                         </Col>
                       </Row>

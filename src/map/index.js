@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import ReactMapGL, {
   Layer,
   Marker,
@@ -11,12 +11,13 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import sensorData from "../dummyData/SensorData";
 import { MdOutlineSensors } from "react-icons/md";
 import { useSensorData } from "../contextProviders/sensorDataContext";
+import { StationContext } from "../contextProviders/StationContext";
 
 const AppMap = ({ mapRef, polygonCord, layerColor }) => {
   const [newPlace, setNewPlace] = useState(null);
   const [viewPort, setViewPort] = useState({
-    latitude: -26.193330,
-    longitude: 27.826879,
+    latitude: -26.1895,
+    longitude: 28.0304,
     zoom: 11,
   });
 
@@ -67,6 +68,18 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
     fetchData();
   }, [selectedPeriod]);
 
+  const { stations, loading, error } = useContext(StationContext);
+   // Log marker data when stations change
+   useEffect(() => {
+    if (stations) {
+      stations.forEach(marker => console.log(marker.longitude));
+    }
+  }, [stations]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  if (!stations || stations.length === 0) return <div>No stations available</div>;
+
   return (
     <ReactMapGL
       ref={mapRef}
@@ -79,30 +92,31 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
       {/* Your map content */}
 
       {/* Static markers */}
-      {sensorData.map((marker, index) => (
+      {stations.map((marker, index) => (
         <Marker
           key={index}
-          latitude={marker.Longitude}
-          longitude={marker.Latitude}>
-          <div
+          latitude={marker.latitude}  // Corrected latitude and longitude properties
+          longitude={marker.longitude}>
+          <div   
             onClick={() => {
-              console.log(marker["Sensor ID"]);
+              console.log(marker._id);
 
-              setSelectedSensor(marker["Sensor ID"]);
+              setSelectedSensor(marker._id);
 
               setViewPort((prevViewPort) => ({
                 ...prevViewPort,
-                latitude: marker["Latitude"],
-                longitude: marker["Longitude"],
+                latitude: marker["latitude"],
+                longitude: marker["longitude"],
                 zoom: 30,
               }));
+              console.log(viewPort);
             }}
             onMouseOver={() => setSelectedMarker(marker)}
             onMouseOut={() => setSelectedMarker(null)}
             style={{
               cursor: "pointer",
-              background: marker.isActive ? "#00FF00" : "#c9d1c9",
-
+              // background: marker.isActive ? "#00FF00" : "#ccc8c8",
+              background: "#00FF00",
               paddingLeft: "0.25rem",
               paddingRight: "0.25rem",
               borderRadius: "50%",
@@ -112,19 +126,22 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
         </Marker>
       ))}
 
-      {selectedMarker && (
+{selectedMarker && (
         <Popup
-          latitude={selectedMarker.Longitude || 0} // Replace 0 with a default value if needed
-          longitude={selectedMarker.Latitude || 0} // Replace 0 with a default value if needed
+          latitude={selectedMarker.latitude}
+          longitude={selectedMarker.longitude}
           onClose={() => setSelectedMarker(null)}
           closeButton={false}>
-          <div>
-            {/* Your popup content */}
-            Sensor ID: {selectedMarker["Sensor ID"]} <br />
-            Station Name: {selectedMarker["Station Name"]} <br />
-            Online?: {selectedMarker.isActive ? "Yes" : "No"} <br />
-            Latitude: {selectedMarker.Latitude || "N/A"} <br />
-            Longitude: {selectedMarker.Longitude || "N/A"}
+          <div style={{textAlign: "left"}}>
+
+          
+            <strong>Station Name:</strong> {selectedMarker.name} <br />
+            <strong>Description:</strong> {selectedMarker.description} <br />
+            <strong>Province:</strong> {selectedMarker.province} <br/>
+            <strong>City:</strong> {selectedMarker.city} <br/>
+            <strong>Last Seen: </strong> {selectedMarker.lastSeen} <br />
+            <strong>Latitude: </strong> {selectedMarker.latitude} <br />
+            <strong>Longitude: </strong> {selectedMarker.longitude}
           </div>
         </Popup>
       )}
@@ -133,5 +150,4 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
     </ReactMapGL>
   );
 };
-
 export default AppMap;
