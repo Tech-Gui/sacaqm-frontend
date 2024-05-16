@@ -60,7 +60,13 @@ function Dashboard() {
   //   .filter((data) => data.sensor_id === selectedSensor) // Filter data by sensor id
   //   .map((data) => data.timestamp);
 
-  const dates = nodeData.map((data) => data.timestamp);
+  const dates = nodeData.map((data) => {
+    const timestamp = new Date(data.timestamp);
+    // Adding 2 hours to convert to SA time
+    timestamp.setHours(timestamp.getHours() );
+    return timestamp;
+});
+
 
   const TemperatureChartData = {
     labels: dates,
