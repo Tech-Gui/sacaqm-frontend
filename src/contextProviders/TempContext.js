@@ -12,7 +12,7 @@ const TempProvider = ({ children }) => {
     const fetchTemperatureData = async () => {
       try {
         const response = await axios.get(
-          "https://sacaqm.onrender.com/api/sensors/all"
+          "https://try-again-test-isaiah.app.cern.ch/api/stations/6643846c0c059b90bb93ffbd/sensorData"
         );
 
         console.log(response.data);

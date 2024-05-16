@@ -56,9 +56,11 @@ function Dashboard() {
     maintainAspectRatio: true,
   };
 
-  const dates = nodeData
-    .filter((data) => data.sensor_id === selectedSensor) // Filter data by sensor id
-    .map((data) => data.timestamp);
+  // const dates = nodeData
+  //   .filter((data) => data.sensor_id === selectedSensor) // Filter data by sensor id
+  //   .map((data) => data.timestamp);
+
+  const dates = nodeData.map((data) => data.timestamp);
 
   const TemperatureChartData = {
     labels: dates,
@@ -66,7 +68,7 @@ function Dashboard() {
       {
         label: "Temperature",
         data: nodeData
-          .filter((item) => item.sensor_id === selectedSensor)
+          
           .map((data) => data.temperature),
         fill: true,
         backgroundColor: function (context) {
@@ -101,7 +103,7 @@ function Dashboard() {
         label: "PM2.5",
 
         data: nodeData
-          .filter((item) => item.sensor_id === selectedSensor)
+          
           .map((data) => data.pm2p5),
         fill: true,
         backgroundColor: function (context) {
@@ -133,7 +135,7 @@ function Dashboard() {
         label: "PM4.0",
 
         data: nodeData
-          .filter((item) => item.sensor_id === selectedSensor)
+          
           .map((data) => data.pm4p0),
         fill: true,
         backgroundColor: function (context) {
@@ -164,7 +166,7 @@ function Dashboard() {
       {
         label: "PM10.0",
         data: nodeData
-          .filter((item) => item.sensor_id === selectedSensor)
+          
           .map((data) => data.pm10p0),
         fill: true,
         backgroundColor: function (context) {
@@ -195,7 +197,7 @@ function Dashboard() {
       {
         label: "PM1.0",
         data: nodeData
-          .filter((item) => item.sensor_id === selectedSensor)
+          
           .map((data) => data.pm1p0),
         fill: true,
         backgroundColor: function (context) {
@@ -226,7 +228,7 @@ function Dashboard() {
       {
         label: "Humidity",
         data: nodeData
-          .filter((item) => item.sensor_id === selectedSensor)
+          
           .map((data) => data.humidity),
         fill: true,
         backgroundColor: function (context) {
@@ -257,7 +259,7 @@ function Dashboard() {
       {
         label: "Voc",
         data: nodeData
-          .filter((item) => item.sensor_id === selectedSensor)
+          
           .map((data) => data.voc),
         fill: true,
         backgroundColor: function (context) {
@@ -288,7 +290,7 @@ function Dashboard() {
       {
         label: "Nox",
         data: nodeData
-          .filter((item) => item.sensor_id === selectedSensor)
+          
           .map((data) => data.nox),
         fill: true,
         backgroundColor: function (context) {

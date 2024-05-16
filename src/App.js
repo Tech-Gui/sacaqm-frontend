@@ -14,6 +14,7 @@ import {
 } from "./contextProviders/sensorDataContext";
 import Stations from "./screens/Stations";
 import { TempProvider } from "./contextProviders/TempContext";
+import { StationProvider } from "./contextProviders/StationContext";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <DataTypeProvider>
           <SensorDataProvider>
             <TempProvider>
+            <StationProvider>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Dashboard />} />
@@ -31,6 +33,7 @@ function App() {
                 <Route path="/stations" element={<Stations />} />
                 <Route path="/information" element={<Information />} />
               </Routes>
+              </StationProvider>
             </TempProvider>
           </SensorDataProvider>
         </DataTypeProvider>
