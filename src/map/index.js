@@ -69,16 +69,17 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
   }, [selectedPeriod]);
 
   const { stations, loading, error } = useContext(StationContext);
-   // Log marker data when stations change
-   useEffect(() => {
+  // Log marker data when stations change
+  useEffect(() => {
     if (stations) {
-      stations.forEach(marker => console.log(marker.longitude));
+      stations.forEach((marker) => console.log(marker.longitude));
     }
   }, [stations]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
-  if (!stations || stations.length === 0) return <div>No stations available</div>;
+  if (!stations || stations.length === 0)
+    return <div>No stations available</div>;
 
   return (
     <ReactMapGL
@@ -89,15 +90,13 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
       mapStyle="mapbox://styles/mapbox/light-v11"
       transitionDuration="200"
       attributionControl={false}>
-      {/* Your map content */}
-
       {/* Static markers */}
       {stations.map((marker, index) => (
         <Marker
           key={index}
-          latitude={marker.latitude}  // Corrected latitude and longitude properties
+          latitude={marker.latitude} // Corrected latitude and longitude properties
           longitude={marker.longitude}>
-          <div   
+          <div
             onClick={() => {
               console.log(marker._id);
 
@@ -126,19 +125,17 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
         </Marker>
       ))}
 
-{selectedMarker && (
+      {selectedMarker && (
         <Popup
           latitude={selectedMarker.latitude}
           longitude={selectedMarker.longitude}
           onClose={() => setSelectedMarker(null)}
           closeButton={false}>
-          <div style={{textAlign: "left"}}>
-
-          
+          <div style={{ textAlign: "left" }}>
             <strong>Station Name:</strong> {selectedMarker.name} <br />
             <strong>Description:</strong> {selectedMarker.description} <br />
-            <strong>Province:</strong> {selectedMarker.province} <br/>
-            <strong>City:</strong> {selectedMarker.city} <br/>
+            <strong>Province:</strong> {selectedMarker.province} <br />
+            <strong>City:</strong> {selectedMarker.city} <br />
             <strong>Last Seen: </strong> {selectedMarker.lastSeen} <br />
             <strong>Latitude: </strong> {selectedMarker.latitude} <br />
             <strong>Longitude: </strong> {selectedMarker.longitude}

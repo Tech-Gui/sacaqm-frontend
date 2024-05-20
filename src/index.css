@@ -99,3 +99,26 @@ code {
   border: 2px solid #ffffff;
   /* Marker border color */
 }
+
+.col-height {
+  max-height: 25rem;
+  min-height: 25rem;
+}
+
+@media (max-width: 768px) {
+
+  /* Adjust the breakpoint as needed */
+  .col-height {
+    max-height: 20rem;
+    min-height: 20rem;
+  }
+}
+
+@media (max-width: 480px) {
+
+  /* Adjust the breakpoint as needed */
+  .col-height {
+    max-height: 15rem;
+    min-height: 12rem;
+  }
+}
