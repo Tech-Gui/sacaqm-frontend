@@ -327,7 +327,6 @@ function Dashboard() {
     }
 
     // setSensorName(station);
-    // onSelectSensor(sensorId);
   };
 
   const getStationNameByStationId = (sensorId) => {
@@ -413,7 +412,7 @@ function Dashboard() {
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
               }}>
-              {getStationNameByStationId(selectedSensor) || "Near You"}
+              {getStationNameByStationId(selectedSensor) || "Tshepisong"}
             </Dropdown.Toggle>
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
               {stations.map((station, index) => (
