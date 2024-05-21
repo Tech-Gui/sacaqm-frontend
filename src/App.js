@@ -13,7 +13,7 @@ import {
   useSensorData,
 } from "./contextProviders/sensorDataContext";
 import Stations from "./screens/Stations";
-import { TempProvider } from "./contextProviders/TempContext";
+import { DataProvider } from "./contextProviders/DataContext";
 import { StationProvider } from "./contextProviders/StationContext";
 
 function App() {
@@ -22,19 +22,19 @@ function App() {
       <BrowserRouter>
         <DataTypeProvider>
           <SensorDataProvider>
-            <TempProvider>
-            <StationProvider>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/test" element={<AppMap />} />
+            <DataProvider>
+              <StationProvider>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/test" element={<AppMap />} />
 
-                <Route path="/analytics" element={<AnalyticsScreen />} />
-                <Route path="/stations" element={<Stations />} />
-                <Route path="/information" element={<Information />} />
-              </Routes>
+                  <Route path="/analytics" element={<AnalyticsScreen />} />
+                  <Route path="/stations" element={<Stations />} />
+                  <Route path="/information" element={<Information />} />
+                </Routes>
               </StationProvider>
-            </TempProvider>
+            </DataProvider>
           </SensorDataProvider>
         </DataTypeProvider>
       </BrowserRouter>

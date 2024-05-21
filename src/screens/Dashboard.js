@@ -15,7 +15,7 @@ import AppMap from "../map/index.js";
 import { Dropdown } from "react-bootstrap";
 
 import { useSensorData } from "../contextProviders/sensorDataContext.js";
-import { TempContext } from "../contextProviders/TempContext.js";
+import { DataContext } from "../contextProviders/DataContext.js";
 import { StationContext } from "../contextProviders/StationContext.js";
 
 function Dashboard() {
@@ -26,7 +26,7 @@ function Dashboard() {
     setSelectedPeriod,
   } = useSensorData();
 
-  const { nodeData, setNodeData } = useContext(TempContext);
+  const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
   const { stations, loading, error, fetchStations } =
     useContext(StationContext);
   const [sensorName, setSensorName] = useState("Ikusasalethu Sec");
@@ -59,7 +59,7 @@ function Dashboard() {
   };
 
   // const dates = filteredData
-  //   .filter((data) => data.sensor_id === selectedSensor) // Filter data by sensor id
+  //   .filter((data) => data.sensor_id === selectedSensor) // Filter data by station id
   //   .map((data) => data.timestamp);
 
   const dates = filteredData.map((data) => {
@@ -315,30 +315,28 @@ function Dashboard() {
     setSelectedPeriod(period);
   };
 
-  const handleSensorSelect = (sensorId) => {
-    setSelectedSensor(sensorId);
+  const handleStationSelect = (stationId) => {
+    setSelectedSensor(stationId);
 
-    const sensor = stations.find((sensor) => sensor["Sensor ID"] === sensorId);
+    const station = stations.find((station) => station["_id"] === stationId);
 
-    if (sensor) {
-      console.log(sensor["Station Name"]);
-      // return sensor["Station Name"];
+    if (station) {
+      fetchNodeData(station._id);
     } else {
-      console.log("Sensor not found");
-      // return "Sensor not found";
+      console.log("station not found");
     }
 
-    setSensorName(sensor);
+    // setSensorName(station);
     // onSelectSensor(sensorId);
   };
 
-  const getStationNameBySensorId = (sensorId) => {
-    // Loop through each sensor data object
-    for (const sensor of stations) {
-      // Check if the current sensor's ID matches the provided sensorId
-      if (sensor["Sensor ID"] === sensorId) {
+  const getStationNameByStationId = (sensorId) => {
+    // Loop through each station data object
+    for (const station of stations) {
+      // Check if the current station's ID matches the provided sensorId
+      if (station["_id"] === sensorId) {
         // If there's a match, return the station name
-        return sensor["Station Name"];
+        return station["name"];
       }
     }
   };
@@ -381,11 +379,7 @@ function Dashboard() {
           return timestamp >= start && timestamp <= now;
         });
       }
-
-      console.log(start);
     }
-
-    console.log(filtered);
 
     setFilteredData(filtered);
   };
@@ -410,7 +404,7 @@ function Dashboard() {
         <TopNavBar />
 
         <div className="d-flex flex-row justify-content-between">
-          <Dropdown onSelect={(eventKey) => handleSensorSelect(eventKey)}>
+          <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
               size="sm"
@@ -419,12 +413,12 @@ function Dashboard() {
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
               }}>
-              {getStationNameBySensorId(selectedSensor) || "Near You"}
+              {getStationNameByStationId(selectedSensor) || "Near You"}
             </Dropdown.Toggle>
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
-              {stations.map((sensor, index) => (
-                <Dropdown.Item key={index} eventKey={sensor["Sensor ID"]}>
-                  {sensor["Station Name"]}
+              {stations.map((station, index) => (
+                <Dropdown.Item key={index} eventKey={station["_id"]}>
+                  {station["name"]}
                 </Dropdown.Item>
               ))}
             </Dropdown.Menu>

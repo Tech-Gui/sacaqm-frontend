@@ -7,7 +7,7 @@ import ChartCard from "../components/chartCard.js";
 import { useDataType } from "../contextProviders/dataTypeContext.js";
 import { useSensorData } from "../contextProviders/sensorDataContext.js";
 import { useNavigate } from "react-router-dom";
-import { TempContext } from "../contextProviders/TempContext.js";
+import { DataContext } from "../contextProviders/DataContext.js";
 import { StationContext } from "../contextProviders/StationContext.js";
 
 const AnalyticsScreen = () => {
@@ -20,7 +20,7 @@ const AnalyticsScreen = () => {
     fetchData,
   } = useSensorData();
 
-  const { nodeData } = useContext(TempContext);
+  const { nodeData } = useContext(DataContext);
 
   const { stations, loading, error, fetchStations } =
     useContext(StationContext);
