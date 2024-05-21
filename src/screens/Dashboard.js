@@ -13,10 +13,10 @@ import { FaTemperatureThreeQuarters } from "react-icons/fa6";
 import { WiHumidity } from "react-icons/wi";
 import AppMap from "../map/index.js";
 import { Dropdown } from "react-bootstrap";
-import sensorData from "../dummyData/SensorData.js";
-import { useNavigate } from "react-router-dom";
+
 import { useSensorData } from "../contextProviders/sensorDataContext.js";
 import { TempContext } from "../contextProviders/TempContext.js";
+import { StationContext } from "../contextProviders/StationContext.js";
 
 function Dashboard() {
   const {
@@ -26,12 +26,14 @@ function Dashboard() {
     setSelectedPeriod,
   } = useSensorData();
 
-  const { nodeData } = useContext(TempContext);
-
-  const navigate = useNavigate();
-  const [temp, setTemp] = useState(0);
-  const [hum, setHum] = useState(0);
+  const { nodeData, setNodeData } = useContext(TempContext);
+  const { stations, loading, error, fetchStations } =
+    useContext(StationContext);
   const [sensorName, setSensorName] = useState("Ikusasalethu Sec");
+
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [filteredData, setFilteredData] = useState([]);
 
   const chartOptions = {
     responsive: true,
@@ -56,11 +58,11 @@ function Dashboard() {
     maintainAspectRatio: true,
   };
 
-  // const dates = nodeData
+  // const dates = filteredData
   //   .filter((data) => data.sensor_id === selectedSensor) // Filter data by sensor id
   //   .map((data) => data.timestamp);
 
-  const dates = nodeData.map((data) => {
+  const dates = filteredData.map((data) => {
     const timestamp = new Date(data.timestamp);
     // Adding 2 hours to convert to SA time
     timestamp.setHours(timestamp.getHours());
@@ -72,7 +74,7 @@ function Dashboard() {
     datasets: [
       {
         label: "Temperature",
-        data: nodeData.map((data) => data.temperature),
+        data: filteredData.map((data) => data.temperature),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -104,7 +106,7 @@ function Dashboard() {
       {
         label: "PM2.5",
 
-        data: nodeData.map((data) => data.pm2p5),
+        data: filteredData.map((data) => data.pm2p5),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -134,7 +136,7 @@ function Dashboard() {
       {
         label: "PM4.0",
 
-        data: nodeData.map((data) => data.pm4p0),
+        data: filteredData.map((data) => data.pm4p0),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -163,7 +165,7 @@ function Dashboard() {
     datasets: [
       {
         label: "PM10.0",
-        data: nodeData.map((data) => data.pm10p0),
+        data: filteredData.map((data) => data.pm10p0),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -192,7 +194,7 @@ function Dashboard() {
     datasets: [
       {
         label: "PM1.0",
-        data: nodeData.map((data) => data.pm1p0),
+        data: filteredData.map((data) => data.pm1p0),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -221,7 +223,7 @@ function Dashboard() {
     datasets: [
       {
         label: "Humidity",
-        data: nodeData.map((data) => data.humidity),
+        data: filteredData.map((data) => data.humidity),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -250,7 +252,7 @@ function Dashboard() {
     datasets: [
       {
         label: "Voc",
-        data: nodeData.map((data) => data.voc),
+        data: filteredData.map((data) => data.voc),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -279,7 +281,7 @@ function Dashboard() {
     datasets: [
       {
         label: "Nox",
-        data: nodeData.map((data) => data.nox),
+        data: filteredData.map((data) => data.nox),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -311,15 +313,12 @@ function Dashboard() {
 
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
-    handleCardClick();
   };
 
   const handleSensorSelect = (sensorId) => {
     setSelectedSensor(sensorId);
 
-    const sensor = sensorData.find(
-      (sensor) => sensor["Sensor ID"] === sensorId
-    );
+    const sensor = stations.find((sensor) => sensor["Sensor ID"] === sensorId);
 
     if (sensor) {
       console.log(sensor["Station Name"]);
@@ -333,20 +332,62 @@ function Dashboard() {
     // onSelectSensor(sensorId);
   };
 
-  const handleCardClick = () => {
-    // After setting the selectedType, navigate to the analytics page
-    navigate("/dashboard");
-  };
-
   const getStationNameBySensorId = (sensorId) => {
     // Loop through each sensor data object
-    for (const sensor of sensorData) {
+    for (const sensor of stations) {
       // Check if the current sensor's ID matches the provided sensorId
       if (sensor["Sensor ID"] === sensorId) {
         // If there's a match, return the station name
         return sensor["Station Name"];
       }
     }
+  };
+
+  useEffect(() => {
+    filterData();
+  }, [startDate, endDate, selectedPeriod]);
+
+  useEffect(() => {
+    setFilteredData(nodeData);
+  }, [nodeData]);
+
+  const filterData = () => {
+    let filtered = nodeData;
+
+    if (selectedPeriod) {
+      const now = new Date();
+      let start = new Date();
+      switch (selectedPeriod) {
+        case "Today":
+          start.setHours(0, 0, 0, 0);
+          break;
+        case "LastDay":
+          start.setDate(now.getDate() - 1);
+          start.setHours(0, 0, 0, 0);
+          break;
+        case "7Days":
+          start.setDate(now.getDate() - 7);
+          break;
+        case "30Days":
+          start.setDate(now.getDate() - 77);
+          break;
+        default:
+          start = null;
+      }
+
+      if (start) {
+        filtered = nodeData.filter((item) => {
+          const timestamp = new Date(item.timestamp);
+          return timestamp >= start && timestamp <= now;
+        });
+      }
+
+      console.log(start);
+    }
+
+    console.log(filtered);
+
+    setFilteredData(filtered);
   };
 
   return (
@@ -380,9 +421,8 @@ function Dashboard() {
               }}>
               {getStationNameBySensorId(selectedSensor) || "Near You"}
             </Dropdown.Toggle>
-
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
-              {sensorData.map((sensor, index) => (
+              {stations.map((sensor, index) => (
                 <Dropdown.Item key={index} eventKey={sensor["Sensor ID"]}>
                   {sensor["Station Name"]}
                 </Dropdown.Item>
@@ -401,7 +441,6 @@ function Dashboard() {
               }}>
               {selectedPeriod}
             </Dropdown.Toggle>
-
             <Dropdown.Menu>
               <Dropdown.Item eventKey="Today">Today</Dropdown.Item>
               <Dropdown.Item eventKey="LastDay">Last Day</Dropdown.Item>
@@ -410,6 +449,7 @@ function Dashboard() {
             </Dropdown.Menu>
           </Dropdown>
         </div>
+
         <Row>
           <Col lg={7} md={12}>
             {" "}
@@ -445,7 +485,9 @@ function Dashboard() {
                       <StatsCard
                         title="NOX"
                         value={
-                          nodeData && nodeData.length > 0 ? noxValue : "...."
+                          filteredData && filteredData.length > 0
+                            ? noxValue
+                            : "...."
                         }
                         wrappedComponent={
                           <IconBadge
@@ -464,7 +506,9 @@ function Dashboard() {
                     <StatsCard
                       title="VOC"
                       value={
-                        nodeData && nodeData.length > 0 ? vocValue : "...."
+                        filteredData && filteredData.length > 0
+                          ? vocValue
+                          : "...."
                       }
                       wrappedComponent={
                         <IconBadge
@@ -482,7 +526,9 @@ function Dashboard() {
                     <StatsCard
                       title="PM 1.0"
                       value={
-                        nodeData && nodeData.length > 0 ? pm1Value : "...."
+                        filteredData && filteredData.length > 0
+                          ? pm1Value
+                          : "...."
                       }
                       wrappedComponent={
                         <IconBadge
@@ -499,7 +545,9 @@ function Dashboard() {
                     <StatsCard
                       title="PM 2.5"
                       value={
-                        nodeData && nodeData.length > 0 ? pm2p05Value : "...."
+                        filteredData && filteredData.length > 0
+                          ? pm2p05Value
+                          : "...."
                       }
                       wrappedComponent={
                         <IconBadge
@@ -547,7 +595,7 @@ function Dashboard() {
                       fontFamily: "Helvetica Neue",
                       textAlign: "left",
                     }}></h6>
-                  {nodeData && nodeData.length > 0 ? (
+                  {filteredData && filteredData.length > 0 ? (
                     <ChartCard
                       data={pm4p0chartData}
                       options={chartOptions}
@@ -576,7 +624,7 @@ function Dashboard() {
                     paddingBottom: "0.2rem",
                     minHeight: "26vh",
                   }}>
-                  {nodeData && nodeData.length > 0 ? (
+                  {filteredData && filteredData.length > 0 ? (
                     <ChartCard
                       data={pm10p0chartData}
                       options={chartOptions}
@@ -609,7 +657,7 @@ function Dashboard() {
                 paddingBottom: "0.2rem",
                 minHeight: "25vh",
               }}>
-              {nodeData && nodeData.length > 0 ? (
+              {filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={pm1p0chartData}
                   options={chartOptions}
@@ -637,7 +685,7 @@ function Dashboard() {
                 paddingBottom: "0.2rem",
                 minHeight: "25vh",
               }}>
-              {nodeData && nodeData.length > 0 ? (
+              {filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={pm2p5chartData}
                   options={chartOptions}
@@ -667,7 +715,7 @@ function Dashboard() {
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                 paddingBottom: "0.2rem",
               }}>
-              {nodeData ? (
+              {filteredData ? (
                 <ChartCard
                   data={TemperatureChartData}
                   options={chartOptions}
@@ -684,7 +732,7 @@ function Dashboard() {
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                 paddingBottom: "0.2rem",
               }}>
-              {nodeData ? (
+              {filteredData ? (
                 <ChartCard
                   data={HumiditychartData}
                   options={chartOptions}

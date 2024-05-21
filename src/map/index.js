@@ -8,7 +8,7 @@ import ReactMapGL, {
 } from "react-map-gl";
 import { TOKEN } from "./Geocoder";
 import "mapbox-gl/dist/mapbox-gl.css";
-import sensorData from "../dummyData/SensorData";
+
 import { MdOutlineSensors } from "react-icons/md";
 import { useSensorData } from "../contextProviders/sensorDataContext";
 import { StationContext } from "../contextProviders/StationContext";
@@ -69,12 +69,8 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
   }, [selectedPeriod]);
 
   const { stations, loading, error } = useContext(StationContext);
-  // Log marker data when stations change
-  useEffect(() => {
-    if (stations) {
-      stations.forEach((marker) => console.log(marker.longitude));
-    }
-  }, [stations]);
+
+  console.log(stations);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;

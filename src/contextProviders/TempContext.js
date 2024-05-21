@@ -5,18 +5,18 @@ import axios from "axios";
 const TempContext = createContext();
 
 const TempProvider = ({ children }) => {
-  const [nodeData, setTemperatureData] = useState([]);
+  const [nodeData, setNodeData] = useState([]);
 
   useEffect(() => {
     // Fetch temperature data from your backend API using Axios
     const fetchTemperatureData = async () => {
       try {
         const response = await axios.get(
-          "https://try-again-test-isaiah.app.cern.ch/api/stations/6643846c0c059b90bb93ffbd/sensorData"
+          "https://try-again-test-isaiah.app.cern.ch/api/stations/664b2e399280a4a69cfb9ddb/sensorData"
         );
 
         console.log(response.data);
-        setTemperatureData(response.data);
+        setNodeData(response.data);
       } catch (error) {
         console.error("Error fetching temperature data:", error);
       }
@@ -26,7 +26,9 @@ const TempProvider = ({ children }) => {
   }, []);
 
   return (
-    <TempContext.Provider value={{ nodeData }}>{children}</TempContext.Provider>
+    <TempContext.Provider value={{ nodeData, setNodeData }}>
+      {children}
+    </TempContext.Provider>
   );
 };
 
