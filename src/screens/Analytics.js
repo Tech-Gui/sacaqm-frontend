@@ -1,13 +1,14 @@
-import React, { useContext , useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Container, Row, Col, Card, Dropdown } from "react-bootstrap";
 import Sidebar from "../components/SideBar";
 import TopNavBar from "../components/topNavBar";
 import ChartCard from "../components/chartCard.js";
-import sensorData from "../dummyData/SensorData.js";
+
 import { useDataType } from "../contextProviders/dataTypeContext.js";
 import { useSensorData } from "../contextProviders/sensorDataContext.js";
 import { useNavigate } from "react-router-dom";
-import { TempContext } from "../contextProviders/TempContext.js";
+import { DataContext } from "../contextProviders/DataContext.js";
+import { StationContext } from "../contextProviders/StationContext.js";
 
 const AnalyticsScreen = () => {
   const {
@@ -19,12 +20,14 @@ const AnalyticsScreen = () => {
     fetchData,
   } = useSensorData();
 
-  const { nodeData } = useContext(TempContext);
+  const { nodeData } = useContext(DataContext);
+
+  const { stations, loading, error, fetchStations } =
+    useContext(StationContext);
 
   const dates = nodeData
-  .filter((data) => data.sensor_id === selectedSensor) // Filter data by sensor id
-  .map((data) => data.timestamp);
-
+    .filter((data) => data.sensor_id === selectedSensor) // Filter data by sensor id
+    .map((data) => data.timestamp);
 
   const navigate = useNavigate();
   useEffect(() => {
@@ -33,28 +36,21 @@ const AnalyticsScreen = () => {
 
   const { selectedType, handleTypeSelect } = useDataType();
 
-  if(selectedType === "Pm1p0"){
+  if (selectedType === "Pm1p0") {
     var title = "Pm 1.0 (μg/m³)";
-  }
-  else if(selectedType === "Pm2p5"){
+  } else if (selectedType === "Pm2p5") {
     var title = "Pm 2.5 (μg/m³)";
-  }
-  else if(selectedType === "Pm4p0"){
+  } else if (selectedType === "Pm4p0") {
     var title = "Pm 4.0 (μg/m³)";
-  }
-  else if(selectedType === "Pm10p0"){
+  } else if (selectedType === "Pm10p0") {
     var title = "Pm 10.0 (μg/m³)";
-  }
-  else if(selectedType === "Temperature"){
+  } else if (selectedType === "Temperature") {
     var title = "Temperature (°C)";
-  }
-  else if(selectedType === "Humidity"){
+  } else if (selectedType === "Humidity") {
     var title = "Humidity (%)";
-  }
-  else if(selectedType === "Voc"){
+  } else if (selectedType === "Voc") {
     var title = "Voc (Ppb)";
-  }
-  else if(selectedType === "Nox"){
+  } else if (selectedType === "Nox") {
     var title = "Nox (Ppb)";
   }
 
@@ -79,42 +75,32 @@ const AnalyticsScreen = () => {
     }
     return title;
   }
-  
-
-  
 
   const filteredData = nodeData
-  .filter((item) => item.sensor_id === selectedSensor)
-  .map((data) => {
-    // Check the value of selectedType and return the corresponding data property
-    if (selectedType === "Humidity") {
-      return data.humidity;
-    } 
-    else if (selectedType === "Temperature") {
-      return data.temperature;
-    } 
-    else if (selectedType === "Nox") {
-      return data.nox;
-    } 
-    else if (selectedType === "Voc") {
-      return data.voc;
-    }
-    else if (selectedType === "Pm1p0") {
-      return data.pm1p0;
-    } 
-    else if (selectedType === "Pm2p5") {
-      return data.pm2p5;
-    } 
-    else if (selectedType === "Pm4p0") {
-      return data.pm4p0;
-    } 
-    else if (selectedType === "Pm10p0") {
-      return data.pm10p0;
-    } 
-    
-    // Default case if selectedType doesn't match any condition
-    return null; // or return some default value
-  });
+    .filter((item) => item.sensor_id === selectedSensor)
+    .map((data) => {
+      // Check the value of selectedType and return the corresponding data property
+      if (selectedType === "Humidity") {
+        return data.humidity;
+      } else if (selectedType === "Temperature") {
+        return data.temperature;
+      } else if (selectedType === "Nox") {
+        return data.nox;
+      } else if (selectedType === "Voc") {
+        return data.voc;
+      } else if (selectedType === "Pm1p0") {
+        return data.pm1p0;
+      } else if (selectedType === "Pm2p5") {
+        return data.pm2p5;
+      } else if (selectedType === "Pm4p0") {
+        return data.pm4p0;
+      } else if (selectedType === "Pm10p0") {
+        return data.pm10p0;
+      }
+
+      // Default case if selectedType doesn't match any condition
+      return null; // or return some default value
+    });
 
   const chartInfo = {
     labels: dates,
@@ -147,7 +133,6 @@ const AnalyticsScreen = () => {
 
   // const selectedData = data[selectedType];
   const selectedData = chartInfo;
-
 
   // console.log(data)
 
@@ -195,14 +180,14 @@ const AnalyticsScreen = () => {
 
   const getStationNameBySensorId = (sensorId) => {
     // Loop through each sensor data object
-    for (const sensor of sensorData) {
+    for (const sensor of stations) {
       // Check if the current sensor's ID matches the provided sensorId
       if (sensor["Sensor ID"] === sensorId) {
         // If there's a match, return the station name
         return sensor["Station Name"];
       }
     }
-  }
+  };
 
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
@@ -231,7 +216,7 @@ const AnalyticsScreen = () => {
           overflowY: "scroll",
           padding: "2rem",
         }}>
-          <TopNavBar />
+        <TopNavBar />
         <div className="d-flex flex-row justify-content-between">
           <Dropdown onSelect={(eventKey) => handleSensorSelect(eventKey)}>
             <Dropdown.Toggle
@@ -241,11 +226,11 @@ const AnalyticsScreen = () => {
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
               }}>
-              {  getStationNameBySensorId(selectedSensor)   || "Select Sensor" }
+              {getStationNameBySensorId(selectedSensor) || "Select Sensor"}
             </Dropdown.Toggle>
 
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
-              {sensorData.map((sensor, index) => (
+              {stations.map((sensor, index) => (
                 <Dropdown.Item key={index} eventKey={sensor["Sensor ID"]}>
                   {sensor["Station Name"]}
                 </Dropdown.Item>
@@ -321,7 +306,7 @@ const AnalyticsScreen = () => {
                   data={selectedData}
                   options={chartOptions}
                   // title={selectedType}
-                  title = {title}
+                  title={title}
                 />
               ) : null}
             </Card>

@@ -13,10 +13,10 @@ import { FaTemperatureThreeQuarters } from "react-icons/fa6";
 import { WiHumidity } from "react-icons/wi";
 import AppMap from "../map/index.js";
 import { Dropdown } from "react-bootstrap";
-import sensorData from "../dummyData/SensorData.js";
-import { useNavigate } from "react-router-dom";
+
 import { useSensorData } from "../contextProviders/sensorDataContext.js";
-import { TempContext } from "../contextProviders/TempContext.js";
+import { DataContext } from "../contextProviders/DataContext.js";
+import { StationContext } from "../contextProviders/StationContext.js";
 
 function Dashboard() {
   const {
@@ -26,12 +26,14 @@ function Dashboard() {
     setSelectedPeriod,
   } = useSensorData();
 
-  const { nodeData } = useContext(TempContext);
-
-  const navigate = useNavigate();
-  const [temp, setTemp] = useState(0);
-  const [hum, setHum] = useState(0);
+  const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
+  const { stations, loading, error, fetchStations } =
+    useContext(StationContext);
   const [sensorName, setSensorName] = useState("Ikusasalethu Sec");
+
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [filteredData, setFilteredData] = useState([]);
 
   const chartOptions = {
     responsive: true,
@@ -56,26 +58,23 @@ function Dashboard() {
     maintainAspectRatio: true,
   };
 
-  // const dates = nodeData
-  //   .filter((data) => data.sensor_id === selectedSensor) // Filter data by sensor id
+  // const dates = filteredData
+  //   .filter((data) => data.sensor_id === selectedSensor) // Filter data by station id
   //   .map((data) => data.timestamp);
 
-  const dates = nodeData.map((data) => {
+  const dates = filteredData.map((data) => {
     const timestamp = new Date(data.timestamp);
     // Adding 2 hours to convert to SA time
-    timestamp.setHours(timestamp.getHours() );
+    timestamp.setHours(timestamp.getHours());
     return timestamp;
-});
-
+  });
 
   const TemperatureChartData = {
     labels: dates,
     datasets: [
       {
         label: "Temperature",
-        data: nodeData
-          
-          .map((data) => data.temperature),
+        data: filteredData.map((data) => data.temperature),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -100,7 +99,6 @@ function Dashboard() {
   };
 
   // console.log(TemperatureChartData.datasets[0].data.slice(-1)[0])
-  
 
   const pm2p5chartData = {
     labels: dates,
@@ -108,9 +106,7 @@ function Dashboard() {
       {
         label: "PM2.5",
 
-        data: nodeData
-          
-          .map((data) => data.pm2p5),
+        data: filteredData.map((data) => data.pm2p5),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -140,9 +136,7 @@ function Dashboard() {
       {
         label: "PM4.0",
 
-        data: nodeData
-          
-          .map((data) => data.pm4p0),
+        data: filteredData.map((data) => data.pm4p0),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -171,9 +165,7 @@ function Dashboard() {
     datasets: [
       {
         label: "PM10.0",
-        data: nodeData
-          
-          .map((data) => data.pm10p0),
+        data: filteredData.map((data) => data.pm10p0),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -202,9 +194,7 @@ function Dashboard() {
     datasets: [
       {
         label: "PM1.0",
-        data: nodeData
-          
-          .map((data) => data.pm1p0),
+        data: filteredData.map((data) => data.pm1p0),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -233,9 +223,7 @@ function Dashboard() {
     datasets: [
       {
         label: "Humidity",
-        data: nodeData
-          
-          .map((data) => data.humidity),
+        data: filteredData.map((data) => data.humidity),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -264,9 +252,7 @@ function Dashboard() {
     datasets: [
       {
         label: "Voc",
-        data: nodeData
-          
-          .map((data) => data.voc),
+        data: filteredData.map((data) => data.voc),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -295,9 +281,7 @@ function Dashboard() {
     datasets: [
       {
         label: "Nox",
-        data: nodeData
-          
-          .map((data) => data.nox),
+        data: filteredData.map((data) => data.nox),
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -321,51 +305,83 @@ function Dashboard() {
     ],
   };
 
-  var noxValue = NoxChartData.datasets[0].data.slice(-1)[0]
-  var tempDisplay = TemperatureChartData.datasets[0].data.slice(-1)[0]
-  var vocValue = VocchartData.datasets[0].data.slice(-1)[0]
-  var pm1Value = pm1p0chartData.datasets[0].data.slice(-1)[0]
-  var pm2p05Value = pm2p5chartData.datasets[0].data.slice(-1)[0]
-
+  var noxValue = NoxChartData.datasets[0].data.slice(-1)[0];
+  var tempDisplay = TemperatureChartData.datasets[0].data.slice(-1)[0];
+  var vocValue = VocchartData.datasets[0].data.slice(-1)[0];
+  var pm1Value = pm1p0chartData.datasets[0].data.slice(-1)[0];
+  var pm2p05Value = pm2p5chartData.datasets[0].data.slice(-1)[0];
 
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
-    handleCardClick();
   };
 
-  const handleSensorSelect = (sensorId) => {
-    setSelectedSensor(sensorId);
+  const handleStationSelect = (stationId) => {
+    setSelectedSensor(stationId);
 
-    const sensor = sensorData.find(sensor => sensor["Sensor ID"] === sensorId);
+    const station = stations.find((station) => station["_id"] === stationId);
 
-    if (sensor) {
-      console.log(sensor["Station Name"])
-      // return sensor["Station Name"];
+    if (station) {
+      fetchNodeData(station._id);
     } else {
-      console.log("Sensor not found")
-      // return "Sensor not found";
+      console.log("station not found");
     }
 
-    setSensorName(sensor)
-    // onSelectSensor(sensorId);
+    // setSensorName(station);
   };
 
-  const handleCardClick = () => {
-    // After setting the selectedType, navigate to the analytics page
-    navigate("/dashboard");
-  };
-
-
-  const getStationNameBySensorId = (sensorId) => {
-    // Loop through each sensor data object
-    for (const sensor of sensorData) {
-      // Check if the current sensor's ID matches the provided sensorId
-      if (sensor["Sensor ID"] === sensorId) {
+  const getStationNameByStationId = (sensorId) => {
+    // Loop through each station data object
+    for (const station of stations) {
+      // Check if the current station's ID matches the provided sensorId
+      if (station["_id"] === sensorId) {
         // If there's a match, return the station name
-        return sensor["Station Name"];
+        return station["name"];
       }
     }
-  }
+  };
+
+  useEffect(() => {
+    filterData();
+  }, [startDate, endDate, selectedPeriod]);
+
+  useEffect(() => {
+    setFilteredData(nodeData);
+  }, [nodeData]);
+
+  const filterData = () => {
+    let filtered = nodeData;
+
+    if (selectedPeriod) {
+      const now = new Date();
+      let start = new Date();
+      switch (selectedPeriod) {
+        case "Today":
+          start.setHours(0, 0, 0, 0);
+          break;
+        case "LastDay":
+          start.setDate(now.getDate() - 1);
+          start.setHours(0, 0, 0, 0);
+          break;
+        case "7Days":
+          start.setDate(now.getDate() - 7);
+          break;
+        case "30Days":
+          start.setDate(now.getDate() - 77);
+          break;
+        default:
+          start = null;
+      }
+
+      if (start) {
+        filtered = nodeData.filter((item) => {
+          const timestamp = new Date(item.timestamp);
+          return timestamp >= start && timestamp <= now;
+        });
+      }
+    }
+
+    setFilteredData(filtered);
+  };
 
   return (
     <div
@@ -384,11 +400,10 @@ function Dashboard() {
           maxHeight: "100vh",
           overflowY: "scroll",
         }}>
-
-      <TopNavBar />
+        <TopNavBar />
 
         <div className="d-flex flex-row justify-content-between">
-          <Dropdown onSelect={(eventKey) => handleSensorSelect(eventKey)}>
+          <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
               size="sm"
@@ -397,13 +412,12 @@ function Dashboard() {
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
               }}>
-              {getStationNameBySensorId(selectedSensor) || "Near You"}
+              {getStationNameByStationId(selectedSensor) || "Tshepisong"}
             </Dropdown.Toggle>
-
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
-              {sensorData.map((sensor, index) => (
-                <Dropdown.Item key={index} eventKey={sensor["Sensor ID"]}>
-                  {sensor["Station Name"]}
+              {stations.map((station, index) => (
+                <Dropdown.Item key={index} eventKey={station["_id"]}>
+                  {station["name"]}
                 </Dropdown.Item>
               ))}
             </Dropdown.Menu>
@@ -420,7 +434,6 @@ function Dashboard() {
               }}>
               {selectedPeriod}
             </Dropdown.Toggle>
-
             <Dropdown.Menu>
               <Dropdown.Item eventKey="Today">Today</Dropdown.Item>
               <Dropdown.Item eventKey="LastDay">Last Day</Dropdown.Item>
@@ -429,8 +442,11 @@ function Dashboard() {
             </Dropdown.Menu>
           </Dropdown>
         </div>
+
         <Row>
-          <Col lg= {7}  md={12}> {/*this is the map card*/}
+          <Col lg={7} md={12}>
+            {" "}
+            {/*this is the map card*/}
             <Card
               className="mt-1 p-2"
               style={{
@@ -438,107 +454,123 @@ function Dashboard() {
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                 width: "100%",
                 minHeight: "53vh",
+                maxHeight: "53vh",
               }}>
-                <Row className="d-flex justify-content-center">
-                  <h6
-                    style={{
-                      color: "#666",
-                      fontWeight: "bold",
-                      fontSize: "10px",
-                      fontFamily: "Helvetica Neue",
-                      textAlign: "left",
-                      paddingLeft: "1.5rem"
-                    }}>
-                    NEAR YOU
-                  </h6>
+              <Row className="d-flex justify-content-center">
+                <h6
+                  style={{
+                    color: "#666",
+                    fontWeight: "bold",
+                    fontSize: "10px",
+                    fontFamily: "Helvetica Neue",
+                    textAlign: "left",
+                    paddingLeft: "1.5rem",
+                  }}>
+                  NEAR YOU
+                </h6>
 
-                  <Row className="d-flex justify-content-between" style={{marginLeft: '0.5rem', marginRight: '0.5rem'}}>
-                    <Col className="mb-1">
-                      {" "}
-                      <div style={{ cursor: "pointer" }}>
-                        <StatsCard
-                          title="NOX"
-                          value = {nodeData && nodeData.length > 0 ? noxValue : "...."}
-                          wrappedComponent={
-                            <IconBadge
-                              icon={<MdOutlineAir />}
-                              backgroundColor="rgba(255, 216, 0, 0.3)"
-                              color="#990033"
-                              iconSize={16}
-                            />
-                          }
+                <Row
+                  className="d-flex justify-content-between"
+                  style={{ marginLeft: "0.5rem", marginRight: "0.5rem" }}>
+                  <Col className="mb-1">
+                    {" "}
+                    <div style={{ cursor: "pointer" }}>
+                      <StatsCard
+                        title="NOX"
+                        value={
+                          filteredData && filteredData.length > 0
+                            ? noxValue
+                            : "...."
+                        }
+                        wrappedComponent={
+                          <IconBadge
+                            icon={<MdOutlineAir />}
+                            backgroundColor="rgba(255, 216, 0, 0.3)"
+                            color="#990033"
+                            iconSize={16}
+                          />
+                        }
+                      />
+                    </div>
+                  </Col>
+
+                  <Col className="mb-1">
+                    {" "}
+                    <StatsCard
+                      title="VOC"
+                      value={
+                        filteredData && filteredData.length > 0
+                          ? vocValue
+                          : "...."
+                      }
+                      wrappedComponent={
+                        <IconBadge
+                          icon={<GiDustCloud />}
+                          backgroundColor="rgba(0, 0, 255, 0.3)"
+                          color="#00f"
+                          iconSize={15}
                         />
-                      </div>
+                      }
+                    />
+                  </Col>
 
-                      
-                    </Col>
+                  <Col>
+                    {" "}
+                    <StatsCard
+                      title="PM 1.0"
+                      value={
+                        filteredData && filteredData.length > 0
+                          ? pm1Value
+                          : "...."
+                      }
+                      wrappedComponent={
+                        <IconBadge
+                          icon={<WiHumidity />}
+                          backgroundColor="rgba(0, 255, 0, 0.3)"
+                          color="#08A045"
+                          iconSize={19}
+                        />
+                      }
+                    />
+                  </Col>
+                  <Col>
+                    {" "}
+                    <StatsCard
+                      title="PM 2.5"
+                      value={
+                        filteredData && filteredData.length > 0
+                          ? pm2p05Value
+                          : "...."
+                      }
+                      wrappedComponent={
+                        <IconBadge
+                          icon={<FaTemperatureThreeQuarters />}
+                          backgroundColor="rgba(255, 87, 51, 0.5)"
+                          color="#F00"
+                          iconSize={15}
+                        />
+                      }
+                    />
+                  </Col>
+                </Row>
 
-                    <Col className="mb-1">
-                      {" "}
-                      <StatsCard
-                        title="VOC"
-                        value={nodeData && nodeData.length > 0 ? vocValue : "...."}
-                        wrappedComponent={
-                          <IconBadge
-                            icon={<GiDustCloud />}
-                            backgroundColor="rgba(0, 0, 255, 0.3)"
-                            color="#00f"
-                            iconSize={15}
-                          />
-                        }
-                      />
-                    </Col>
-
-                    <Col >
-                      {" "}
-                      <StatsCard
-                        title="PM 1.0"
-                        value={nodeData && nodeData.length > 0 ? pm1Value : "...."}
-                        wrappedComponent={
-                          <IconBadge
-                            icon={<WiHumidity />}
-                            backgroundColor="rgba(0, 255, 0, 0.3)"
-                            color="#08A045"
-                            iconSize={19}
-                          />
-                        }
-                      />
-                    </Col>
-                    <Col >
-                      {" "}
-                      <StatsCard
-                        title="PM 2.5"
-                        value={nodeData && nodeData.length > 0 ? pm2p05Value : "...."}
-                        wrappedComponent={
-                          <IconBadge
-                            icon={<FaTemperatureThreeQuarters />}
-                            backgroundColor="rgba(255, 87, 51, 0.5)"
-                            color="#F00"
-                            iconSize={15}
-                          />
-                        }
-                      />
+                <div
+                  style={{
+                    width: "100%",
+                    padding: "1.5rem",
+                    paddingTop: "0,2rem",
+                  }}>
+                  <Row className="d-flex justify-content-center">
+                    <Col className="col-height">
+                      <AppMap selSensor={selectedSensor} />
                     </Col>
                   </Row>
-
-
-                  <div 
-                    style={{width: "100%", padding: "1.5rem", paddingTop: "0,2rem"
-                  }}
-                    >
-                      <Row className="d-flex justify-content-center" >
-                        <Col className="" style={{ height: "25rem", }}>
-                          <AppMap selSensor={selectedSensor} />
-                        </Col>
-                      </Row>
-                  </div>
-                </Row>
-              
+                </div>
+              </Row>
             </Card>
           </Col>
 
-          <Col lg= {5}  md={12} sm={6} className="m-0">
-
+          <Col lg={5} md={12} sm={6} className="m-0">
             <Row>
               <Col md={6} lg={12}>
                 <Card
@@ -556,7 +588,7 @@ function Dashboard() {
                       fontFamily: "Helvetica Neue",
                       textAlign: "left",
                     }}></h6>
-                  {nodeData && nodeData.length > 0 ? (
+                  {filteredData && filteredData.length > 0 ? (
                     <ChartCard
                       data={pm4p0chartData}
                       options={chartOptions}
@@ -575,7 +607,7 @@ function Dashboard() {
                   )}
                 </Card>
               </Col>
-              
+
               <Col md={6} lg={12}>
                 <Card
                   className="mt-2 "
@@ -585,7 +617,7 @@ function Dashboard() {
                     paddingBottom: "0.2rem",
                     minHeight: "26vh",
                   }}>
-                  {nodeData && nodeData.length > 0 ? (
+                  {filteredData && filteredData.length > 0 ? (
                     <ChartCard
                       data={pm10p0chartData}
                       options={chartOptions}
@@ -604,12 +636,10 @@ function Dashboard() {
                   )}
                 </Card>
               </Col>
-
             </Row>
-
           </Col>
         </Row>
-        
+
         <Row>
           <Col md={6}>
             <Card
@@ -620,7 +650,7 @@ function Dashboard() {
                 paddingBottom: "0.2rem",
                 minHeight: "25vh",
               }}>
-              {nodeData && nodeData.length > 0 ? (
+              {filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={pm1p0chartData}
                   options={chartOptions}
@@ -648,7 +678,7 @@ function Dashboard() {
                 paddingBottom: "0.2rem",
                 minHeight: "25vh",
               }}>
-              {nodeData && nodeData.length > 0 ? (
+              {filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={pm2p5chartData}
                   options={chartOptions}
@@ -678,7 +708,7 @@ function Dashboard() {
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                 paddingBottom: "0.2rem",
               }}>
-              {nodeData ? (
+              {filteredData ? (
                 <ChartCard
                   data={TemperatureChartData}
                   options={chartOptions}
@@ -695,7 +725,7 @@ function Dashboard() {
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                 paddingBottom: "0.2rem",
               }}>
-              {nodeData ? (
+              {filteredData ? (
                 <ChartCard
                   data={HumiditychartData}
                   options={chartOptions}
