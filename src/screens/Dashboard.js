@@ -17,6 +17,7 @@ import { Dropdown } from "react-bootstrap";
 import { useSensorData } from "../contextProviders/sensorDataContext.js";
 import { DataContext } from "../contextProviders/DataContext.js";
 import { StationContext } from "../contextProviders/StationContext.js";
+import { useDataType } from "../contextProviders/dataTypeContext.js";
 
 function Dashboard() {
   const {
@@ -29,7 +30,7 @@ function Dashboard() {
   const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
   const { stations, loading, error, fetchStations } =
     useContext(StationContext);
-  const [sensorName, setSensorName] = useState("Ikusasalethu Sec");
+  const { selectedType, handleTypeSelect } = useDataType();
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -57,10 +58,6 @@ function Dashboard() {
     },
     maintainAspectRatio: true,
   };
-
-  // const dates = filteredData
-  //   .filter((data) => data.sensor_id === selectedSensor) // Filter data by station id
-  //   .map((data) => data.timestamp);
 
   const dates = filteredData.map((data) => {
     const timestamp = new Date(data.timestamp);
