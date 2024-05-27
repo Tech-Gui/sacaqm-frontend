@@ -12,6 +12,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { MdOutlineSensors } from "react-icons/md";
 import { useSensorData } from "../contextProviders/sensorDataContext";
 import { StationContext } from "../contextProviders/StationContext";
+import { DataContext } from "../contextProviders/DataContext";
 
 const AppMap = ({ mapRef, polygonCord, layerColor }) => {
   const [newPlace, setNewPlace] = useState(null);
@@ -24,36 +25,6 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
   const [activeSensor, setActiveSensor] = useState("");
 
   const [selectedMarker, setSelectedMarker] = useState(null);
-  const geojson = {
-    type: "Feature",
-    geometry: {
-      type: "Polygon",
-      coordinates: [polygonCord],
-    },
-  };
-
-  const layerStyle = {
-    id: "maine",
-    type: "fill",
-    source: "maine", // reference the data source
-    layout: {},
-    paint: {
-      "fill-color": layerColor || "#0080ff", // blue color fill
-      "fill-opacity": 0.5,
-    },
-  };
-
-  // Add a black outline around the polygon.
-  const layerOutlineStyle = {
-    id: "outline",
-    type: "line",
-    source: "maine",
-    layout: {},
-    paint: {
-      "line-color": "#000",
-      "line-width": 3,
-    },
-  };
 
   const {
     data,
@@ -64,9 +35,20 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
     fetchData,
   } = useSensorData();
 
+  const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
+
   useEffect(() => {
-    fetchData();
-  }, [selectedPeriod]);
+    const station = stations.find(
+      (station) => station["_id"] === selectedSensor
+    );
+
+    if (station) {
+      fetchNodeData(station._id);
+      console.log("station found baba");
+    } else {
+      console.log("station not found");
+    }
+  }, [selectedPeriod, selectedSensor]);
 
   const { stations, loading, error } = useContext(StationContext);
 

@@ -68,7 +68,20 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
   const navigate = useNavigate();
   const { selectedType, handleTypeSelect } = useDataType();
   const handleCardClick = () => {
-    handleTypeSelect(title);
+    // Split the title by whitespace
+    const words = title.split(/\s+/);
+    console.log(words);
+
+    let cleanTitle = words[0].toLowerCase();
+
+    cleanTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
+
+    // If there's a dot in the second word, replace it with 'p'
+    if (cleanTitle.length > 1 && cleanTitle.includes(".")) {
+      cleanTitle = cleanTitle.replace(".", "p");
+    }
+    console.log(cleanTitle);
+    handleTypeSelect(cleanTitle);
     // After setting the selectedType, navigate to the analytics page
     navigate("/analytics");
   };
