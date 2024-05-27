@@ -445,13 +445,11 @@ function Dashboard() {
             {" "}
             {/*this is the map card*/}
             <Card
-              className="mt-1 p-2"
+              className="mt-1 p-2 mapcard"
               style={{
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                 width: "100%",
-                minHeight: "53vh",
-                maxHeight: "53vh",
               }}>
               <Row className="d-flex justify-content-center">
                 <h6
