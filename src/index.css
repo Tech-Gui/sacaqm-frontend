@@ -109,8 +109,8 @@ code {
 
   /* Adjust the breakpoint as needed */
   .col-height {
-    max-height: 20rem;
-    min-height: 20rem;
+    max-height: 36vh;
+    min-height: 36vh;
   }
 }
 
@@ -118,7 +118,36 @@ code {
 
   /* Adjust the breakpoint as needed */
   .col-height {
-    max-height: 15rem;
-    min-height: 12rem;
+    max-height: 30vh;
+    min-height: 30vh;
   }
 }
+
+@media (min-width: 2560px) {
+
+  /* Adjust the breakpoint as needed */
+  .col-height {
+    max-height: 45vh;
+    min-height: 45vh;
+  }
+}
+
+
+.mapcard {
+  max-height: 52.5vh;
+  min-height: 52.5vh;
+}
+
+
+@media (min-width: 2560px) {
+
+  /* Adjust the breakpoint as needed */
+  .mapcard {
+    max-height: 52.5vh;
+    min-height: 52.5vh;
+  }
+}
+
+
+
+

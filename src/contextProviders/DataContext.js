@@ -16,12 +16,12 @@ const DataProvider = ({ children }) => {
 
       setNodeData(response.data);
     } catch (error) {
-      console.error("Error fetching temperature data:", error);
+      console.error("Error fetching data:", error);
     }
   };
 
   useEffect(() => {
-    fetchNodeData("664b2e399280a4a69cfb9ddb");
+    fetchNodeData("6650216c099ab1a7fbcfbcf5");
   }, []);
 
   return (

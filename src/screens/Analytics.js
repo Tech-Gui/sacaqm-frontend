@@ -20,19 +20,31 @@ const AnalyticsScreen = () => {
     fetchData,
   } = useSensorData();
 
-  const { nodeData } = useContext(DataContext);
+  const { nodeData, fetchNodeData } = useContext(DataContext);
 
   const { stations, loading, error, fetchStations } =
     useContext(StationContext);
 
-  const dates = nodeData
-    .filter((data) => data.sensor_id === selectedSensor) // Filter data by sensor id
-    .map((data) => data.timestamp);
+  const [filteredStationData, setFilteredData] = useState([]);
 
-  const navigate = useNavigate();
+  const dates = nodeData.map((data) => {
+    const timestamp = new Date(data.timestamp);
+    // Adding 2 hours to convert to SA time
+    timestamp.setHours(timestamp.getHours());
+    return timestamp;
+  });
   useEffect(() => {
-    fetchData();
-  }, [selectedSensor, selectedPeriod]);
+    const station = stations.find(
+      (station) => station["_id"] === selectedSensor
+    );
+
+    if (station) {
+      fetchNodeData(station._id);
+      console.log("station found baba");
+    } else {
+      console.log("station not found");
+    }
+  }, [selectedPeriod, selectedSensor]);
 
   const { selectedType, handleTypeSelect } = useDataType();
 
@@ -76,31 +88,29 @@ const AnalyticsScreen = () => {
     return title;
   }
 
-  const filteredData = nodeData
-    .filter((item) => item.sensor_id === selectedSensor)
-    .map((data) => {
-      // Check the value of selectedType and return the corresponding data property
-      if (selectedType === "Humidity") {
-        return data.humidity;
-      } else if (selectedType === "Temperature") {
-        return data.temperature;
-      } else if (selectedType === "Nox") {
-        return data.nox;
-      } else if (selectedType === "Voc") {
-        return data.voc;
-      } else if (selectedType === "Pm1p0") {
-        return data.pm1p0;
-      } else if (selectedType === "Pm2p5") {
-        return data.pm2p5;
-      } else if (selectedType === "Pm4p0") {
-        return data.pm4p0;
-      } else if (selectedType === "Pm10p0") {
-        return data.pm10p0;
-      }
+  const filteredData = nodeData.map((data) => {
+    // Check the value of selectedType and return the corresponding data property
+    if (selectedType === "Humidity") {
+      return data.humidity;
+    } else if (selectedType === "Temperature") {
+      return data.temperature;
+    } else if (selectedType === "Nox") {
+      return data.nox;
+    } else if (selectedType === "Voc") {
+      return data.voc;
+    } else if (selectedType === "Pm1p0") {
+      return data.pm1p0;
+    } else if (selectedType === "Pm2p5") {
+      return data.pm2p5;
+    } else if (selectedType === "Pm4p0") {
+      return data.pm4p0;
+    } else if (selectedType === "Pm10p0") {
+      return data.pm10p0;
+    }
 
-      // Default case if selectedType doesn't match any condition
-      return null; // or return some default value
-    });
+    // Default case if selectedType doesn't match any condition
+    return null; // or return some default value
+  });
 
   const chartInfo = {
     labels: dates,
@@ -134,21 +144,6 @@ const AnalyticsScreen = () => {
   // const selectedData = data[selectedType];
   const selectedData = chartInfo;
 
-  // console.log(data)
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      handleCardClick();
-    }, 2000); // Call handleCardClick after 2 seconds (2000 milliseconds)
-
-    // Cleanup function to clear the timer when the component unmounts
-    return () => clearTimeout(timer);
-  }, [selectedSensor, selectedPeriod]); // Empty dependency array ensures the effect runs only once, on mount
-
-  const handleCardClick = () => {
-    // After setting the selectedType, navigate to the analytics page
-    navigate("/analytics");
-  };
   const chartOptions = {
     responsive: true,
     scales: {
@@ -178,25 +173,35 @@ const AnalyticsScreen = () => {
     maintainAspectRatio: false,
   };
 
-  const getStationNameBySensorId = (sensorId) => {
-    // Loop through each sensor data object
-    for (const sensor of stations) {
-      // Check if the current sensor's ID matches the provided sensorId
-      if (sensor["Sensor ID"] === sensorId) {
-        // If there's a match, return the station name
-        return sensor["Station Name"];
-      }
-    }
-  };
-
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
   };
 
-  const handleSensorSelect = (sensorId) => {
-    setSelectedSensor(sensorId);
-    // onSelectSensor(sensorId);
+  const handleStationSelect = (stationId) => {
+    setSelectedSensor(stationId);
+
+    const station = stations.find((station) => station["_id"] === stationId);
+
+    if (station) {
+      fetchNodeData(station._id);
+    } else {
+      console.log("station not found");
+    }
+
+    // setSensorName(station);
   };
+
+  const getStationNameByStationId = (sensorId) => {
+    // Loop through each station data object
+    for (const station of stations) {
+      // Check if the current station's ID matches the provided sensorId
+      if (station["_id"] === sensorId) {
+        // If there's a match, return the station name
+        return station["name"];
+      }
+    }
+  };
+
   return (
     <div
       className="d-flex flex-row"
@@ -218,21 +223,21 @@ const AnalyticsScreen = () => {
         }}>
         <TopNavBar />
         <div className="d-flex flex-row justify-content-between">
-          <Dropdown onSelect={(eventKey) => handleSensorSelect(eventKey)}>
+          <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
+              size="sm"
               style={{
                 background: "#2068F3",
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
               }}>
-              {getStationNameBySensorId(selectedSensor) || "Select Sensor"}
+              {getStationNameByStationId(selectedSensor) || "Tshepisong"}
             </Dropdown.Toggle>
-
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
-              {stations.map((sensor, index) => (
-                <Dropdown.Item key={index} eventKey={sensor["Sensor ID"]}>
-                  {sensor["Station Name"]}
+              {stations.map((station, index) => (
+                <Dropdown.Item key={index} eventKey={station["_id"]}>
+                  {station["name"]}
                 </Dropdown.Item>
               ))}
             </Dropdown.Menu>
@@ -241,6 +246,7 @@ const AnalyticsScreen = () => {
           <Dropdown onSelect={(eventKey) => handlePeriodSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
+              size="sm"
               style={{
                 background: "#2068F3",
                 border: "none",
@@ -248,7 +254,6 @@ const AnalyticsScreen = () => {
               }}>
               {selectedPeriod}
             </Dropdown.Toggle>
-
             <Dropdown.Menu>
               <Dropdown.Item eventKey="Today">Today</Dropdown.Item>
               <Dropdown.Item eventKey="LastDay">Last Day</Dropdown.Item>
@@ -302,12 +307,14 @@ const AnalyticsScreen = () => {
               </h6>
 
               {data ? (
-                <ChartCard
-                  data={selectedData}
-                  options={chartOptions}
-                  // title={selectedType}
-                  title={title}
-                />
+                <div style={{ height: "75vh" }}>
+                  <ChartCard
+                    data={selectedData}
+                    options={chartOptions}
+                    // title={selectedType}
+                    title={title}
+                  />
+                </div>
               ) : null}
             </Card>
           </Col>
