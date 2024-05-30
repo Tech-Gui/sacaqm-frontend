@@ -21,20 +21,14 @@ const AnalyticsScreen = () => {
   } = useSensorData();
 
   const { nodeData, fetchNodeData } = useContext(DataContext);
-  const { nodeData, fetchNodeData } = useContext(DataContext);
+
 
   const { stations, loading, error, fetchStations } =
     useContext(StationContext);
 
   const [filteredStationData, setFilteredData] = useState([]);
 
-  const dates = nodeData.map((data) => {
-    const timestamp = new Date(data.timestamp);
-    // Adding 2 hours to convert to SA time
-    timestamp.setHours(timestamp.getHours());
-    return timestamp;
-  });
-  const [filteredStationData, setFilteredData] = useState([]);
+  
 
   const dates = nodeData.map((data) => {
     const timestamp = new Date(data.timestamp);

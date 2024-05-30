@@ -36,7 +36,7 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
     fetchData,
   } = useSensorData();
 
-  const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
+ 
 
   const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
 
