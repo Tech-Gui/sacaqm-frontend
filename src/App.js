@@ -1,10 +1,8 @@
 import React, { useEffect } from "react";
 import "./App.css";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { HashRouter, Routes, Route, Outlet } from "react-router-dom"; // Changed from BrowserRouter to HashRouter
 import Dashboard from "./screens/Dashboard";
 import Information from "./screens/Information";
-// import InvoiceDataProvider from "./contextProviders/invoiceContextProvider";
-
 import AppMap from "./map/index";
 import AnalyticsScreen from "./screens/Analytics";
 import { DataTypeProvider } from "./contextProviders/dataTypeContext";
@@ -19,7 +17,9 @@ import { StationProvider } from "./contextProviders/StationContext";
 function App() {
   return (
     <div className="App">
-      <BrowserRouter>
+      <HashRouter>
+        {" "}
+        {/* Changed from BrowserRouter to HashRouter */}
         <DataTypeProvider>
           <SensorDataProvider>
             <DataProvider>
@@ -28,7 +28,6 @@ function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/test" element={<AppMap />} />
-
                   <Route path="/analytics" element={<AnalyticsScreen />} />
                   <Route path="/stations" element={<Stations />} />
                   <Route path="/information" element={<Information />} />
@@ -37,7 +36,8 @@ function App() {
             </DataProvider>
           </SensorDataProvider>
         </DataTypeProvider>
-      </BrowserRouter>
+      </HashRouter>{" "}
+      {/* Changed from BrowserRouter to HashRouter */}
     </div>
   );
 }
