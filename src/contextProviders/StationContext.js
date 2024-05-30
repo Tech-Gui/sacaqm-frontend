@@ -12,7 +12,7 @@ export const StationProvider = ({ children }) => {
   const fetchLastSeen = async (stationId) => {
     try {
       const response = await axios.get(`https://try-again-test-isaiah.app.cern.ch/api/stations/${stationId}/sensorData`);
-      const sensorData = response.data;
+      const sensorData = response.data.reverse();
       if (sensorData.length > 0) {
         return formatLastSeen(sensorData[sensorData.length - 1].timestamp);
       }
