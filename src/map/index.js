@@ -38,6 +38,8 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
 
   const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
 
+  const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
+
   useEffect(() => {
     const station = stations.find(
       (station) => station["_id"] === selectedSensor
