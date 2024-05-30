@@ -13,6 +13,7 @@ import { MdOutlineSensors } from "react-icons/md";
 import { useSensorData } from "../contextProviders/sensorDataContext";
 import { StationContext } from "../contextProviders/StationContext";
 import { DataContext } from "../contextProviders/DataContext";
+import { isToday, parseISO, format, parse } from "date-fns";
 
 const AppMap = ({ mapRef, polygonCord, layerColor }) => {
   const [newPlace, setNewPlace] = useState(null);
@@ -52,7 +53,31 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
 
   const { stations, loading, error } = useContext(StationContext);
 
-  console.log(stations);
+  const parseLastSeen = (lastSeen) => {
+    if (lastSeen === "No data") return null;
+
+    try {
+      const today = new Date();
+      const timeFormat = /^(?:\d{1,2}:\d{2} (?:AM|PM))$/;
+      const dayTimeFormat = /^(?:\w+ \d{1,2}:\d{2} (?:AM|PM))$/;
+
+      if (timeFormat.test(lastSeen)) {
+        return parse(lastSeen, "h:mm a", today);
+      } else if (dayTimeFormat.test(lastSeen)) {
+        return parse(lastSeen, "EEEE h:mm a", today);
+      }
+
+      return parse(lastSeen, "dd/MM/yyyy", new Date());
+    } catch (error) {
+      console.error("Error parsing lastSeen:", error);
+      return null;
+    }
+  };
+
+  const getBackgroundColor = (lastSeen) => {
+    const date = parseLastSeen(lastSeen);
+    return date && isToday(date) ? "#00FF00" : "#ccc8c8";
+  };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -92,8 +117,9 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
             onMouseOut={() => setSelectedMarker(null)}
             style={{
               cursor: "pointer",
-              // background: marker.isActive ? "#00FF00" : "#ccc8c8",
-              background: "#00FF00",
+              background: getBackgroundColor(marker.lastSeen),
+
+              // background: "#00FF00",
               paddingLeft: "0.25rem",
               paddingRight: "0.25rem",
               borderRadius: "50%",
