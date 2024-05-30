@@ -353,17 +353,20 @@ function Dashboard() {
       const now = new Date();
       let start = new Date();
       switch (selectedPeriod) {
+        case "All Time":
+          start.setDate(now.getDate() - 10000);
+          break;
         case "Today":
           start.setHours(0, 0, 0, 0);
           break;
-        case "LastDay":
+        case "Last Day":
           start.setDate(now.getDate() - 1);
           start.setHours(0, 0, 0, 0);
           break;
-        case "7Days":
+        case "7 Days":
           start.setDate(now.getDate() - 7);
           break;
-        case "30Days":
+        case "30 Days":
           start.setDate(now.getDate() - 77);
           break;
         default:
@@ -433,10 +436,11 @@ function Dashboard() {
               {selectedPeriod}
             </Dropdown.Toggle>
             <Dropdown.Menu>
+              <Dropdown.Item eventKey="All Time">All Time</Dropdown.Item>
               <Dropdown.Item eventKey="Today">Today</Dropdown.Item>
-              <Dropdown.Item eventKey="LastDay">Last Day</Dropdown.Item>
-              <Dropdown.Item eventKey="7Days">7 Days</Dropdown.Item>
-              <Dropdown.Item eventKey="30Days">30 Days</Dropdown.Item>
+              <Dropdown.Item eventKey="Last Day">Last Day</Dropdown.Item>
+              <Dropdown.Item eventKey="7 Days">7 Days</Dropdown.Item>
+              <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
         </div>
