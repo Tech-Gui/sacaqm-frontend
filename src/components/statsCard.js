@@ -20,7 +20,7 @@ function StatsCard({ title, value, wrappedComponent, change }) {
         background: "#E6E8F3",
         cursor: "pointer",
       }}
-      onClick={handleCardClick}>
+      ondblclick={handleCardClick}>
       <Card.Body className="gap-1">
         <div
           className="d-flex flex-row justify-content-between "

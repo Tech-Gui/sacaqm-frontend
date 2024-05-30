@@ -95,7 +95,7 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
         border: "none",
         cursor: "pointer",
       }}
-      onClick={handleCardClick}>
+      onDoubleClick={handleCardClick}>
       <Card.Body className="d-flex flex-column align-items-cente">
         <div className="d-flex flex-row justify-content-between">
           <p
@@ -110,37 +110,6 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
             {title}
           </p>
 
-          {/* <div>
-            <span
-              style={{
-                color: "var(--Witz-Black)",
-
-                fontSize: "10px",
-                fontStyle: "normal",
-                fontWeight: 600,
-                lineHeight: "normal",
-              }}>
-              {" "}
-              Latest:{" "}
-            </span>
-            <span
-              style={{
-                fontSize: "10px",
-                fontStyle: "normal",
-                fontWeight: 600,
-                lineHeight: "normal",
-              }}>
-              {lastMonthData}
-            </span>
-            <div
-              style={{
-                color: changeColor,
-                fontSize: "10px",
-                fontWeight: "bold",
-              }}>
-              {changeArrow} {Math.abs(change)}
-            </div>
-          </div> */}
         </div>
         <div
           className="d-flex justify-content-center align-items-center"
