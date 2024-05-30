@@ -101,16 +101,16 @@ code {
 }
 
 .col-height {
-  max-height: 25rem;
-  min-height: 25rem;
+  max-height: 20rem;
+  min-height: 20rem;
 }
 
 @media (max-width: 768px) {
 
   /* Adjust the breakpoint as needed */
   .col-height {
-    max-height: 36vh;
-    min-height: 36vh;
+    max-height: 34vh;
+    min-height: 34vh;
   }
 }
 
@@ -118,8 +118,8 @@ code {
 
   /* Adjust the breakpoint as needed */
   .col-height {
-    max-height: 30vh;
-    min-height: 30vh;
+    max-height: 25vh;
+    min-height: 25vh;
   }
 }
 
@@ -134,8 +134,8 @@ code {
 
 
 .mapcard {
-  max-height: 52.5vh;
-  min-height: 52.5vh;
+  max-height: 53vh;
+  min-height: 53vh;
 }
 
 
@@ -143,8 +143,8 @@ code {
 
   /* Adjust the breakpoint as needed */
   .mapcard {
-    max-height: 52.5vh;
-    min-height: 52.5vh;
+    max-height: 53vh;
+    min-height: 53vh;
   }
 }
 

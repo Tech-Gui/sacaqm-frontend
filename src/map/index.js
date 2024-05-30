@@ -49,7 +49,7 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
     } else {
       console.log("station not found");
     }
-  }, [selectedPeriod, selectedSensor]);
+  }, [selectedSensor]);
 
   const { stations, loading, error } = useContext(StationContext);
 

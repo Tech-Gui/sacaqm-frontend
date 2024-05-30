@@ -44,7 +44,7 @@ const AnalyticsScreen = () => {
     } else {
       console.log("station not found");
     }
-  }, [selectedPeriod, selectedSensor]);
+  }, [selectedSensor]);
 
   const { selectedType, handleTypeSelect } = useDataType();
 

@@ -313,6 +313,7 @@ function Dashboard() {
   };
 
   const handleStationSelect = (stationId) => {
+    setFilteredData([]);
     setSelectedSensor(stationId);
 
     const station = stations.find((station) => station["_id"] === stationId);

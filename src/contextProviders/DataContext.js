@@ -9,12 +9,16 @@ const DataProvider = ({ children }) => {
 
   // Fetch temperature data from your backend API using Axios
   const fetchNodeData = async (stationId) => {
+    console.log("I am called to carry out so fetching baba");
     try {
       const response = await axios.get(
         `https://try-again-test-isaiah.app.cern.ch/api/stations/${stationId}/sensorData`
       );
 
-      setNodeData(response.data);
+      // Reverse the data order
+      const reversedData = response.data.reverse();
+
+      setNodeData(reversedData);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
