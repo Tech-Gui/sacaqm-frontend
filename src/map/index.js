@@ -18,9 +18,9 @@ import { isToday, parseISO, format, parse } from "date-fns";
 const AppMap = ({ mapRef, polygonCord, layerColor }) => {
   const [newPlace, setNewPlace] = useState(null);
   const [viewPort, setViewPort] = useState({
-    latitude: -26.1895,
-    longitude: 28.0304,
-    zoom: 11,
+    latitude: -26.193330,
+    longitude: 27.826879,
+    zoom: 10,
   });
 
   const [activeSensor, setActiveSensor] = useState("");
