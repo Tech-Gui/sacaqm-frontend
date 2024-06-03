@@ -150,6 +150,9 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
       )}
 
       {/* <NavigationControl position="bottom-right" /> */}
+      <div style={{ position: 'absolute', right: 10, top: 10 }}>
+        <NavigationControl />
+      </div>
     </ReactMapGL>
   );
 };
