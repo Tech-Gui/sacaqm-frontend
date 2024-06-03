@@ -20,7 +20,7 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
   const [viewPort, setViewPort] = useState({
     latitude: -26.193330,
     longitude: 27.826879,
-    zoom: 10,
+    zoom: 9,
   });
 
   const [activeSensor, setActiveSensor] = useState("");
