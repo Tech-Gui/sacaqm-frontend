@@ -9,7 +9,7 @@ const SensorDataContext = createContext();
 const SensorDataProvider = ({ children }) => {
   const [data, setData] = useState(null);
   const [selectedSensor, setSelectedSensor] = useState("350457790740896");
-  const [selectedPeriod, setSelectedPeriod] = useState("Today");
+  const [selectedPeriod, setSelectedPeriod] = useState("All Time");
   const navigate = useNavigate();
   const fetchData = async () => {
     try {
