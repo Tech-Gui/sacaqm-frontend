@@ -413,7 +413,7 @@ function Dashboard() {
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
               }}>
-              {getStationNameByStationId(selectedSensor) || "Thulani"}
+              {getStationNameByStationId(selectedSensor) || "Meadowlands West"}
             </Dropdown.Toggle>
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
               {stations.map((station, index) => (
