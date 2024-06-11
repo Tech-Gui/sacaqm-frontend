@@ -313,6 +313,8 @@ function Dashboard() {
   };
 
   const handleStationSelect = (stationId) => {
+
+    setSelectedPeriod("All Time");
     setFilteredData([]);
     setSelectedSensor(stationId);
 
