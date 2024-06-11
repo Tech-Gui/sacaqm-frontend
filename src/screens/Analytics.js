@@ -22,15 +22,15 @@ const AnalyticsScreen = () => {
 
   const { nodeData, fetchNodeData } = useContext(DataContext);
 
-
   const { stations, loading, error, fetchStations } =
     useContext(StationContext);
 
-  const [filteredStationData, setFilteredData] = useState([]);
+  const [filteredStationData, setFilteredStationData] = useState([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [filteredData1, setFilteredData] = useState([]);
 
-  
-
-  const dates = nodeData.map((data) => {
+  const dates = filteredData1.map((data) => {
     const timestamp = new Date(data.timestamp);
     // Adding 2 hours to convert to SA time
     timestamp.setHours(timestamp.getHours());
@@ -91,7 +91,7 @@ const AnalyticsScreen = () => {
     return title;
   }
 
-  const filteredData = nodeData.map((data) => {
+  const filteredData2 = filteredData1.map((data) => {
     // Check the value of selectedType and return the corresponding data property
     if (selectedType === "Humidity") {
       return data.humidity;
@@ -120,7 +120,7 @@ const AnalyticsScreen = () => {
     datasets: [
       {
         label: getTitle(selectedType),
-        data: filteredData,
+        data: filteredData2,
         fill: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
@@ -181,6 +181,8 @@ const AnalyticsScreen = () => {
   };
 
   const handleStationSelect = (stationId) => {
+    setSelectedPeriod("All Time");
+    // setFilteredData([]);
     setSelectedSensor(stationId);
 
     const station = stations.find((station) => station["_id"] === stationId);
@@ -203,6 +205,53 @@ const AnalyticsScreen = () => {
         return station["name"];
       }
     }
+  };
+
+  useEffect(() => {
+    console.log("called");
+    filterData();
+  }, [startDate, endDate, selectedPeriod]);
+
+  useEffect(() => {
+    // setFilteredData(nodeData);
+    filterData();
+  }, [nodeData]);
+
+  const filterData = () => {
+    let filtered = nodeData;
+
+    if (selectedPeriod) {
+      const now = new Date();
+      let start = new Date();
+      switch (selectedPeriod) {
+        case "All Time":
+          start.setDate(now.getDate() - 10000);
+          break;
+        case "Today":
+          start.setHours(0, 0, 0, 0);
+          break;
+        case "Last Day":
+          start.setDate(now.getDate() - 1);
+          start.setHours(0, 0, 0, 0);
+          break;
+        case "7 Days":
+          start.setDate(now.getDate() - 7);
+          break;
+        case "30 Days":
+          start.setDate(now.getDate() - 77);
+          break;
+        default:
+          start = null;
+      }
+
+      if (start) {
+        filtered = nodeData.filter((item) => {
+          const timestamp = new Date(item.timestamp);
+          return timestamp >= start && timestamp <= now;
+        });
+      }
+    }
+    setFilteredData(filtered);
   };
 
   return (
@@ -235,7 +284,7 @@ const AnalyticsScreen = () => {
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
               }}>
-              {getStationNameByStationId(selectedSensor) || "Tshepisong"}
+              {getStationNameByStationId(selectedSensor) || "Thulani"}
             </Dropdown.Toggle>
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
               {stations.map((station, index) => (
@@ -258,10 +307,11 @@ const AnalyticsScreen = () => {
               {selectedPeriod}
             </Dropdown.Toggle>
             <Dropdown.Menu>
+              <Dropdown.Item eventKey="All Time">All Time</Dropdown.Item>
               <Dropdown.Item eventKey="Today">Today</Dropdown.Item>
-              <Dropdown.Item eventKey="LastDay">Last Day</Dropdown.Item>
-              <Dropdown.Item eventKey="7Days">7 Days</Dropdown.Item>
-              <Dropdown.Item eventKey="30Days">30 Days</Dropdown.Item>
+              <Dropdown.Item eventKey="Last Day">Last Day</Dropdown.Item>
+              <Dropdown.Item eventKey="7 Days">7 Days</Dropdown.Item>
+              <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
         </div>
