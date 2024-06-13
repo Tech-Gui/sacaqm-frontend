@@ -27,6 +27,7 @@ const Stations = () => {
     city: "",
     longitude: "",
     latitude: "",
+    password: "",
     sensorIds: [""], // Start with one empty string
   });
 
@@ -54,14 +55,18 @@ const Stations = () => {
   };
 
   const handleSubmit = async () => {
-    try {
-      await axios.post(
-        "https://try-again-test-isaiah.app.cern.ch/api/stations",
-        formData
-      );
-      handleCloseModal();
-    } catch (error) {
-      console.error("Error adding station:", error);
+    if (formData.password === "Tadiwa@22") {
+      try {
+        await axios.post(
+          "https://try-again-test-isaiah.app.cern.ch/api/stations",
+          formData
+        );
+        handleCloseModal();
+      } catch (error) {
+        console.error("Error adding station:", error);
+      }
+    } else {
+      console.log("gtfuh");
     }
   };
 
@@ -151,6 +156,16 @@ const Stations = () => {
                 type="text"
                 name="latitude"
                 value={formData.latitude}
+                onChange={handleChange}
+              />
+            </Form.Group>
+
+            <Form.Group controlId="formPassword">
+              <Form.Label>Password</Form.Label>
+              <Form.Control
+                type="text"
+                name="password"
+                value={formData.password}
                 onChange={handleChange}
               />
             </Form.Group>
