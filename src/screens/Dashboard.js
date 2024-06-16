@@ -428,7 +428,12 @@ function Dashboard() {
             <Modal.Header closeButton>
               <Modal.Title>{greeting}</Modal.Title>
             </Modal.Header>
-            <Modal.Body>Welcome to the Dashboard!</Modal.Body>
+             <Modal.Body>
+            Please Note the System is undergoing maintenance and the sensors are
+            offline. In the meantime, you can view historical data. <br />
+            <br /> <br /> Thank You!!
+            <br /> Team SACAQM
+          </Modal.Body>
             <Modal.Footer>
               <Button variant="primary" onClick={() => setShowModal(false)}>
                 Close
