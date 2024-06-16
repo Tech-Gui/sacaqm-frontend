@@ -3,7 +3,14 @@ import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Sidebar from "../components/SideBar";
 import TopNavBar from "../components/topNavBar";
-import { Card, Container, Image, Spinner } from "react-bootstrap";
+import {
+  Button,
+  Card,
+  Container,
+  Image,
+  Modal,
+  Spinner,
+} from "react-bootstrap";
 import StatsCard from "../components/statsCard";
 import IconBadge from "../components/iconBadge";
 import { GiDustCloud } from "react-icons/gi";
@@ -35,6 +42,19 @@ function Dashboard() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [filteredData, setFilteredData] = useState([]);
+  const [showModal, setShowModal] = useState(true);
+  const [greeting, setGreeting] = useState("");
+
+  useEffect(() => {
+    const currentHour = new Date().getHours();
+    if (currentHour < 12) {
+      setGreeting("Good Morning");
+    } else if (currentHour < 18) {
+      setGreeting("Good Afternoon");
+    } else {
+      setGreeting("Good Evening");
+    }
+  }, []);
 
   const chartOptions = {
     responsive: true,
@@ -404,7 +424,17 @@ function Dashboard() {
           overflowY: "scroll",
         }}>
         <TopNavBar />
-
+        <Modal show={showModal} onHide={() => setShowModal(false)}>
+            <Modal.Header closeButton>
+              <Modal.Title>{greeting}</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>Welcome to the Dashboard!</Modal.Body>
+            <Modal.Footer>
+              <Button variant="primary" onClick={() => setShowModal(false)}>
+                Close
+              </Button>
+            </Modal.Footer>
+          </Modal>
         <div className="d-flex flex-row justify-content-between">
           <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
