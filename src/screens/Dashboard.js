@@ -429,8 +429,8 @@ function Dashboard() {
               <Modal.Title>{greeting}</Modal.Title>
             </Modal.Header>
              <Modal.Body>
-            Please Note the System is undergoing maintenance and the sensors are
-            offline. In the meantime, you can view historical data. <br />
+            Please Note,some stations are currently
+            offline due to power outages. In the meantime, you can view historical data for those offline stations. <br />
             <br /> <br /> Thank You!!
             <br /> Team SACAQM
           </Modal.Body>
