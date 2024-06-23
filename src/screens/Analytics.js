@@ -29,6 +29,7 @@ const AnalyticsScreen = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [filteredData1, setFilteredData] = useState([]);
+  const [dataResolution, setDataResolution] = useState("raw");
 
   const dates = filteredData1.map((data) => {
     const timestamp = new Date(data.timestamp);
@@ -36,6 +37,7 @@ const AnalyticsScreen = () => {
     timestamp.setHours(timestamp.getHours());
     return timestamp;
   });
+
   useEffect(() => {
     const station = stations.find(
       (station) => station["_id"] === selectedSensor
@@ -50,24 +52,6 @@ const AnalyticsScreen = () => {
   }, [selectedSensor]);
 
   const { selectedType, handleTypeSelect } = useDataType();
-
-  if (selectedType === "Pm1p0") {
-    var title = "Pm 1.0 (μg/m³)";
-  } else if (selectedType === "Pm2p5") {
-    var title = "Pm 2.5 (μg/m³)";
-  } else if (selectedType === "Pm4p0") {
-    var title = "Pm 4.0 (μg/m³)";
-  } else if (selectedType === "Pm10p0") {
-    var title = "Pm 10.0 (μg/m³)";
-  } else if (selectedType === "Temperature") {
-    var title = "Temperature (°C)";
-  } else if (selectedType === "Humidity") {
-    var title = "Humidity (%)";
-  } else if (selectedType === "Voc") {
-    var title = "Voc (Ppb)";
-  } else if (selectedType === "Nox") {
-    var title = "Nox (Ppb)";
-  }
 
   function getTitle(selectedType) {
     var title;
@@ -137,30 +121,37 @@ const AnalyticsScreen = () => {
         borderWidth: 2,
         fill: true,
         pointBackgroundColor: "#FFFFFF",
-        // pointRadius: 3,
         pointBorderColor: "#8fbaff",
         pointBorderWidth: 2,
       },
     ],
   };
 
-  // const selectedData = data[selectedType];
   const selectedData = chartInfo;
 
   const chartOptions = {
     responsive: true,
     scales: {
       x: {
-        grid: {
-          display: true, // Display x-axis grid lines
+        type: "time",
+        time: {
+          unit: dataResolution === "raw" ? "hour" : dataResolution,
+          displayFormats: {
+            hour: "MMM D, HH:mm",
+            day: "MMM D",
+            week: "MMM D",
+          },
         },
-        display: false,
+        grid: {
+          display: true,
+        },
+        display: true,
       },
       y: {
         grid: {
-          display: true, // Display y-axis grid lines
+          display: true,
         },
-        display: false,
+        display: true,
       },
     },
     plugins: {
@@ -181,8 +172,8 @@ const AnalyticsScreen = () => {
   };
 
   const handleStationSelect = (stationId) => {
+    setFilteredData([]);
     setSelectedPeriod("All Time");
-    // setFilteredData([]);
     setSelectedSensor(stationId);
 
     const station = stations.find((station) => station["_id"] === stationId);
@@ -192,30 +183,19 @@ const AnalyticsScreen = () => {
     } else {
       console.log("station not found");
     }
-
-    // setSensorName(station);
   };
 
   const getStationNameByStationId = (sensorId) => {
-    // Loop through each station data object
     for (const station of stations) {
-      // Check if the current station's ID matches the provided sensorId
       if (station["_id"] === sensorId) {
-        // If there's a match, return the station name
         return station["name"];
       }
     }
   };
 
   useEffect(() => {
-    console.log("called");
     filterData();
-  }, [startDate, endDate, selectedPeriod]);
-
-  useEffect(() => {
-    // setFilteredData(nodeData);
-    filterData();
-  }, [nodeData]);
+  }, [startDate, endDate, selectedPeriod, dataResolution, nodeData]);
 
   const filterData = () => {
     let filtered = nodeData;
@@ -251,7 +231,56 @@ const AnalyticsScreen = () => {
         });
       }
     }
+
+    if (dataResolution !== "raw") {
+      filtered = averageData(filtered, dataResolution);
+    }
+
     setFilteredData(filtered);
+  };
+
+  const averageData = (data, resolution) => {
+    const groupedData = {};
+
+    data.forEach((item) => {
+      const date = new Date(item.timestamp);
+      let key;
+
+      switch (resolution) {
+        case "hourly":
+          key = date.toISOString().slice(0, 13) + ":00:00.000Z"; // Group by year, month, day, hour
+          break;
+        case "daily":
+          key = date.toISOString().slice(0, 10) + "T00:00:00.000Z"; // Group by year, month, day
+          break;
+        case "weekly":
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          key = weekStart.toISOString().slice(0, 10) + "T00:00:00.000Z"; // Group by week start date
+          break;
+      }
+
+      if (!groupedData[key]) {
+        groupedData[key] = { sum: {}, count: 0 };
+      }
+
+      Object.keys(item).forEach((prop) => {
+        if (typeof item[prop] === "number") {
+          groupedData[key].sum[prop] =
+            (groupedData[key].sum[prop] || 0) + item[prop];
+        }
+      });
+
+      groupedData[key].count++;
+    });
+
+    return Object.entries(groupedData).map(([key, value]) => {
+      const avgItem = { timestamp: new Date(key) };
+      Object.keys(value.sum).forEach((prop) => {
+        avgItem[prop] = value.sum[prop] / value.count;
+      });
+      return avgItem;
+    });
   };
 
   return (
@@ -314,6 +343,27 @@ const AnalyticsScreen = () => {
               <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
+
+          <Dropdown onSelect={(eventKey) => setDataResolution(eventKey)}>
+            <Dropdown.Toggle
+              id="dropdown-resolution"
+              size="sm"
+              style={{
+                background: "#2068F3",
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+              }}>
+              {dataResolution === "raw"
+                ? "Raw Data"
+                : `${dataResolution} Averages`}
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item eventKey="raw">Raw Data</Dropdown.Item>
+              <Dropdown.Item eventKey="hourly">Hourly Averages</Dropdown.Item>
+              <Dropdown.Item eventKey="daily">Daily Averages</Dropdown.Item>
+              <Dropdown.Item eventKey="weekly">Weekly Averages</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
         </div>
         <Row className="mt-4">
           <Col>
@@ -334,9 +384,31 @@ const AnalyticsScreen = () => {
                   padding: "1rem",
                 }}>
                 <div className="d-flex flex-row justify-content-between">
-                  <Dropdown onSelect={(eventKey) => handleTypeSelect(eventKey)}>
-                    <Dropdown.Toggle
-                      id="dropdown-basic"
+                  {data && Object.keys(data).length > 0 ? (
+                    <Dropdown
+                      onSelect={(eventKey) => handleTypeSelect(eventKey)}>
+                      <Dropdown.Toggle
+                        id="dropdown-basic"
+                        style={{
+                          background: "#FFF",
+                          borderColor: "#666",
+                          color: "#666",
+                          fontWeight: "bold",
+                          fontSize: "10px",
+                          fontFamily: "Helvetica Neue",
+                        }}>
+                        {getTitle(selectedType)}
+                      </Dropdown.Toggle>
+                      <Dropdown.Menu>
+                        {Object.keys(data).map((type) => (
+                          <Dropdown.Item key={type} eventKey={type}>
+                            {type}
+                          </Dropdown.Item>
+                        ))}
+                      </Dropdown.Menu>
+                    </Dropdown>
+                  ) : (
+                    <div
                       style={{
                         background: "#FFF",
                         borderColor: "#666",
@@ -344,31 +416,35 @@ const AnalyticsScreen = () => {
                         fontWeight: "bold",
                         fontSize: "10px",
                         fontFamily: "Helvetica Neue",
+                        padding: "6px 12px",
+                        border: "1px solid #666",
+                        borderRadius: "4px",
                       }}>
-                      {getTitle(selectedType)}
-                    </Dropdown.Toggle>
-
-                    <Dropdown.Menu>
-                      {Object.keys(data).map((type) => (
-                        <Dropdown.Item key={type} eventKey={type}>
-                          {type}
-                        </Dropdown.Item>
-                      ))}
-                    </Dropdown.Menu>
-                  </Dropdown>
+                      Loading...
+                    </div>
+                  )}
                 </div>
               </h6>
 
-              {data ? (
+              {filteredData1 && filteredData1.length > 0 ? (
                 <div style={{ height: "75vh" }}>
                   <ChartCard
                     data={selectedData}
                     options={chartOptions}
-                    // title={selectedType}
-                    title={title}
+                    title={getTitle(selectedType)}
                   />
                 </div>
-              ) : null}
+              ) : (
+                <div
+                  style={{
+                    height: "75vh",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}>
+                  <h3>Loading...</h3>
+                </div>
+              )}
             </Card>
           </Col>
         </Row>
