@@ -429,10 +429,9 @@ function Dashboard() {
               <Modal.Title>{greeting}</Modal.Title>
             </Modal.Header>
              <Modal.Body>
-            Please Note,some stations are currently
-            offline due to power outages. In the meantime, you can view historical data for those offline stations. <br />
+            Please Note,The System is currently undergoing maintenance <br />
             <br /> <br /> Thank You!!
-            <br /> Team SACAQM
+            <br /> The SACAQM Team
           </Modal.Body>
             <Modal.Footer>
               <Button variant="primary" onClick={() => setShowModal(false)}>
