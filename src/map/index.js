@@ -14,11 +14,12 @@ import { useSensorData } from "../contextProviders/sensorDataContext";
 import { StationContext } from "../contextProviders/StationContext";
 import { DataContext } from "../contextProviders/DataContext";
 import { isToday, parseISO, format, parse } from "date-fns";
+import { formatLastSeen } from "../components/dateFormatter";
 
 const AppMap = ({ mapRef, polygonCord, layerColor }) => {
   const [newPlace, setNewPlace] = useState(null);
   const [viewPort, setViewPort] = useState({
-    latitude: -26.193330,
+    latitude: -26.19333,
     longitude: 27.826879,
     zoom: 9,
   });
@@ -36,14 +37,15 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
     fetchData,
   } = useSensorData();
 
- 
-
   const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
 
   useEffect(() => {
     const station = stations.find(
       (station) => station["_id"] === selectedSensor
     );
+
+    setSelectedPeriod("All Time");
+    // setFilteredData([]);
 
     if (station) {
       fetchNodeData(station._id);
@@ -55,29 +57,8 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
 
   const { stations, loading, error } = useContext(StationContext);
 
-  const parseLastSeen = (lastSeen) => {
-    if (lastSeen === "No data") return null;
-
-    try {
-      const today = new Date();
-      const timeFormat = /^(?:\d{1,2}:\d{2} (?:AM|PM))$/;
-      const dayTimeFormat = /^(?:\w+ \d{1,2}:\d{2} (?:AM|PM))$/;
-
-      if (timeFormat.test(lastSeen)) {
-        return parse(lastSeen, "h:mm a", today);
-      } else if (dayTimeFormat.test(lastSeen)) {
-        return parse(lastSeen, "EEEE h:mm a", today);
-      }
-
-      return parse(lastSeen, "dd/MM/yyyy", new Date());
-    } catch (error) {
-      console.error("Error parsing lastSeen:", error);
-      return null;
-    }
-  };
-
   const getBackgroundColor = (lastSeen) => {
-    const date = parseLastSeen(lastSeen);
+    const date = lastSeen;
     return date && isToday(date) ? "#00FF00" : "#ccc8c8";
   };
 
@@ -103,8 +84,6 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
           longitude={marker.longitude}>
           <div
             onClick={() => {
-              console.log(marker._id);
-
               setSelectedSensor(marker._id);
 
               setViewPort((prevViewPort) => ({
@@ -113,7 +92,6 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
                 longitude: marker["longitude"],
                 zoom: 30,
               }));
-              console.log(viewPort);
             }}
             onMouseOver={() => setSelectedMarker(marker)}
             onMouseOut={() => setSelectedMarker(null)}
@@ -142,7 +120,11 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
             <strong>Description:</strong> {selectedMarker.description} <br />
             <strong>Province:</strong> {selectedMarker.province} <br />
             <strong>City:</strong> {selectedMarker.city} <br />
-            <strong>Last Seen: </strong> {selectedMarker.lastSeen} <br />
+            <strong>Last Seen: </strong>{" "}
+            {selectedMarker.lastSeen
+              ? formatLastSeen(selectedMarker.lastSeen)
+              : "No data"}{" "}
+            <br />
             <strong>Latitude: </strong> {selectedMarker.latitude} <br />
             <strong>Longitude: </strong> {selectedMarker.longitude}
           </div>
@@ -150,7 +132,7 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
       )}
 
       {/* <NavigationControl position="bottom-right" /> */}
-      <div style={{ position: 'absolute', right: 10, top: 10 }}>
+      <div style={{ position: "absolute", right: 10, top: 10 }}>
         <NavigationControl />
       </div>
     </ReactMapGL>
