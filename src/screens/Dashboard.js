@@ -429,10 +429,12 @@ function Dashboard() {
               <Modal.Title>{greeting}</Modal.Title>
             </Modal.Header>
              <Modal.Body>
-            Please Note,The System is currently undergoing maintenance <br />
-            <br /> <br /> Thank You!!
-            <br /> The SACAQM Team
-          </Modal.Body>
+  <p>Important Notice:</p>
+  <p>Some nodes may be temporarily offline due to power outages. However, you can still access historical data for these nodes.</p>
+  <p>We appreciate your understanding as we work to restore full functionality.</p>
+  <p>Thank you for your continued support.</p>
+  <p>Best regards,<br />The SACAQM Team</p>
+</Modal.Body>
             <Modal.Footer>
               <Button variant="primary" onClick={() => setShowModal(false)}>
                 Close
