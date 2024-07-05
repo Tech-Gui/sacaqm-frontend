@@ -25,7 +25,7 @@ const DataProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchNodeData("665033ff099ab1a7fbcfbd26");
+    fetchNodeData("66503777099ab1a7fbcfbd32");
   }, []);
 
   return (
