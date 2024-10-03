@@ -331,10 +331,9 @@ function Dashboard() {
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
   };
-
+  // https://try-again-test-isaiah.app.cern.ch
   const handleStationSelect = (stationId) => {
-
-    setSelectedPeriod("All Time");
+    setSelectedPeriod("Over 7 Days");
     setFilteredData([]);
     setSelectedSensor(stationId);
 
@@ -375,9 +374,6 @@ function Dashboard() {
       const now = new Date();
       let start = new Date();
       switch (selectedPeriod) {
-        case "All Time":
-          start.setDate(now.getDate() - 10000);
-          break;
         case "Today":
           start.setHours(0, 0, 0, 0);
           break;
@@ -388,7 +384,7 @@ function Dashboard() {
         case "7 Days":
           start.setDate(now.getDate() - 7);
           break;
-        case "30 Days":
+        case "Over 7 Days":
           start.setDate(now.getDate() - 77);
           break;
         default:
@@ -425,22 +421,32 @@ function Dashboard() {
         }}>
         <TopNavBar />
         <Modal show={showModal} onHide={() => setShowModal(false)}>
-            <Modal.Header closeButton>
-              <Modal.Title>{greeting}</Modal.Title>
-            </Modal.Header>
-             <Modal.Body>
-  <p>Important Notice:</p>
-  <p>Some nodes may be temporarily offline due to power outages. However, you can still access historical data for these nodes.</p>
-  <p>We appreciate your understanding as we work to restore full functionality.</p>
-  <p>Thank you for your continued support.</p>
-  <p>Best regards,<br />The SACAQM Team</p>
-</Modal.Body>
-            <Modal.Footer>
-              <Button variant="primary" onClick={() => setShowModal(false)}>
-                Close
-              </Button>
-            </Modal.Footer>
-          </Modal>
+          <Modal.Header closeButton>
+            <Modal.Title>{greeting}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p>Important Notice:</p>
+            <p>
+              Some nodes may be temporarily offline due to power outages.
+              However, you can still access historical data for these nodes.
+            </p>
+            <p>
+              We appreciate your understanding as we work to restore full
+              functionality.
+            </p>
+            <p>Thank you for your continued support.</p>
+            <p>
+              Best regards,
+              <br />
+              The SACAQM Team
+            </p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="primary" onClick={() => setShowModal(false)}>
+              Close
+            </Button>
+          </Modal.Footer>
+        </Modal>
         <div className="d-flex flex-row justify-content-between">
           <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
@@ -474,11 +480,10 @@ function Dashboard() {
               {selectedPeriod}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              <Dropdown.Item eventKey="All Time">All Time</Dropdown.Item>
               <Dropdown.Item eventKey="Today">Today</Dropdown.Item>
               <Dropdown.Item eventKey="Last Day">Last Day</Dropdown.Item>
               <Dropdown.Item eventKey="7 Days">7 Days</Dropdown.Item>
-              <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
+              <Dropdown.Item eventKey="30 Days">Over 7 Days</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
         </div>

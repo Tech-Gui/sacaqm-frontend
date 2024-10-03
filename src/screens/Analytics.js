@@ -173,7 +173,7 @@ const AnalyticsScreen = () => {
 
   const handleStationSelect = (stationId) => {
     setFilteredData([]);
-    setSelectedPeriod("All Time");
+    setSelectedPeriod("7 Days");
     setSelectedSensor(stationId);
 
     const station = stations.find((station) => station["_id"] === stationId);
@@ -204,9 +204,6 @@ const AnalyticsScreen = () => {
       const now = new Date();
       let start = new Date();
       switch (selectedPeriod) {
-        case "All Time":
-          start.setDate(now.getDate() - 10000);
-          break;
         case "Today":
           start.setHours(0, 0, 0, 0);
           break;
@@ -336,11 +333,10 @@ const AnalyticsScreen = () => {
               {selectedPeriod}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              <Dropdown.Item eventKey="All Time">All Time</Dropdown.Item>
               <Dropdown.Item eventKey="Today">Today</Dropdown.Item>
               <Dropdown.Item eventKey="Last Day">Last Day</Dropdown.Item>
               <Dropdown.Item eventKey="7 Days">7 Days</Dropdown.Item>
-              <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
+              <Dropdown.Item eventKey="30 Days">Over 7 Days</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
 
