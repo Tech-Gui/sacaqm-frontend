@@ -420,33 +420,7 @@ function Dashboard() {
           overflowY: "scroll",
         }}>
         <TopNavBar />
-        <Modal show={showModal} onHide={() => setShowModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>{greeting}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <p>Important Notice:</p>
-            <p>
-              Some nodes may be temporarily offline due to power outages.
-              However, you can still access historical data for these nodes.
-            </p>
-            <p>
-              We appreciate your understanding as we work to restore full
-              functionality.
-            </p>
-            <p>Thank you for your continued support.</p>
-            <p>
-              Best regards,
-              <br />
-              The SACAQM Team
-            </p>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="primary" onClick={() => setShowModal(false)}>
-              Close
-            </Button>
-          </Modal.Footer>
-        </Modal>
+
         <div className="d-flex flex-row justify-content-between">
           <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
@@ -489,7 +463,7 @@ function Dashboard() {
         </div>
 
         <Row>
-          <Col lg={7} md={12}>
+          <Col lg={12} md={12}>
             {" "}
             {/*this is the map card*/}
             <Card
@@ -612,75 +586,6 @@ function Dashboard() {
               </Row>
             </Card>
           </Col>
-
-          <Col lg={5} md={12} sm={6} className="m-0">
-            <Row>
-              <Col md={6} lg={12}>
-                <Card
-                  className="mt-1 "
-                  style={{
-                    border: "none",
-                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                    minHeight: "26vh",
-                  }}>
-                  <h6
-                    style={{
-                      color: "#666",
-                      fontWeight: "bold",
-                      fontSize: "10px",
-                      fontFamily: "Helvetica Neue",
-                      textAlign: "left",
-                    }}></h6>
-                  {filteredData && filteredData.length > 0 ? (
-                    <ChartCard
-                      data={pm4p0chartData}
-                      options={chartOptions}
-                      title="PM4.0 (μg/m³)"
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        height: "100%",
-                      }}>
-                      <Spinner animation="border" role="status"></Spinner>
-                    </div>
-                  )}
-                </Card>
-              </Col>
-
-              <Col md={6} lg={12}>
-                <Card
-                  className="mt-2 "
-                  style={{
-                    border: "none",
-                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                    paddingBottom: "0.2rem",
-                    minHeight: "26vh",
-                  }}>
-                  {filteredData && filteredData.length > 0 ? (
-                    <ChartCard
-                      data={pm10p0chartData}
-                      options={chartOptions}
-                      title="PM10.0 (μg/m³)"
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        height: "100%",
-                      }}>
-                      <Spinner animation="border" role="status"></Spinner>
-                    </div>
-                  )}
-                </Card>
-              </Col>
-            </Row>
-          </Col>
         </Row>
 
         <Row>
@@ -734,6 +639,73 @@ function Dashboard() {
                     justifyContent: "center",
                     alignItems: "center",
                     height: "25vh",
+                  }}>
+                  <Spinner animation="border" role="status"></Spinner>
+                </div>
+              )}
+            </Card>
+          </Col>
+        </Row>
+
+        <Row>
+          <Col md={6} lg={6}>
+            <Card
+              className="mt-1 "
+              style={{
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                minHeight: "26vh",
+              }}>
+              <h6
+                style={{
+                  color: "#666",
+                  fontWeight: "bold",
+                  fontSize: "10px",
+                  fontFamily: "Helvetica Neue",
+                  textAlign: "left",
+                }}></h6>
+              {filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={pm4p0chartData}
+                  options={chartOptions}
+                  title="PM4.0 (μg/m³)"
+                />
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100%",
+                  }}>
+                  <Spinner animation="border" role="status"></Spinner>
+                </div>
+              )}
+            </Card>
+          </Col>
+
+          <Col md={6} lg={6}>
+            <Card
+              className="mt-2 "
+              style={{
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                paddingBottom: "0.2rem",
+                minHeight: "26vh",
+              }}>
+              {filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={pm10p0chartData}
+                  options={chartOptions}
+                  title="PM10.0 (μg/m³)"
+                />
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100%",
                   }}>
                   <Spinner animation="border" role="status"></Spinner>
                 </div>

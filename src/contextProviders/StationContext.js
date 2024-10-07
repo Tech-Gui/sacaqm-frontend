@@ -17,7 +17,12 @@ export const StationProvider = ({ children }) => {
       );
       const stationsData = response.data;
 
-      setStations(stationsData);
+      // Sort stations alphabetically by name
+      const sortedStations = stationsData.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+
+      setStations(sortedStations);
     } catch (err) {
       setError(err);
     } finally {
@@ -36,3 +41,5 @@ export const StationProvider = ({ children }) => {
     </StationContext.Provider>
   );
 };
+
+export default StationProvider;
