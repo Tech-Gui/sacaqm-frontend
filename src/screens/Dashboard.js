@@ -502,7 +502,7 @@ function Dashboard() {
                     textAlign: "left",
                     paddingLeft: "1.5rem",
                   }}>
-                  NEAR YOU
+                  LATEST READINGS
                 </h6>
 
                 <Row
