@@ -44,7 +44,7 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
       (station) => station["_id"] === selectedSensor
     );
 
-    setSelectedPeriod("Over 7 Days");
+    setSelectedPeriod("7 Days");
     // setFilteredData([]);
 
     if (station) {

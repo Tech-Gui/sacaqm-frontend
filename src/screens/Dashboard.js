@@ -333,14 +333,33 @@ function Dashboard() {
   };
   // https://try-again-test-isaiah.app.cern.ch
   const handleStationSelect = (stationId) => {
-    setSelectedPeriod("Over 7 Days");
+    setSelectedPeriod("7 Days");
     setFilteredData([]);
     setSelectedSensor(stationId);
 
     const station = stations.find((station) => station["_id"] === stationId);
 
     if (station) {
-      fetchNodeData(station._id);
+      fetchNodeData(station._id, 7);
+    } else {
+      console.log("station not found");
+    }
+
+    // setSensorName(station);
+  };
+
+  const handle30DaysSelect = () => {
+    setSelectedPeriod("30 Days");
+    setFilteredData([]);
+
+    const station = stations.find(
+      (station) => station["_id"] === selectedSensor
+    );
+
+    console.log(selectedSensor);
+
+    if (station) {
+      fetchNodeData(station._id, 30);
     } else {
       console.log("station not found");
     }
@@ -384,8 +403,8 @@ function Dashboard() {
         case "7 Days":
           start.setDate(now.getDate() - 7);
           break;
-        case "Over 7 Days":
-          start.setDate(now.getDate() - 77);
+        case "30 Days":
+          handle30DaysSelect();
           break;
         default:
           start = null;
@@ -457,7 +476,7 @@ function Dashboard() {
               <Dropdown.Item eventKey="Today">Today</Dropdown.Item>
               <Dropdown.Item eventKey="Last Day">Last Day</Dropdown.Item>
               <Dropdown.Item eventKey="7 Days">7 Days</Dropdown.Item>
-              <Dropdown.Item eventKey="30 Days">Over 7 Days</Dropdown.Item>
+              <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
         </div>
