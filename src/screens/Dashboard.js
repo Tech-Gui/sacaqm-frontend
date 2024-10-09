@@ -46,6 +46,7 @@ function Dashboard() {
   const [greeting, setGreeting] = useState("");
 
   useEffect(() => {
+    setSelectedSensor("66503777099ab1a7fbcfbd32");
     const currentHour = new Date().getHours();
     if (currentHour < 12) {
       setGreeting("Good Morning");
@@ -355,12 +356,16 @@ function Dashboard() {
     const station = stations.find(
       (station) => station["_id"] === selectedSensor
     );
+    console.log("Ndashaiwa ini 1");
+    console.log(station);
+    console.log("Ndashaiwa ini 2");
 
     console.log(selectedSensor);
 
     if (station) {
       fetchNodeData(station._id, 30);
     } else {
+      console.log("Ndashaiwa ini");
       console.log("station not found");
     }
 
@@ -561,7 +566,7 @@ function Dashboard() {
                       }
                       wrappedComponent={
                         <IconBadge
-                          icon={<WiHumidity />}
+                          icon={<GiDustCloud />}
                           backgroundColor="rgba(0, 255, 0, 0.3)"
                           color="#08A045"
                           iconSize={19}
@@ -580,7 +585,7 @@ function Dashboard() {
                       }
                       wrappedComponent={
                         <IconBadge
-                          icon={<FaTemperatureThreeQuarters />}
+                          icon={<GiDustCloud />}
                           backgroundColor="rgba(255, 87, 51, 0.5)"
                           color="#F00"
                           iconSize={15}
