@@ -25,7 +25,7 @@ const DataProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchNodeData("66503777099ab1a7fbcfbd32", 7); // Fetch data for the last 7 days
+    fetchNodeData("66503777099ab1a7fbcfbd32", 1); // Fetch data for the last 1 day
   }, []);
 
   return (

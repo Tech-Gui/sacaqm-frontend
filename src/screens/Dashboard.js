@@ -334,14 +334,14 @@ function Dashboard() {
   };
   // https://try-again-test-isaiah.app.cern.ch
   const handleStationSelect = (stationId) => {
-    setSelectedPeriod("7 Days");
+    setSelectedPeriod("Today");
     setFilteredData([]);
     setSelectedSensor(stationId);
 
     const station = stations.find((station) => station["_id"] === stationId);
 
     if (station) {
-      fetchNodeData(station._id, 7);
+      fetchNodeData(station._id, 1);
     } else {
       console.log("station not found");
     }
@@ -364,6 +364,71 @@ function Dashboard() {
 
     if (station) {
       fetchNodeData(station._id, 30);
+    } else {
+      console.log("Ndashaiwa ini");
+      console.log("station not found");
+    }
+
+    // setSensorName(station);
+  };
+
+  const handle7DaysSelect = () => {
+    setSelectedPeriod("7 Days");
+    setFilteredData([]);
+
+    const station = stations.find(
+      (station) => station["_id"] === selectedSensor
+    );
+    console.log("Ndashaiwa ini 1");
+    console.log(station);
+    console.log("Ndashaiwa ini 2");
+
+    console.log(selectedSensor);
+
+    if (station) {
+      fetchNodeData(station._id, 7);
+    } else {
+      console.log("Ndashaiwa ini");
+      console.log("station not found");
+    }
+
+    // setSensorName(station);
+  };
+
+  const handleLastDaysSelect = () => {
+    setSelectedPeriod("Last Day");
+    setFilteredData([]);
+
+    const station = stations.find(
+      (station) => station["_id"] === selectedSensor
+    );
+    console.log("Ndashaiwa ini 1");
+    console.log(station);
+    console.log("Ndashaiwa ini 2");
+
+    console.log(selectedSensor);
+
+    const now = new Date();
+    let start = new Date();
+
+    if (station) {
+      fetchNodeData(station._id, 2);
+      start.setDate(now.getDate() - 2);
+      start.setHours(0, 0, 0, 0);
+      let filtered = nodeData;
+
+      console.log(filtered);
+
+      filtered = filtered.filter((item) => {
+        const timestamp = new Date(item.timestamp);
+        return (
+          timestamp.getTime() >= start.getTime() &&
+          timestamp.getTime() <= now.getTime()
+        );
+      });
+
+      console.log(filtered);
+      setFilteredData(filtered);
     } else {
       console.log("Ndashaiwa ini");
       console.log("station not found");
@@ -402,11 +467,14 @@ function Dashboard() {
           start.setHours(0, 0, 0, 0);
           break;
         case "Last Day":
-          start.setDate(now.getDate() - 1);
-          start.setHours(0, 0, 0, 0);
+          // start.setDate(now.getDate() - 1);
+          // start.setHours(0, 0, 0, 0);
+
+          handleLastDaysSelect();
           break;
         case "7 Days":
-          start.setDate(now.getDate() - 7);
+          // start.setDate(now.getDate() - 7);
+          handle7DaysSelect();
           break;
         case "30 Days":
           handle30DaysSelect();

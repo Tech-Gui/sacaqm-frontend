@@ -44,11 +44,11 @@ const AppMap = ({ mapRef, polygonCord, layerColor }) => {
       (station) => station["_id"] === selectedSensor
     );
 
-    setSelectedPeriod("7 Days");
+    setSelectedPeriod("Today");
     // setFilteredData([]);
 
     if (station) {
-      fetchNodeData(station._id);
+      fetchNodeData(station._id, 1);
       console.log("station found baba");
     } else {
       console.log("station not found");
