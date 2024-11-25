@@ -1,0 +1,783 @@
+// AnalyticsScreen.js
+import React, { useContext, useEffect, useState } from "react";
+import { Container, Row, Col, Card, Dropdown } from "react-bootstrap";
+import Sidebar from "../components/SideBar";
+import TopNavBar from "../components/topNavBar";
+import ChartCard from "../components/chartCard.js";
+
+import { useDataType } from "../contextProviders/dataTypeContext.js";
+import { useSensorData } from "../contextProviders/sensorDataContext.js";
+import { DataContext } from "../contextProviders/DataContext.js";
+import { StationContext } from "../contextProviders/StationContext.js";
+
+
+
+const AnalyticsScreen = () => {
+  const {
+    selectedSensor,
+    selectedPeriod,
+    setSelectedSensor,
+    setSelectedPeriod,
+  } = useSensorData();
+
+  const {
+    selectedSensor2,
+    setSelectedSensor2,
+  } = useSensorData();
+
+  const { nodeData, setNodeData, fetchNodeData ,nodeData2, setNodeData2, fetchNodeData2  } = useContext(DataContext);
+ // const [matchingTimestamps, setMatchingTimestamps] = useState([]);
+
+  const { stations } = useContext(StationContext);
+
+  const [filteredData1, setFilteredData1] = useState([]);
+  const [filteredData2, setFilteredData2] = useState([]);
+  const [dataResolution, setDataResolution] = useState("raw");
+
+  const { selectedType, handleTypeSelect } = useDataType();
+
+  const [isLoading, setIsLoading] = useState(false); // Loading state
+
+  // Fetch data when the component mounts or when selectedSensor changes
+  // Fetch data for station 1
+  useEffect(() => {
+    const station = stations.find(
+      (station) => station["_id"] === selectedSensor
+    );
+
+    if (station) {
+      // Default fetch is for 7 days
+      fetchNodeData(station._id, 7);
+      console.log("Data fetched for 7 days.");
+    } else {
+      console.log("Station 1 not found.");
+    }
+  }, [selectedSensor]);
+
+  // Fetch data for station 2
+  useEffect(() => {
+    const station2 = stations.find(
+      (station) => station["_id"] === selectedSensor2
+    );
+
+    if (station2) {
+      // Default fetch is for 7 days
+      fetchNodeData2(station2._id, 7);
+      console.log("Data fetched for 7 days.");
+    } else {
+      console.log("Station 2 not found.");
+    }
+  }, [selectedSensor2]);
+
+
+  // Fetch data when selectedPeriod changes to "30 Days"
+  useEffect(() => {
+    if (selectedPeriod === "30 Days") {
+      const station = stations.find(
+        (station) => station["_id"] === selectedSensor
+      );
+      const station2 = stations.find(
+        (station2) => station2["_id"] === selectedSensor2
+      );
+
+      if (station) {
+        setIsLoading(true); // Start loading
+        fetchNodeData(station._id, 30)
+          .then(() => {
+            setIsLoading(false); // End loading
+            console.log("Data fetched for 30 days.");
+          })
+          .catch((error) => {
+            setIsLoading(false);
+            console.error("Error fetching 30 days data:", error);
+          });
+      } else {
+        console.log("Station not found.");
+      }
+
+      if(station2) {
+        setIsLoading(true); // Start loading
+        fetchNodeData2(station2._id, 30)
+          .then(() => {
+            setIsLoading(false); // End loading
+            console.log("Data fetched for 30 days.");
+          })
+          .catch((error) => {
+            setIsLoading(false);
+            console.error("Error fetching 30 days data:", error);
+          });
+      } else {
+        console.log("Station not found.");
+      }
+    }
+    // No need to fetch data for periods less than 7 days
+  }, [selectedPeriod]);
+
+  // Filter data based on selectedPeriod and dataResolution
+  const filterData = () => {
+    let filtered1 = nodeData;
+    let filtered2 = nodeData2;
+  
+    if (selectedPeriod) {
+      const now = new Date();
+      let start = new Date();
+      switch (selectedPeriod) {
+        case "Today":
+          start.setHours(0, 0, 0, 0);
+          break;
+        case "Last Day":
+          start.setDate(now.getDate() - 1);
+          break;
+        case "7 Days":
+          start.setDate(now.getDate() - 7);
+          break;
+        default:
+          start = null;
+      }
+  
+      if (start) {
+        filtered1 = nodeData.filter((item) => {
+          const timestamp = new Date(item.timestamp);
+          return timestamp >= start && timestamp <= now;
+        });
+  
+        filtered2 = nodeData2.filter((item) => {
+          const timestamp = new Date(item.timestamp);
+          return timestamp >= start && timestamp <= now;
+        });
+      }
+    }
+  
+    if (dataResolution !== "raw") {
+      filtered1 = averageData(filtered1, dataResolution);
+      filtered2 = averageData(filtered2, dataResolution);
+    }
+  
+    setFilteredData1(filtered1);
+    setFilteredData2(filtered2);
+  };
+  
+  // Average data based on resolution
+  const averageData = (data, resolution) => {
+    
+    const groupedData = {};
+
+    data.forEach((item) => {
+      const date = new Date(item.timestamp);
+      let key;
+
+      switch (resolution) {
+        case "hourly":
+          key = date.toISOString().slice(0, 13) + ":00:00.000Z"; // Group by hour
+          break;
+        case "daily":
+          key = date.toISOString().slice(0, 10) + "T00:00:00.000Z"; // Group by day
+          break;
+        case "weekly":
+          const weekStart = new Date(date);
+          console.log("here is week start " ,weekStart);
+          weekStart.setDate(date.getDate() - date.getDay());
+          key = weekStart.toISOString().slice(0, 10) + "T00:00:00.000Z"; // Group by week
+          break;
+        default:
+          key = date.toISOString();
+      }
+
+      if (!groupedData[key]) {
+        groupedData[key] = { sum: {}, count: 0 };
+      }
+
+      Object.keys(item).forEach((prop) => {
+        if (typeof item[prop] === "number") {
+          groupedData[key].sum[prop] =
+            (groupedData[key].sum[prop] || 0) + item[prop];
+        }
+      });
+
+      groupedData[key].count++;
+    });
+
+    return Object.entries(groupedData).map(([key, value]) => {
+      const avgItem = { timestamp: new Date(key) };
+      Object.keys(value.sum).forEach((prop) => {
+        avgItem[prop] = value.sum[prop] / value.count;
+      });
+      return avgItem;
+    })
+  };
+
+  // Handle period selection  
+  const handlePeriodSelect = (period) => {
+    setSelectedPeriod(period);
+    setFilteredData1([]); // Clear existing filtered data
+    setFilteredData2([]); // Clear existing filtered data for sensor 2
+  };
+
+  // Handle station 1 selection
+  const handleStationSelect = (stationId) => {
+    setSelectedSensor(stationId);
+    setFilteredData1([]); // Clear existing filtered data
+    setSelectedPeriod("7 Days"); // Reset to default period
+  };
+
+  // Handle station 2 selection
+  const handleStationSelect2 = (stationId) => {
+    setSelectedSensor2(stationId);
+    setFilteredData2([]); // Clear existing filtered data
+    setSelectedPeriod("7 Days"); // Reset to default period
+  };
+
+  // Prepare data for chart
+  useEffect(() => {
+    filterData();
+    //console.log("Filtered Data 1:", filteredData1);
+    //console.log("Filtered Data 2:", filteredData2);
+  }, [nodeData, nodeData2,selectedPeriod, dataResolution]);
+
+
+
+  
+  // Prepare dates and data for the chart
+  const dates = filteredData1.map((data) => new Date(data.timestamp));
+  // Prepare timestamps from both stations
+  const timestamps1 = new Set(filteredData1.map((data) => data.timestamp)); // Using Set for fast lookup
+  const timestamps2 = new Set(filteredData2.map((data) => data.timestamp));
+  console.log("1 Timestamps:", timestamps1);
+  console.log("2 Timestamps:", timestamps2);
+  // Find common timestamps
+  const commonTimestamps = Array.from(timestamps1).filter(timestamp => timestamps2.has(timestamp));
+  // Log the common timestamps to the console
+  console.log("Common Timestamps:", commonTimestamps);
+  
+
+  //filteredData1.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  //filteredData2.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    // Get all timestamps from both stations
+  const allTimestamps = [...new Set([
+    ...filteredData1.map(data => data.timestamp),
+    ...filteredData2.map(data => data.timestamp),
+  ])];
+
+  // Sort timestamps to create a unified X-axis
+  allTimestamps.sort((a, b) => new Date(a) - new Date(b));
+
+  // Prepare dates for X-axis
+  const xTimestamps = allTimestamps.map(timestamp => new Date(timestamp));
+
+  console.log("alltimestamp :", xTimestamps);
+  
+
+  // Prepare data for the chart using the unified timestamps for Sensor 1
+  const filteredDataForSensor1 = allTimestamps.map((timestamp) => {
+    const entry = filteredData1.find(data => data.timestamp === timestamp);
+    if (entry) {
+      // Return the selected data type
+      switch (selectedType) {
+        case "Humidity":
+          return entry.humidity;
+        case "Temperature":
+          return entry.temperature;
+        case "Nox":
+          return entry.nox;
+        case "Voc":
+          return entry.voc;
+        case "Pm1p0":
+          return entry.pm1p0;
+        case "Pm2p5":
+          return entry.pm2p5;
+        case "Pm4p0":
+          return entry.pm4p0;
+        case "Pm10p0":
+          return entry.pm10p0;
+        default:
+          return null;
+      }
+    } else {
+      return null; // If no entry found for this timestamp, return null
+    }
+  });
+
+  // Prepare data for the chart using the unified timestamps for Sensor 2
+  const filteredDataForSensor2 = allTimestamps.map((timestamp) => {
+    const entry = filteredData2.find(data => data.timestamp === timestamp);
+    if (entry) {
+      // Return the selected data type
+      switch (selectedType) {
+        case "Humidity":
+          return entry.humidity;
+        case "Temperature":
+          return entry.temperature;
+        case "Nox":
+          return entry.nox;
+        case "Voc":
+          return entry.voc;
+        case "Pm1p0":
+          return entry.pm1p0;
+        case "Pm2p5":
+          return entry.pm2p5;
+        case "Pm4p0":
+          return entry.pm4p0;
+        case "Pm10p0":
+          return entry.pm10p0;
+        default:
+          return null;
+      }
+    } else {
+      return null; // If no entry found for this timestamp, return null
+    }
+  });
+  
+  console.log("here is the data i think : ", filteredDataForSensor1)
+
+  const getTitle = (selectedType) => {
+    switch (selectedType) {
+      case "Pm1p0":
+        return "PM1.0 (μg/m³)";
+      case "Pm2p5":
+        return "PM2.5 (μg/m³)";
+      case "Pm4p0":
+        return "PM4.0 (μg/m³)";
+      case "Pm10p0":
+        return "PM10.0 (μg/m³)";
+      case "Temperature":
+        return "Temperature (°C)";
+      case "Humidity":
+        return "Humidity (%)";
+      case "Voc":
+        return "VOC (ppb)";
+      case "Nox":
+        return "NOx (ppb)";
+      default:
+        return "";
+    }
+  };
+  const getStationNameByStationId = (sensorId) => {
+    const station = stations.find((station) => station["_id"] === sensorId);
+    return station ? station["name"] : "Select Station";
+  };
+
+  const chartInfo = {
+    labels: xTimestamps,
+    datasets: [
+      {
+        label: getStationNameByStationId(selectedSensor), // Dataset 1
+        data: filteredDataForSensor1,
+        fill: false,
+        backgroundColor: "rgba(54, 162, 235, 1)",
+        borderColor: "rgba(54, 162, 235, 1)", // Pink color for Dataset 1
+        yAxisID: 'y',
+        tension: 0.4,
+        borderWidth: 2,
+        pointBackgroundColor: "#FFFFFF",
+        pointBorderColor: "rgba(54, 162, 235, 1)",
+        pointBorderWidth: 2,
+        spanGaps: true, // This will link points even with missing values
+      //  showLine: true,
+      //  pointRadius: 0,  // hides individual points
+      },
+      {
+        label: getStationNameByStationId(selectedSensor2), // Dataset 2
+        data: filteredDataForSensor2,
+        fill: false,
+        backgroundColor: "rgba(255, 99, 132, 1)",
+        borderColor: "rgba(255, 99, 132, 1)", // Blue color for Dataset 2
+        yAxisID: 'y1',
+        tension: 0.4,
+        borderWidth: 2,
+        pointBackgroundColor: "#FFFFFF",
+        pointBorderColor: "rgba(255, 99, 132, 1)",
+        pointBorderWidth: 2,
+        spanGaps: true, // This will link points even with missing values
+       // showLine: true,
+      //  pointRadius: 0,  // hides individual points
+      },
+    ],
+  };
+
+  const selectedData = chartInfo;
+
+  const chartOptions = {
+    type : 'line',
+    responsive: true,
+    scales: {
+      x: {
+        type: "time",
+        time: {
+          unit: dataResolution === "raw" ? "hour" : dataResolution,
+          displayFormats: {
+            hour: "MMM D, HH:mm",
+            day: "MMM D",
+            week: "MMM D",
+          },
+        },
+        grid: {
+          display: true,
+        },
+        display: true,
+      },
+      y: {
+        position: 'left',
+        grid: {
+          display: true,
+          drawOnChartArea: false, // Avoid overlapping grid lines
+        },
+        ticks: {
+          color: "rgba(255, 99, 132, 1)", // blue for left y-axis
+          stepSize: 50,
+        },
+        display: true,
+        title: {
+          display: true,
+          text: '1st station', // Set your desired title for the left y-axis
+          color: '#000', // Optional: Set title color
+          font: {
+              size: 14, // Optional: Set title font size
+          },
+        },
+      },
+      y1: {
+        grid: {
+          display: true,
+          drawOnChartArea: false, // Only want the grid lines for one axis to show up
+        },
+        display: true,
+        ticks: {
+          color: "rgba(54, 162, 235, 1)", // pink for right y-axis
+          stepSize: 50,
+        },
+        title: {
+          display: true,
+          text: '2nd station', // Set your desired title for the left y-axis
+          color: '#000', // Optional: Set title color
+          font: {
+              size: 14, // Optional: Set title font size
+          },
+        },
+      },
+    },
+    plugins: {
+      legend: {
+          display: false,
+      },
+  },
+    elements: {
+      point: {
+        radius: 1,
+      },
+    },
+    maintainAspectRatio: false,
+  };
+
+  
+
+  return (
+    <div
+      className="d-flex flex-row"
+      style={{
+        minHeight: "100vh",
+        maxHeight: "100vh",
+        background: "#f2f2f2",
+        overflowY: "hidden",
+      }}>
+      <Sidebar />
+      <Container
+        fluid
+        className="p-4"
+        style={{
+          minHeight: "98vh",
+          maxHeight: "100vh",
+          overflowY: "scroll",
+          padding: "2rem",
+        }}>
+        <TopNavBar />
+        <div className="d-flex flex-row justify-content-between">
+          {/* 1st Station Selector */}
+          <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
+            <Dropdown.Toggle
+              id="dropdown-basic"
+              size="sm"
+              style={{
+                background: "#2068F3",
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+              }}>
+              {getStationNameByStationId(selectedSensor)}
+            </Dropdown.Toggle>
+            <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
+              {stations.map((station, index) => (
+                <Dropdown.Item key={index} eventKey={station["_id"]}>
+                  {station["name"]}
+                </Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
+  
+          {/* 2nd Station Selector */}
+          <Dropdown onSelect={(eventKey) => handleStationSelect2(eventKey)}>
+            <Dropdown.Toggle
+              id="dropdown-basic"
+              size="sm"
+              style={{
+                background: "#2068F3",
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+              }}>
+              {getStationNameByStationId(selectedSensor2)}
+            </Dropdown.Toggle>
+            <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
+              {stations.map((station, index) => (
+                <Dropdown.Item key={index} eventKey={station["_id"]}>
+                  {station["name"]}
+                </Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
+  
+          {/* Period Selector */}
+          <Dropdown onSelect={(eventKey) => handlePeriodSelect(eventKey)}>
+            <Dropdown.Toggle
+              id="dropdown-basic"
+              size="sm"
+              style={{
+                background: "#2068F3",
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+              }}>
+              {selectedPeriod}
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item eventKey="Today">Today</Dropdown.Item>
+              <Dropdown.Item eventKey="Last Day">Last Day</Dropdown.Item>
+              <Dropdown.Item eventKey="7 Days">7 Days</Dropdown.Item>
+              <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+  
+          {/* Data Resolution Selector */}
+          <Dropdown onSelect={(eventKey) => setDataResolution(eventKey)}>
+            <Dropdown.Toggle
+              id="dropdown-resolution"
+              size="sm"
+              style={{
+                background: "#2068F3",
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+              }}>
+              {dataResolution === "raw"
+                ? "Raw Data"
+                : `${dataResolution.charAt(0).toUpperCase() + dataResolution.slice(1)} Averages`}
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item eventKey="raw">Raw Data</Dropdown.Item>
+              <Dropdown.Item eventKey="hourly">Hourly Averages</Dropdown.Item>
+              <Dropdown.Item eventKey="daily">Daily Averages</Dropdown.Item>
+              <Dropdown.Item eventKey="weekly">Weekly Averages</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        </div>
+        
+        <Row className="mt-4">
+          <Col>
+            <Card
+              className="mt-1"
+              style={{
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                minHeight: "60vh",
+              }}>
+              <h6
+                style={{
+                  color: "#666",
+                  fontWeight: "bold",
+                  fontSize: "10px",
+                  fontFamily: "Helvetica Neue",
+                  textAlign: "left",
+                  padding: "1rem",
+                }}>
+                <div className="d-flex flex-row justify-content-between">
+                  <Dropdown onSelect={(eventKey) => handleTypeSelect(eventKey)}>
+                    <Dropdown.Toggle
+                      id="dropdown-basic"
+                      style={{
+                        background: "#FFF",
+                        borderColor: "#666",
+                        color: "#666",
+                        fontWeight: "bold",
+                        fontSize: "10px",
+                        fontFamily: "Helvetica Neue",
+                      }}>
+                      {getTitle(selectedType)}
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      <Dropdown.Item eventKey="Pm1p0">PM1.0</Dropdown.Item>
+                      <Dropdown.Item eventKey="Pm2p5">PM2.5</Dropdown.Item>
+                      <Dropdown.Item eventKey="Pm4p0">PM4.0</Dropdown.Item>
+                      <Dropdown.Item eventKey="Pm10p0">PM10.0</Dropdown.Item>
+                      <Dropdown.Item eventKey="Temperature">Temperature</Dropdown.Item>
+                      <Dropdown.Item eventKey="Humidity">Humidity</Dropdown.Item>
+                      <Dropdown.Item eventKey="Voc">VOC</Dropdown.Item>
+                      <Dropdown.Item eventKey="Nox">NOx</Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+                </div>
+              </h6>
+  
+              {isLoading ? (
+                <div
+                  style={{
+                    height: "75vh",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}>
+                  <h3>Loading 30 Days Data...</h3>
+                </div>
+              ) : filteredData2 && filteredData1 && filteredData2.length > 0 && filteredData1.length > 0 ? (
+                <div style={{ height: "75vh" }}>
+                  <div className="d-flex justify-content-center mt-3">
+                    <div className="d-flex flex-row align-items-center">
+                      <div className="me-4" style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ 
+                          display: 'inline-block', 
+                          width: '12px', 
+                          height: '12px', 
+                          borderRadius: '50%', 
+                          backgroundColor: 'rgba(54, 162, 235, 1)', 
+                          marginRight: '8px' 
+                        }}></span>
+                        <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                          {selectedSensor ? getStationNameByStationId(selectedSensor) : "Select Station 1"}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ 
+                          display: 'inline-block', 
+                          width: '12px', 
+                          height: '12px', 
+                          borderRadius: '50%', 
+                          backgroundColor: 'rgba(255, 99, 132, 1)', 
+                          marginRight: '8px' 
+                        }}></span>
+                        <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                          {selectedSensor2 ? getStationNameByStationId(selectedSensor2) : "Select Station 2"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <ChartCard
+                    data={selectedData}
+                    options={chartOptions}
+                    title={getTitle(selectedType)}
+                    multiAxis 
+                  />
+                </div>
+              ) : filteredData2 && filteredData2.length > 0 ? (
+                <div style={{ height: "75vh" }}>
+                  <div className="d-flex justify-content-center mt-3">
+                    <div className="d-flex flex-row align-items-center">
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ 
+                          display: 'inline-block', 
+                          width: '12px', 
+                          height: '12px', 
+                          borderRadius: '50%', 
+                          backgroundColor: 'rgba(255, 99, 132, 1)', 
+                          marginRight: '8px' 
+                        }}></span>
+                        <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                          {selectedSensor2 ? getStationNameByStationId(selectedSensor2) : "Select Station 2"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      color: "#444",
+                      fontWeight: "bold",
+                      fontSize: "18px",
+                      fontFamily: "Arial, sans-serif",
+                      padding: "10px",
+                      background: "rgba(240, 240, 240, 0.8)",
+                      border: "1px solid rgba(200, 200, 200, 0.8)",
+                      borderRadius: "8px",
+                      margin: "10px 0",
+                      maxWidth: "60%",
+                      marginLeft: "auto",
+                      marginRight: "auto",
+                      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+                    }}>
+                    No data available for {selectedSensor ? getStationNameByStationId(selectedSensor) : "Station 1"}.
+                  </div>
+                  <ChartCard
+                    data={selectedData}
+                    options={chartOptions}
+                    title={`${getTitle(selectedType)} - Station 2`}
+                  />
+                </div>
+              ) : filteredData1 && filteredData1.length > 0 ? (
+                <div style={{ height: "75vh" }}>
+                  <div className="d-flex justify-content-center mt-3">
+                    <div className="d-flex flex-row align-items-center">
+                      <div className="me-4" style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ 
+                          display: 'inline-block', 
+                          width: '12px', 
+                          height: '12px', 
+                          borderRadius: '50%', 
+                          backgroundColor: 'rgba(54, 162, 235, 1)', 
+                          marginRight: '8px' 
+                        }}></span>
+                        <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                          {selectedSensor ? getStationNameByStationId(selectedSensor) : "Select Station 1"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      color: "#444",
+                      fontWeight: "bold",
+                      fontSize: "18px",
+                      fontFamily: "Arial, sans-serif",
+                      padding: "10px",
+                      background: "rgba(240, 240, 240, 0.8)",
+                      border: "1px solid rgba(200, 200, 200, 0.8)",
+                      borderRadius: "8px",
+                      margin: "10px 0",
+                      maxWidth: "60%",
+                      marginLeft: "auto",
+                      marginRight: "auto",
+                      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+                    }}>
+                    No data available for {selectedSensor2 ? getStationNameByStationId(selectedSensor2) : "Station 2"}.
+                  </div>
+                  <ChartCard
+                    data={selectedData}
+                    options={chartOptions}
+                    title={`${getTitle(selectedType)} - Station 1`}
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    height: "75vh",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}>
+                  <h3>Data is unavailable for both stations.</h3>
+                </div>
+              )}
+            </Card>
+          </Col>
+        </Row>
+      </Container>
+    </div>
+  );
+  
+};
+
+export default AnalyticsScreen;
