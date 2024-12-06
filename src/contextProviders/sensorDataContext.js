@@ -10,7 +10,7 @@ const SensorDataProvider = ({ children }) => {
   const [data, setData] = useState(null);
   const [selectedSensor, setSelectedSensor] = useState("350457790740896");
   const [selectedSensor2, setSelectedSensor2] = useState("No Station 2 Selected");
-  const [selectedPeriod, setSelectedPeriod] = useState("7 Days");
+  const [selectedPeriod, setSelectedPeriod] = useState("Today");
   const navigate = useNavigate();
   const fetchData = async () => {
     try {
