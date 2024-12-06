@@ -10,6 +10,8 @@ import { useSensorData } from "../contextProviders/sensorDataContext.js";
 import { DataContext } from "../contextProviders/DataContext.js";
 import { StationContext } from "../contextProviders/StationContext.js";
 
+
+
 const AnalyticsScreen = () => {
   const {
     selectedSensor,
@@ -18,11 +20,18 @@ const AnalyticsScreen = () => {
     setSelectedPeriod,
   } = useSensorData();
 
-  const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
+  const {
+    selectedSensor2 = "No Station 2 Selected",
+    setSelectedSensor2,
+  } = useSensorData();
+
+  const { nodeData, setNodeData, fetchNodeData ,nodeData2, setNodeData2, fetchNodeData2  } = useContext(DataContext);
+ // const [matchingTimestamps, setMatchingTimestamps] = useState([]);
 
   const { stations } = useContext(StationContext);
 
-  const [filteredData1, setFilteredData] = useState([]);
+  const [filteredData1, setFilteredData1] = useState([]);
+  const [filteredData2, setFilteredData2] = useState([]);
   const [dataResolution, setDataResolution] = useState("raw");
 
   const { selectedType, handleTypeSelect } = useDataType();
@@ -30,6 +39,7 @@ const AnalyticsScreen = () => {
   const [isLoading, setIsLoading] = useState(false); // Loading state
 
   // Fetch data when the component mounts or when selectedSensor changes
+  // Fetch data for station 1
   useEffect(() => {
     const station = stations.find(
       (station) => station["_id"] === selectedSensor
@@ -40,9 +50,26 @@ const AnalyticsScreen = () => {
       fetchNodeData(station._id, 7);
       console.log("Data fetched for 7 days.");
     } else {
-      console.log("Station not found.");
+      console.log("Station 1 not found.");
     }
   }, [selectedSensor]);
+
+  // Fetch data for station 2
+  useEffect(() => {
+    if (selectedSensor2 === "No Station 2 Selected") return;
+    const station2 = stations.find(
+      (station) => station["_id"] === selectedSensor2
+    );
+
+    if (station2) {
+      // Default fetch is for 7 days
+      fetchNodeData2(station2._id, 7);
+      console.log("Data fetched for 7 days.");
+    } else {
+      console.log("Station 2 not found.");
+    }
+  }, [selectedSensor2]);
+
 
   // Fetch data when selectedPeriod changes to "30 Days"
   useEffect(() => {
@@ -50,10 +77,28 @@ const AnalyticsScreen = () => {
       const station = stations.find(
         (station) => station["_id"] === selectedSensor
       );
+      const station2 = stations.find(
+        (station2) => station2["_id"] === selectedSensor2
+      );
 
       if (station) {
         setIsLoading(true); // Start loading
         fetchNodeData(station._id, 30)
+          .then(() => {
+            setIsLoading(false); // End loading
+            console.log("Data fetched for 30 days.");
+          })
+          .catch((error) => {
+            setIsLoading(false);
+            console.error("Error fetching 30 days data:", error);
+          });
+      } else {
+        console.log("Station not found.");
+      }
+
+      if(station2) {
+        setIsLoading(true); // Start loading
+        fetchNodeData2(station2._id, 30)
           .then(() => {
             setIsLoading(false); // End loading
             console.log("Data fetched for 30 days.");
@@ -71,8 +116,9 @@ const AnalyticsScreen = () => {
 
   // Filter data based on selectedPeriod and dataResolution
   const filterData = () => {
-    let filtered = nodeData;
-
+    let filtered1 = nodeData;
+    let filtered2 = selectedSensor2 !== "No Station 2 Selected" ? nodeData2 : [];
+  
     if (selectedPeriod) {
       const now = new Date();
       let start = new Date();
@@ -86,28 +132,39 @@ const AnalyticsScreen = () => {
         case "7 Days":
           start.setDate(now.getDate() - 7);
           break;
-        // No need for "30 Days" here since we fetch data separately
         default:
           start = null;
       }
-
+  
       if (start) {
-        filtered = nodeData.filter((item) => {
+        filtered1 = nodeData.filter((item) => {
           const timestamp = new Date(item.timestamp);
           return timestamp >= start && timestamp <= now;
         });
+  
+        if (selectedSensor2 !== "No Station 2 Selected") {
+          filtered2 = nodeData2.filter((item) => {
+            const timestamp = new Date(item.timestamp);
+            return timestamp >= start && timestamp <= now;
+          });
+        }
       }
     }
-
+  
     if (dataResolution !== "raw") {
-      filtered = averageData(filtered, dataResolution);
+      filtered1 = averageData(filtered1, dataResolution);
+      if (selectedSensor2 !== "No Station 2 Selected") {
+        filtered2 = averageData(filtered2, dataResolution);
+      }
     }
-
-    setFilteredData(filtered);
+  
+    setFilteredData1(filtered1);
+    setFilteredData2(filtered2);
   };
-
+  
   // Average data based on resolution
   const averageData = (data, resolution) => {
+    
     const groupedData = {};
 
     data.forEach((item) => {
@@ -123,6 +180,7 @@ const AnalyticsScreen = () => {
           break;
         case "weekly":
           const weekStart = new Date(date);
+          console.log("here is week start " ,weekStart);
           weekStart.setDate(date.getDate() - date.getDay());
           key = weekStart.toISOString().slice(0, 10) + "T00:00:00.000Z"; // Group by week
           break;
@@ -150,53 +208,132 @@ const AnalyticsScreen = () => {
         avgItem[prop] = value.sum[prop] / value.count;
       });
       return avgItem;
-    });
+    })
   };
 
-  // Handle period selection
+  // Handle period selection  
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
-    setFilteredData([]); // Clear existing filtered data
+    setFilteredData1([]); // Clear existing filtered data
+    setFilteredData2([]); // Clear existing filtered data for sensor 2
   };
 
-  // Handle station selection
+  // Handle station 1 selection
   const handleStationSelect = (stationId) => {
     setSelectedSensor(stationId);
-    setFilteredData([]); // Clear existing filtered data
+    setFilteredData1([]); // Clear existing filtered data
+    setSelectedPeriod("7 Days"); // Reset to default period
+  };
+
+  // Handle station 2 selection
+  const handleStationSelect2 = (stationId) => {
+    setSelectedSensor2(stationId);
+    setFilteredData2([]); // Clear existing filtered data
     setSelectedPeriod("7 Days"); // Reset to default period
   };
 
   // Prepare data for chart
   useEffect(() => {
     filterData();
-  }, [nodeData, selectedPeriod, dataResolution]);
+    //console.log("Filtered Data 1:", filteredData1);
+    //console.log("Filtered Data 2:", filteredData2);
+  }, [nodeData, nodeData2,selectedPeriod, dataResolution]);
 
+
+
+  
   // Prepare dates and data for the chart
-  const dates = filteredData1.map((data) => new Date(data.timestamp));
+  //const dates = filteredData1.map((data) => new Date(data.timestamp));
+  // Prepare timestamps from both stations
+  const timestamps1 = new Set(filteredData1.map((data) => data.timestamp)); // Using Set for fast lookup
+  const timestamps2 = new Set(filteredData2.map((data) => data.timestamp));
+  //console.log("1 Timestamps:", timestamps1);
+  //console.log("2 Timestamps:", timestamps2);
+  // Find common timestamps
+  const commonTimestamps = Array.from(timestamps1).filter(timestamp => timestamps2.has(timestamp));
+  // Log the common timestamps to the console
+  //console.log("Common Timestamps:", commonTimestamps);
+  
 
-  const filteredData2 = filteredData1.map((data) => {
-    // Return the selected data type
-    switch (selectedType) {
-      case "Humidity":
-        return data.humidity;
-      case "Temperature":
-        return data.temperature;
-      case "Nox":
-        return data.nox;
-      case "Voc":
-        return data.voc;
-      case "Pm1p0":
-        return data.pm1p0;
-      case "Pm2p5":
-        return data.pm2p5;
-      case "Pm4p0":
-        return data.pm4p0;
-      case "Pm10p0":
-        return data.pm10p0;
-      default:
-        return null;
+  //filteredData1.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  //filteredData2.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    // Get all timestamps from both stations
+  const allTimestamps = [...new Set([
+    ...filteredData1.map(data => data.timestamp),
+    ...filteredData2.map(data => data.timestamp),
+  ])];
+
+  // Sort timestamps to create a unified X-axis
+  allTimestamps.sort((a, b) => new Date(a) - new Date(b));
+
+  // Prepare dates for X-axis
+  const xTimestamps = allTimestamps.map(timestamp => new Date(timestamp));
+
+  console.log("alltimestamp :", xTimestamps);
+  
+
+  // Prepare data for the chart using the unified timestamps for Sensor 1
+  const filteredDataForSensor1 = allTimestamps.map((timestamp) => {
+    const entry = filteredData1.find(data => data.timestamp === timestamp);
+    if (entry) {
+      // Return the selected data type
+      switch (selectedType) {
+        case "Humidity":
+          return entry.humidity;
+        case "Temperature":
+          return entry.temperature;
+        case "Nox":
+          return entry.nox;
+        case "Voc":
+          return entry.voc;
+        case "Pm1p0":
+          return entry.pm1p0;
+        case "Pm2p5":
+          return entry.pm2p5;
+        case "Pm4p0":
+          return entry.pm4p0;
+        case "Pm10p0":
+          return entry.pm10p0;
+        default:
+          return null;
+      }
+    } else {
+      return null; // If no entry found for this timestamp, return null
     }
   });
+
+  // Prepare data for the chart using the unified timestamps for Sensor 2
+  const filteredDataForSensor2 = allTimestamps.map((timestamp) => {
+    const entry = filteredData2.find(data => data.timestamp === timestamp);
+    if (entry) {
+      // Return the selected data type
+      switch (selectedType) {
+        case "Humidity":
+          return entry.humidity;
+        case "Temperature":
+          return entry.temperature;
+        case "Nox":
+          return entry.nox;
+        case "Voc":
+          return entry.voc;
+        case "Pm1p0":
+          return entry.pm1p0;
+        case "Pm2p5":
+          return entry.pm2p5;
+        case "Pm4p0":
+          return entry.pm4p0;
+        case "Pm10p0":
+          return entry.pm10p0;
+        default:
+          return null;
+      }
+    } else {
+      return null; // If no entry found for this timestamp, return null
+    }
+  });
+  
+  console.log("here is the data i think : ", filteredDataForSensor1)
 
   const getTitle = (selectedType) => {
     switch (selectedType) {
@@ -220,38 +357,55 @@ const AnalyticsScreen = () => {
         return "";
     }
   };
+  const getStationNameByStationId = (sensorId) => {
+    const station = stations.find((station) => station["_id"] === sensorId);
+    return station ? station["name"] : "Select Station";
+  };
 
   const chartInfo = {
-    labels: dates,
+    labels: xTimestamps,
     datasets: [
       {
-        label: getTitle(selectedType),
-        data: filteredData2,
-        fill: true,
-        backgroundColor: function (context) {
-          var ctx = context.chart.ctx;
-          var gradient = ctx.createLinearGradient(0, 0, 0, 200);
-          gradient.addColorStop(0, "rgba(88, 130, 239, 1)");
-          gradient.addColorStop(0.25, "rgba(88, 130, 239, 0.75)");
-          gradient.addColorStop(0.5, "rgba(88, 130, 239, 0.5)");
-          gradient.addColorStop(0.75, "rgba(88, 130, 239, 0.25)");
-          gradient.addColorStop(1, "rgba(88, 130, 239, 0.0)");
-          return gradient;
-        },
-        borderColor: "#8fbaff",
+        label: getStationNameByStationId(selectedSensor), // Dataset 1
+        data: filteredDataForSensor1,
+        fill: false,
+        backgroundColor: "rgba(54, 162, 235, 1)",
+        borderColor: "rgba(54, 162, 235, 1)", // Pink color for Dataset 1
+        yAxisID: 'y',
         tension: 0.4,
         borderWidth: 2,
-        fill: true,
         pointBackgroundColor: "#FFFFFF",
-        pointBorderColor: "#8fbaff",
+        pointBorderColor: "rgba(54, 162, 235, 1)",
         pointBorderWidth: 2,
+        spanGaps: true, // This will link points even with missing values
+      //  showLine: true,
+      //  pointRadius: 0,  // hides individual points
       },
+      ...(selectedSensor2 !== "No Station 2 Selected"
+        ? [
+            {
+              label: getStationNameByStationId(selectedSensor2), // Dataset 2
+              data: filteredDataForSensor2,
+              fill: false,
+              backgroundColor: "rgba(255, 99, 132, 1)",
+              borderColor: "rgba(255, 99, 132, 1)", // Blue color for Dataset 2
+              yAxisID: 'y1',
+              tension: 0.4,
+              borderWidth: 2,
+              pointBackgroundColor: "#FFFFFF",
+              pointBorderColor: "rgba(255, 99, 132, 1)",
+              pointBorderWidth: 2,
+              spanGaps: true, // This will link points even with missing values
+            },
+          ]
+        : []),
     ],
   };
 
   const selectedData = chartInfo;
 
   const chartOptions = {
+    type : 'line',
     responsive: true,
     scales: {
       x: {
@@ -270,17 +424,50 @@ const AnalyticsScreen = () => {
         display: true,
       },
       y: {
+        position: 'left',
         grid: {
           display: true,
+          drawOnChartArea: false, // Avoid overlapping grid lines
+        },
+        ticks: {
+          color: "rgba(255, 99, 132, 1)", // blue for left y-axis
+          stepSize: 50,
         },
         display: true,
+        title: {
+          display: true,
+          text: '1st station', // Set your desired title for the left y-axis
+          color: '#000', // Optional: Set title color
+          font: {
+              size: 14, // Optional: Set title font size
+          },
+        },
+      },
+      y1: {
+        grid: {
+          display: true,
+          drawOnChartArea: false, // Only want the grid lines for one axis to show up
+        },
+        display: true,
+        ticks: {
+          color: "rgba(54, 162, 235, 1)", // pink for right y-axis
+          stepSize: 50,
+        },
+        title: {
+          display: true,
+          text: '2nd station', // Set your desired title for the left y-axis
+          color: '#000', // Optional: Set title color
+          font: {
+              size: 14, // Optional: Set title font size
+          },
+        },
       },
     },
     plugins: {
       legend: {
-        display: false,
+        display: selectedSensor2 !== "No Station 2 Selected",
       },
-    },
+  },
     elements: {
       point: {
         radius: 1,
@@ -289,10 +476,7 @@ const AnalyticsScreen = () => {
     maintainAspectRatio: false,
   };
 
-  const getStationNameByStationId = (sensorId) => {
-    const station = stations.find((station) => station["_id"] === sensorId);
-    return station ? station["name"] : "Select Station";
-  };
+  
 
   return (
     <div
@@ -315,14 +499,14 @@ const AnalyticsScreen = () => {
         }}>
         <TopNavBar />
         <div className="d-flex flex-row justify-content-between">
-          {/* Station Selector */}
+          {/* 1st Station Selector */}
           <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
               size="sm"
               style={{
                 background: "#2068F3",
-                border: "none",
+                border: "No Station 2 Selected",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
               }}>
               {getStationNameByStationId(selectedSensor)}
@@ -335,7 +519,29 @@ const AnalyticsScreen = () => {
               ))}
             </Dropdown.Menu>
           </Dropdown>
-
+  
+          {/* 2nd Station Selector */}
+          <Dropdown onSelect={(eventKey) => handleStationSelect2(eventKey)}>
+            <Dropdown.Toggle
+              id="dropdown-basic"
+              size="sm"
+              style={{
+                background: "#2068F3",
+                border: "No Station 2 Selected",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+              }}>
+              {selectedSensor2 === "No Station 2 Selected" ? "Select station 2" : getStationNameByStationId(selectedSensor2)}
+            </Dropdown.Toggle>
+            <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
+              <Dropdown.Item eventKey="No Station 2 Selected">No Station 2 Selected</Dropdown.Item>
+              {stations.map((station, index) => (
+                <Dropdown.Item key={index} eventKey={station["_id"]}>
+                  {station["name"]}
+                </Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
+  
           {/* Period Selector */}
           <Dropdown onSelect={(eventKey) => handlePeriodSelect(eventKey)}>
             <Dropdown.Toggle
@@ -355,7 +561,7 @@ const AnalyticsScreen = () => {
               <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
-
+  
           {/* Data Resolution Selector */}
           <Dropdown onSelect={(eventKey) => setDataResolution(eventKey)}>
             <Dropdown.Toggle
@@ -368,10 +574,7 @@ const AnalyticsScreen = () => {
               }}>
               {dataResolution === "raw"
                 ? "Raw Data"
-                : `${
-                    dataResolution.charAt(0).toUpperCase() +
-                    dataResolution.slice(1)
-                  } Averages`}
+                : `${dataResolution.charAt(0).toUpperCase() + dataResolution.slice(1)} Averages`}
             </Dropdown.Toggle>
             <Dropdown.Menu>
               <Dropdown.Item eventKey="raw">Raw Data</Dropdown.Item>
@@ -381,6 +584,7 @@ const AnalyticsScreen = () => {
             </Dropdown.Menu>
           </Dropdown>
         </div>
+        
         <Row className="mt-4">
           <Col>
             <Card
@@ -418,19 +622,15 @@ const AnalyticsScreen = () => {
                       <Dropdown.Item eventKey="Pm2p5">PM2.5</Dropdown.Item>
                       <Dropdown.Item eventKey="Pm4p0">PM4.0</Dropdown.Item>
                       <Dropdown.Item eventKey="Pm10p0">PM10.0</Dropdown.Item>
-                      <Dropdown.Item eventKey="Temperature">
-                        Temperature
-                      </Dropdown.Item>
-                      <Dropdown.Item eventKey="Humidity">
-                        Humidity
-                      </Dropdown.Item>
+                      <Dropdown.Item eventKey="Temperature">Temperature</Dropdown.Item>
+                      <Dropdown.Item eventKey="Humidity">Humidity</Dropdown.Item>
                       <Dropdown.Item eventKey="Voc">VOC</Dropdown.Item>
                       <Dropdown.Item eventKey="Nox">NOx</Dropdown.Item>
                     </Dropdown.Menu>
                   </Dropdown>
                 </div>
               </h6>
-
+  
               {isLoading ? (
                 <div
                   style={{
@@ -441,12 +641,75 @@ const AnalyticsScreen = () => {
                   }}>
                   <h3>Loading 30 Days Data...</h3>
                 </div>
-              ) : filteredData1 && filteredData1.length > 0 ? (
+              ) : filteredData2 && filteredData1 && filteredData2.length > 0 && filteredData1.length > 0 ? (
                 <div style={{ height: "75vh" }}>
                   <ChartCard
                     data={selectedData}
                     options={chartOptions}
                     title={getTitle(selectedType)}
+                    multiAxis 
+                  />
+                </div>
+              ) : filteredData1 && filteredData1.length > 0 && selectedSensor2 == "No Station 2 Selected" ? (
+                <div style={{ height: "75vh" }}>
+                  <ChartCard
+                    data={selectedData}
+                    options={chartOptions}
+                    title={getTitle(selectedType)}
+                  />
+                </div>  
+              ) : filteredData2 && filteredData2.length > 0 ? (
+                <div style={{ height: "75vh" }}>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      color: "#444",
+                      fontWeight: "bold",
+                      fontSize: "18px",
+                      fontFamily: "Arial, sans-serif",
+                      padding: "10px",
+                      background: "rgba(240, 240, 240, 0.8)",
+                      border: "1px solid rgba(200, 200, 200, 0.8)",
+                      borderRadius: "8px",
+                      margin: "10px 0",
+                      maxWidth: "60%",
+                      marginLeft: "auto",
+                      marginRight: "auto",
+                      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+                    }}>
+                    No data available for {selectedSensor ? getStationNameByStationId(selectedSensor) : "Station 1"}.
+                  </div>
+                  <ChartCard
+                    data={selectedData}
+                    options={chartOptions}
+                    title={`${getTitle(selectedType)} - Station 2`}
+                  />
+                </div>
+              ) : filteredData1 && filteredData1.length > 0 ? (
+                <div style={{ height: "75vh" }}>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      color: "#444",
+                      fontWeight: "bold",
+                      fontSize: "18px",
+                      fontFamily: "Arial, sans-serif",
+                      padding: "10px",
+                      background: "rgba(240, 240, 240, 0.8)",
+                      border: "1px solid rgba(200, 200, 200, 0.8)",
+                      borderRadius: "8px",
+                      margin: "10px 0",
+                      maxWidth: "60%",
+                      marginLeft: "auto",
+                      marginRight: "auto",
+                      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+                    }}>
+                    No data available for {selectedSensor2 ? getStationNameByStationId(selectedSensor2) : "Station 2"}.
+                  </div>
+                  <ChartCard
+                    data={selectedData}
+                    options={chartOptions}
+                    title={`${getTitle(selectedType)} - Station 1`}
                   />
                 </div>
               ) : (
@@ -466,6 +729,7 @@ const AnalyticsScreen = () => {
       </Container>
     </div>
   );
+  
 };
 
 export default AnalyticsScreen;

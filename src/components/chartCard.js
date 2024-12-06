@@ -10,6 +10,18 @@ Chart.register(...registerables);
 function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
   const lastMonthData = 0;
   const [Latest, setLatest] = useState(0);
+  const [Max, setMax] = useState({  max: null });
+  useEffect(() => {
+    // Recalculate min and max whenever the data changes
+    if (data && data.datasets) {
+      const allData = data.datasets.flatMap(dataset => dataset.data);
+      const max = Math.max(...allData);
+      // Adjust the max value to the next rounded number
+      const roundedMax = Math.ceil(max / 100) * 100; // Round to nearest 100
+      setMax({ max: roundedMax });
+    }
+  }, [data]); // Dependency array to watch for changes in the `data`
+
 
   // const previousMonthData = data.datasets[0].data.slice(-2)[0];
   const previousMonthData = 1;
@@ -18,6 +30,7 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
   const changeArrow = change >= 0 ? "↑" : "↓";
 
   const modifiedOptions = {
+    type : 'line',
     ...options,
     maintainAspectRatio: false,
     scales: {
@@ -59,10 +72,28 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
           display: false,
         },
         ticks: {
-          display: true,
+          display : true,
         },
-        beginAtZero: true, // Start the Y-axis at 0
+        position: 'left',
+        min : 0,
+        ...(data.datasets && data.datasets.length > 1 ? { max: Max.max } : {}),
       },
+      ...(data.datasets && data.datasets.length > 1
+        ? {
+            // Add y1 axis only for multi-chart
+            y1: {
+              grid: {
+                display: false,
+              },
+              ticks: {
+                display: true,
+              },
+              position: "right",
+              max: Max.max,
+              min: 0,
+            },
+          }
+        : {}),
     },
   };
   const navigate = useNavigate();
