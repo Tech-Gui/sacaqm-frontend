@@ -15,7 +15,7 @@ import { StationContext } from "../contextProviders/StationContext.js";
 const AnalyticsScreen = () => {
   const {
     selectedSensor,
-    selectedPeriod,
+    selectedPeriod = "Today",
     setSelectedSensor,
     setSelectedPeriod,
   } = useSensorData();
@@ -222,14 +222,14 @@ const AnalyticsScreen = () => {
   const handleStationSelect = (stationId) => {
     setSelectedSensor(stationId);
     setFilteredData1([]); // Clear existing filtered data
-    setSelectedPeriod("7 Days"); // Reset to default period
+    setSelectedPeriod("Today"); // Reset to default period
   };
 
   // Handle station 2 selection
   const handleStationSelect2 = (stationId) => {
     setSelectedSensor2(stationId);
     setFilteredData2([]); // Clear existing filtered data
-    setSelectedPeriod("7 Days"); // Reset to default period
+    setSelectedPeriod("Today"); // Reset to default period
   };
 
   // Prepare data for chart
