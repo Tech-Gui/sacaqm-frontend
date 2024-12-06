@@ -9,6 +9,7 @@ const SensorDataContext = createContext();
 const SensorDataProvider = ({ children }) => {
   const [data, setData] = useState(null);
   const [selectedSensor, setSelectedSensor] = useState("350457790740896");
+  const [selectedSensor2, setSelectedSensor2] = useState("No Station 2 Selected");
   const [selectedPeriod, setSelectedPeriod] = useState("7 Days");
   const navigate = useNavigate();
   const fetchData = async () => {
@@ -34,14 +35,16 @@ const SensorDataProvider = ({ children }) => {
 
   useEffect(() => {
     fetchData();
-  }, [selectedSensor, selectedPeriod]);
+  }, [selectedSensor, selectedSensor2,selectedPeriod]);
 
   // Step 3: Provide the state and functions through the context
   const contextValue = {
     data,
     selectedSensor,
+    selectedSensor2,
     selectedPeriod,
     setSelectedSensor,
+    setSelectedSensor2,
     setSelectedPeriod,
     fetchData,
   };
