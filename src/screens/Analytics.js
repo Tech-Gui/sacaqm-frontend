@@ -704,7 +704,7 @@ const AnalyticsScreen = () => {
                       marginRight: "auto",
                       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
                     }}>
-                    No data available for {selectedSensor2 ? getStationNameByStationId(selectedSensor2) : "Station 2"}.
+                     Loading data for {selectedSensor2 ? getStationNameByStationId(selectedSensor2) : "Station 2"}... Please wait!
                   </div>
                   <ChartCard
                     data={selectedData}
@@ -720,7 +720,7 @@ const AnalyticsScreen = () => {
                     justifyContent: "center",
                     alignItems: "center",
                   }}>
-                  <h3>No Data Available</h3>
+                  <h3>Loading data... Please wait</h3>
                 </div>
               )}
             </Card>
