@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Line, Bar } from "react-chartjs-2";
+import { Line } from "react-chartjs-2";
 import Card from "react-bootstrap/Card";
 import { Chart, registerables } from "chart.js";
 import { useNavigate } from "react-router-dom";
@@ -7,30 +7,78 @@ import { useDataType } from "../contextProviders/dataTypeContext";
 
 Chart.register(...registerables);
 
+// Define your AQI bands (adjust colors and thresholds as you need)
+const aqiBands = [
+  { label: "Good", min: 0, max: 50, color: "#A8E05F" },
+  { label: "Moderate", min: 51, max: 100, color: "#FDD64B" },
+  {
+    label: "Unhealthy for Sensitive Groups",
+    min: 101,
+    max: 150,
+    color: "#FE9B57",
+  },
+  { label: "Unhealthy", min: 151, max: 200, color: "#FE6A69" },
+  { label: "Very Unhealthy", min: 201, max: 300, color: "#A97ABC" },
+  { label: "Hazardous", min: 301, max: 500, color: "#A87383" },
+];
+
+// This plugin draws colored bands behind the data lines
+const backgroundPlugin = {
+  id: "backgroundPlugin",
+  beforeDatasetsDraw: (chart) => {
+    const {
+      ctx,
+      chartArea: { top, bottom, left, right },
+      scales: { y },
+    } = chart;
+
+    aqiBands.forEach((band) => {
+      const yStart = y.getPixelForValue(band.max);
+      const yEnd = y.getPixelForValue(band.min);
+
+      if (yStart && yEnd) {
+        // Draw the colored rectangle
+        ctx.save();
+        ctx.fillStyle = band.color;
+        ctx.fillRect(left, yStart, right - left, yEnd - yStart);
+        ctx.restore();
+
+        // Draw the text label inside the band
+        ctx.save();
+        ctx.fillStyle = "#FFF"; // Choose a color that contrasts with the band color
+        ctx.font = "bold 12px Helvetica"; // Customize your font
+        ctx.textAlign = "left"; // Or "center", depending on what you prefer
+        ctx.textBaseline = "middle";
+
+        // Position the text in the vertical center of the band
+        const textY = (yStart + yEnd) / 2;
+        ctx.fillText(band.label, left + 10, textY);
+        ctx.restore();
+      }
+    });
+  },
+};
+
 function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
   const lastMonthData = 0;
-  const [Latest, setLatest] = useState(0);
-  const [Max, setMax] = useState({  max: null });
+  const [Max, setMax] = useState({ max: null });
+
   useEffect(() => {
-    // Recalculate min and max whenever the data changes
     if (data && data.datasets) {
-      const allData = data.datasets.flatMap(dataset => dataset.data);
+      const allData = data.datasets.flatMap((dataset) => dataset.data);
       const max = Math.max(...allData);
-      // Adjust the max value to the next rounded number
-      const roundedMax = Math.ceil(max / 100) * 100; // Round to nearest 100
+      const roundedMax = Math.ceil(max / 100) * 100;
       setMax({ max: roundedMax });
     }
-  }, [data]); // Dependency array to watch for changes in the `data`
+  }, [data]);
 
-
-  // const previousMonthData = data.datasets[0].data.slice(-2)[0];
-  const previousMonthData = 1;
+  const previousMonthData = 1; // This is just a placeholder for logic
   const change = lastMonthData - previousMonthData;
   const changeColor = change >= 0 ? "green" : "red";
   const changeArrow = change >= 0 ? "↑" : "↓";
 
   const modifiedOptions = {
-    type : 'line',
+    type: "line",
     ...options,
     maintainAspectRatio: false,
     scales: {
@@ -40,27 +88,23 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
         },
         ticks: {
           display: true,
-          maxTicksLimit: 3, // This will show 6 ticks, skipping 2
-
-          callback: (value, index, values) => {
-            // 1. Create a Date object from the timestamp
-            value = data.labels[index];
-            const date = new Date(value);
-
-            // 2. Format the date part using appropriate methods
+          maxTicksLimit: 3,
+          callback: (value, index) => {
+            const val = data.labels[index];
+            const date = new Date(val);
             const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, "0"); // Add leading zero for single-digit months
+            const month = String(date.getMonth() + 1).padStart(2, "0");
             const day = String(date.getDate()).padStart(2, "0");
 
-            // 3. Combine year, month, and day for the desired format
+            let formattedDate;
             if (period === "Today") {
-              var formattedDate = `${month}-${day}`;
+              formattedDate = `${month}-${day}`;
             } else if (period === "7Days") {
-              var formattedDate = `${month}-${day}`;
+              formattedDate = `${month}-${day}`;
             } else if (period === "LastDay") {
-              var formattedDate = `${month}-${day}`;
+              formattedDate = `${month}-${day}`;
             } else {
-              var formattedDate = `${year}-${month}-${day}`;
+              formattedDate = `${year}-${month}-${day}`;
             }
 
             return formattedDate;
@@ -72,15 +116,14 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
           display: false,
         },
         ticks: {
-          display : true,
+          display: true,
         },
-        position: 'left',
-        min : 0,
+        position: "left",
+        min: 0,
         ...(data.datasets && data.datasets.length > 1 ? { max: Max.max } : {}),
       },
       ...(data.datasets && data.datasets.length > 1
         ? {
-            // Add y1 axis only for multi-chart
             y1: {
               grid: {
                 display: false,
@@ -96,24 +139,17 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
         : {}),
     },
   };
+
   const navigate = useNavigate();
   const { selectedType, handleTypeSelect } = useDataType();
   const handleCardClick = () => {
-    // Split the title by whitespace
     const words = title.split(/\s+/);
-    console.log(words);
-
     let cleanTitle = words[0].toLowerCase();
-
     cleanTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
-
-    // If there's a dot in the second word, replace it with 'p'
     if (cleanTitle.length > 1 && cleanTitle.includes(".")) {
       cleanTitle = cleanTitle.replace(".", "p");
     }
-    console.log(cleanTitle);
     handleTypeSelect(cleanTitle);
-    // After setting the selectedType, navigate to the analytics page
     navigate("/analytics");
   };
 
@@ -127,7 +163,7 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
         cursor: "pointer",
       }}
       onDoubleClick={handleCardClick}>
-      <Card.Body className="d-flex flex-column align-items-cente">
+      <Card.Body className="d-flex flex-column align-items-center">
         <div className="d-flex flex-row justify-content-between">
           <p
             className="card-title text-center"
@@ -140,12 +176,19 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
             }}>
             {title}
           </p>
-
         </div>
         <div
           className="d-flex justify-content-center align-items-center"
           style={{ width: "100%", height: "100%" }}>
-          {data ? <Line data={data} options={modifiedOptions} /> : null}
+          {data ? (
+            <Line
+              data={data}
+              options={modifiedOptions}
+              plugins={[backgroundPlugin]}
+              width={chartWidth}
+              height={chartHeight}
+            />
+          ) : null}
         </div>
       </Card.Body>
     </Card>
