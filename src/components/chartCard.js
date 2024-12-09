@@ -9,17 +9,22 @@ Chart.register(...registerables);
 
 // Define your AQI bands (adjust colors and thresholds as you need)
 const aqiBands = [
-  { label: "Good", min: 0, max: 50, color: "#A8E05F" },
-  { label: "Moderate", min: 51, max: 100, color: "#FDD64B" },
+  { label: "Good", min: 0, max: 50, color: "rgba(82, 196, 26, 0.45)" }, // Fresh green
+  { label: "Moderate", min: 51, max: 100, color: "rgba(250, 173, 20, 0.45)" }, // Warm amber
   {
     label: "Unhealthy for Sensitive Groups",
     min: 101,
     max: 150,
-    color: "#FE9B57",
+    color: "rgba(245, 116, 37, 0.45)", // Vibrant orange
   },
-  { label: "Unhealthy", min: 151, max: 200, color: "#FE6A69" },
-  { label: "Very Unhealthy", min: 201, max: 300, color: "#A97ABC" },
-  { label: "Hazardous", min: 301, max: 500, color: "#A87383" },
+  { label: "Unhealthy", min: 151, max: 200, color: "rgba(236, 56, 56, 0.45)" }, // Strong red
+  {
+    label: "Very Unhealthy",
+    min: 201,
+    max: 300,
+    color: "rgba(146, 84, 222, 0.45)", // Rich purple
+  },
+  { label: "Hazardous", min: 301, max: 500, color: "rgba(165, 42, 74, 0.45)" }, // Deep maroon
 ];
 
 // This plugin draws colored bands behind the data lines
