@@ -426,7 +426,7 @@ const AnalyticsScreen = () => {
   
   // Prepare dynamic yMax
   //const yMax = calculateYMax();
-  const isTemperatureOrHumidity = selectedType === "Temperature" || selectedType === "Humidity";
+  const isTemperatureOrHumidity = selectedType === "Temperature" || selectedType === "Humidity" || selectedType === "VOC" || selectedType === "NOx";
    
 
 
