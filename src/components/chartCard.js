@@ -1,89 +1,56 @@
 import React, { useEffect, useState } from "react";
-import { Line } from "react-chartjs-2";
+import { Line, Bar } from "react-chartjs-2";
 import Card from "react-bootstrap/Card";
-import { Chart, registerables } from "chart.js";
-import { useNavigate } from "react-router-dom";
+import { Chart, plugins, registerables } from "chart.js";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useDataType } from "../contextProviders/dataTypeContext";
+import annotationPlugin from "chartjs-plugin-annotation";
 
+import { max } from "date-fns";
 Chart.register(...registerables);
-
-// Define your AQI bands (adjust colors and thresholds as you need)
-const aqiBands = [
-  { label: "Good", min: 0, max: 50, color: "rgba(82, 196, 26, 0.45)" }, // Fresh green
-  { label: "Moderate", min: 51, max: 100, color: "rgba(250, 173, 20, 0.45)" }, // Warm amber
-  {
-    label: "Unhealthy for Sensitive Groups",
-    min: 101,
-    max: 150,
-    color: "rgba(245, 116, 37, 0.45)", // Vibrant orange
-  },
-  { label: "Unhealthy", min: 151, max: 200, color: "rgba(236, 56, 56, 0.45)" }, // Strong red
-  {
-    label: "Very Unhealthy",
-    min: 201,
-    max: 300,
-    color: "rgba(146, 84, 222, 0.45)", // Rich purple
-  },
-  { label: "Hazardous", min: 301, max: 500, color: "rgba(165, 42, 74, 0.45)" }, // Deep maroon
-];
-
-// This plugin draws colored bands behind the data lines
-const backgroundPlugin = {
-  id: "backgroundPlugin",
-  beforeDatasetsDraw: (chart) => {
-    const {
-      ctx,
-      chartArea: { top, bottom, left, right },
-      scales: { y },
-    } = chart;
-
-    aqiBands.forEach((band) => {
-      const yStart = y.getPixelForValue(band.max);
-      const yEnd = y.getPixelForValue(band.min);
-
-      if (yStart && yEnd) {
-        // Draw the colored rectangle
-        ctx.save();
-        ctx.fillStyle = band.color;
-        ctx.fillRect(left, yStart, right - left, yEnd - yStart);
-        ctx.restore();
-
-        // Draw the text label inside the band
-        ctx.save();
-        ctx.fillStyle = "#FFF"; // Choose a color that contrasts with the band color
-        ctx.font = "bold 12px Helvetica"; // Customize your font
-        ctx.textAlign = "left"; // Or "center", depending on what you prefer
-        ctx.textBaseline = "middle";
-
-        // Position the text in the vertical center of the band
-        const textY = (yStart + yEnd) / 2;
-        ctx.fillText(band.label, left + 10, textY);
-        ctx.restore();
-      }
-    });
-  },
-};
+Chart.register(annotationPlugin);
 
 function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
   const lastMonthData = 0;
-  const [Max, setMax] = useState({ max: null });
+  const [Latest, setLatest] = useState(0);
+  const [Max, setMax] = useState({  max: null });
+
+  const navigate = useNavigate();
+  const location = useLocation(); // Get the current route
+  
+  const [maxScale, setMaxScale] = useState(null);
+  const { selectedType, handleTypeSelect } = useDataType();
 
   useEffect(() => {
     if (data && data.datasets) {
-      const allData = data.datasets.flatMap((dataset) => dataset.data);
+      // Calculate the maximum value from all datasets
+      const allData = data.datasets.flatMap(dataset => dataset.data);
       const max = Math.max(...allData);
-      const roundedMax = Math.ceil(max / 100) * 100;
-      setMax({ max: roundedMax });
+
+      const roundedMax = Math.ceil(max / 10) * 10;
+      setMaxScale(roundedMax);
     }
   }, [data]);
 
-  const previousMonthData = 1; // This is just a placeholder for logic
+
+  // const previousMonthData = data.datasets[0].data.slice(-2)[0];
+  const previousMonthData = 1;
   const change = lastMonthData - previousMonthData;
   const changeColor = change >= 0 ? "green" : "red";
   const changeArrow = change >= 0 ? "↑" : "↓";
 
+  const isTemperatureOrHumidity = selectedType === "Temperature" || selectedType === "Humidity";
+  // Check if we are on the analytics page
+  const isAnalyticsPage = location.pathname.includes("analytics");
+  // Check if we are on the dashboard page
+  const isDashboardPage = location.pathname.includes("dashboard");
+
+  // Conditional feature logic: Disable the feature if on the dashboard and the chart is temperature or humidity
+  const showFeature = !(isDashboardPage && isTemperatureOrHumidity);
+
+
   const modifiedOptions = {
-    type: "line",
+    type : 'line',
     ...options,
     maintainAspectRatio: false,
     scales: {
@@ -93,23 +60,27 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
         },
         ticks: {
           display: true,
-          maxTicksLimit: 3,
-          callback: (value, index) => {
-            const val = data.labels[index];
-            const date = new Date(val);
+          maxTicksLimit: 3, // This will show 6 ticks, skipping 2
+
+          callback: (value, index, values) => {
+            // 1. Create a Date object from the timestamp
+            value = data.labels[index];
+            const date = new Date(value);
+
+            // 2. Format the date part using appropriate methods
             const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const month = String(date.getMonth() + 1).padStart(2, "0"); // Add leading zero for single-digit months
             const day = String(date.getDate()).padStart(2, "0");
 
-            let formattedDate;
+            // 3. Combine year, month, and day for the desired format
             if (period === "Today") {
-              formattedDate = `${month}-${day}`;
+              var formattedDate = `${month}-${day}`;
             } else if (period === "7Days") {
-              formattedDate = `${month}-${day}`;
+              var formattedDate = `${month}-${day}`;
             } else if (period === "LastDay") {
-              formattedDate = `${month}-${day}`;
+              var formattedDate = `${month}-${day}`;
             } else {
-              formattedDate = `${year}-${month}-${day}`;
+              var formattedDate = `${year}-${month}-${day}`;
             }
 
             return formattedDate;
@@ -121,14 +92,15 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
           display: false,
         },
         ticks: {
-          display: true,
+          display : true,
         },
-        position: "left",
-        min: 0,
-        ...(data.datasets && data.datasets.length > 1 ? { max: Max.max } : {}),
+        position: 'left',
+        min : 0,
+        ...(data.datasets && data.datasets.length > 1 ? { max: maxScale } : {max: maxScale}),
       },
       ...(data.datasets && data.datasets.length > 1
         ? {
+            // Add y1 axis only for multi-chart
             y1: {
               grid: {
                 display: false,
@@ -137,24 +109,30 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
                 display: true,
               },
               position: "right",
-              max: Max.max,
+              max: maxScale,
               min: 0,
             },
           }
         : {}),
-    },
+    }
   };
-
-  const navigate = useNavigate();
-  const { selectedType, handleTypeSelect } = useDataType();
+  
   const handleCardClick = () => {
+    // Split the title by whitespace
     const words = title.split(/\s+/);
+    console.log(words);
+
     let cleanTitle = words[0].toLowerCase();
+
     cleanTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
+
+    // If there's a dot in the second word, replace it with 'p'
     if (cleanTitle.length > 1 && cleanTitle.includes(".")) {
       cleanTitle = cleanTitle.replace(".", "p");
     }
+    console.log(cleanTitle);
     handleTypeSelect(cleanTitle);
+    // After setting the selectedType, navigate to the analytics page
     navigate("/analytics");
   };
 
@@ -168,7 +146,7 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
         cursor: "pointer",
       }}
       onDoubleClick={handleCardClick}>
-      <Card.Body className="d-flex flex-column align-items-center">
+      <Card.Body className="d-flex flex-column align-items-cente">
         <div className="d-flex flex-row justify-content-between">
           <p
             className="card-title text-center"
@@ -181,19 +159,12 @@ function ChartCard({ data, options, title, period, chartWidth, chartHeight }) {
             }}>
             {title}
           </p>
+
         </div>
         <div
           className="d-flex justify-content-center align-items-center"
           style={{ width: "100%", height: "100%" }}>
-          {data ? (
-            <Line
-              data={data}
-              options={modifiedOptions}
-              plugins={[backgroundPlugin]}
-              width={chartWidth}
-              height={chartHeight}
-            />
-          ) : null}
+          {data ? <Line data={data} options={modifiedOptions} /> : null}
         </div>
       </Card.Body>
     </Card>
