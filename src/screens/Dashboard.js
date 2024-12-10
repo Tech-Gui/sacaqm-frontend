@@ -71,13 +71,141 @@ function Dashboard() {
       legend: {
         display: false,
       },
-    },
+      annotation: {
+        annotations: [
+          {
+            type: "box",
+            yMin: 300,
+            yMax: 350,
+            backgroundColor: "rgba(128, 0, 0, 0.3)", // Slightly darker maroon for "Hazardous"
+            borderWidth: 0,
+            label: {
+              content: "Hazardous",
+              display: true,
+              backgroundColor: "maroon",
+              color: "white",
+              position: "end",
+              font: {
+                size: 12,
+                weight: "bold",
+              },
+            },
+          },
+          {
+            type: "box",
+            yMin: 200,
+            yMax: 300,
+            backgroundColor: "rgba(128, 0, 128, 0.4)", // Slightly darker purple for "Very Unhealthy"
+            borderWidth: 0,
+            label: {
+              content: "Very Unhealthy",
+              display: true,
+              backgroundColor: "rgba(128, 0, 128, 0.9)", // More opaque purple for label
+              color: "white",
+              position: "end",
+              font: {
+                size: 12,
+                weight: "bold",
+              },
+            },
+          },
+          {
+            type: "box",
+            yMin: 150,
+            yMax: 200,
+            backgroundColor: "rgba(220, 20, 60, 0.4)", // Slightly darker red for "Unhealthy"
+            borderWidth: 0,
+            label: {
+              content: "Unhealthy",
+              display: true,
+              backgroundColor: "rgba(220, 20, 60, 0.9)", // Stronger red for label
+              color: "white",
+              position: "end",
+              font: {
+                size: 12,
+                weight: "bold",
+              },
+            },
+          },
+          {
+            type: "box",
+            yMin: 100,
+            yMax: 150,
+            backgroundColor: "rgba(255, 140, 0, 0.4)", // Slightly darker orange for "Unhealthy for Sensitive Groups"
+            borderWidth: 0,
+            label: {
+              content: "Unhealthy for Sensitive Groups",
+              display: true,
+              backgroundColor: "rgba(245, 116, 37, 0.9)", // Stronger orange for label
+              color: "white",
+              position: "end",
+              font: {
+                size: 12,
+                weight: "bold",
+              },
+            },
+          },
+          {
+            type: "box",
+            yMin: 50,
+            yMax: 100,
+            backgroundColor: "rgba(255, 215, 0, 0.4)", // Slightly darker yellow for "Moderate"
+            borderWidth: 0,
+            label: {
+              content: "Moderate",
+              display: true,
+              backgroundColor: "rgba(255, 215, 0, 0.9)", // Stronger yellow for label
+              color: "white", // Black text for contrast
+              position: "end",
+              font: {
+                size: 12,
+                weight: "bold",
+              },
+            },
+          },
+          {
+            type: "box",
+            yMin: 0,
+            yMax: 50,
+            backgroundColor: "rgba(82, 196, 26, 0.3)", // Slightly darker green for "Good"
+            borderWidth: 0,
+            label: {
+              content: "Good",
+              display: true,
+              backgroundColor: "green",
+              color: "white",
+              position: "end",
+              font: {
+                size: 12,
+                weight: "bold",
+              },
+            },
+          },
+        ],
+      },
+    },      
     elements: {
       point: {
         radius: 1,
       },
     },
     maintainAspectRatio: true,
+  };
+
+
+  // Function to dynamically modify chart options
+  const getChartOptions = (selectedType) => {
+    const isTemperatureOrHumidity = selectedType === "Temperature" || selectedType === "Humidity";
+
+    return {
+      ...chartOptions,
+      plugins: {
+        ...chartOptions.plugins,
+        annotation: isTemperatureOrHumidity
+          ? undefined // Disable annotations for Temperature and Humidity
+          : chartOptions.plugins.annotation, // Keep annotations for other charts
+      },
+    };
   };
 
   const dates = filteredData.map((data) => {
@@ -818,8 +946,9 @@ function Dashboard() {
               {filteredData ? (
                 <ChartCard
                   data={TemperatureChartData}
-                  options={chartOptions}
+                  options={getChartOptions("Temperature")}
                   title="Temperature (°C)"
+                  //disableAnnotation={true} // Disable annotations for Temperature
                 />
               ) : null}
             </Card>
@@ -835,8 +964,9 @@ function Dashboard() {
               {filteredData ? (
                 <ChartCard
                   data={HumiditychartData}
-                  options={chartOptions}
+                  options={getChartOptions("Humidity")}
                   title="Humidity (%)"
+                 // disableAnnotation={true} // Disable annotations for Humidity
                 />
               ) : null}
             </Card>
