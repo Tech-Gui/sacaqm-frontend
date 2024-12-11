@@ -539,12 +539,12 @@ const AnalyticsScreen = () => {
             type: "box",
             yMin: 150,
             yMax: 200,
-            backgroundColor: "rgba(220, 20, 60, 0.5)", // Strong Red for Unhealthy
+            backgroundColor: "rgba(255, 0, 0, 0.5)", // Strong Red for Unhealthy
             borderWidth: 0,
             label: {
               content: "Unhealthy",
               display: true,
-              backgroundColor: "rgba(220, 20, 60, 1)", // Fully Opaque Strong Red
+              backgroundColor: "rgba(255, 0, 0, 0.9)", // Fully Opaque Strong Red
               color: "white",
               position: "end",
               font: {
@@ -580,7 +580,7 @@ const AnalyticsScreen = () => {
             label: {
               content: "Moderate",
               display: true,
-              backgroundColor: "rgba(255, 215, 0, 1)", // Stronger Yellow
+              backgroundColor: "rgba(255, 215, 0, 0.9)", // Stronger Yellow
               color: "white",
               position: "end",
               font: {
@@ -807,173 +807,54 @@ const AnalyticsScreen = () => {
 
                       {/* Legend */}
                       
-                      <div
-                      style={{
-                        width: "200px", // Fixed width to prevent layout shifts
-                        visibility: isTemperatureOrHumidity ? "hidden" : "visible", // Hide legend content
-                        opacity: isTemperatureOrHumidity ? 0 : 1, // Smooth fade effect
-                        pointerEvents: isTemperatureOrHumidity ? "none" : "auto", // Disable interactions when hidden
-                        transition: "opacity 0.3s ease-in-out", // Smooth fade-in/out transition
-                        fontSize: "12px",
-                        lineHeight: "1.4",
-                        fontFamily: "Arial, sans-serif",
-                      }}
-                      >
-                        <div
+                      <div 
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(128, 0, 0, 0.1)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            marginBottom: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+                            width: "200px", // Fixed width for consistent alignment
+                            visibility: isTemperatureOrHumidity ? "hidden" : "visible", 
+                            opacity: isTemperatureOrHumidity ? 0 : 1, 
+                            pointerEvents: isTemperatureOrHumidity ? "none" : "auto",
+                            transition: "opacity 0.3s ease-in-out",
+                            fontSize: "12px",
+                            lineHeight: "1.4",
+                            fontFamily: "Arial, sans-serif",
                           }}
                         >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "maroon",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "#600" }}>Hazardous</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" , fontWeight: "bold"}}>301+</p>
-                          </div>
+                          {[
+                            { label: "Hazardous", range: "301+", bg: "rgba(128, 0, 0, 0.1)", color: "#600", icon: "maroon" },
+                            { label: "Very Unhealthy", range: "201-300", bg: "rgba(153, 50, 204, 0.1)", color: "purple", icon: "purple" },
+                            { label: "Unhealthy", range: "151-200", bg: "rgba(255, 99, 132, 0.3)", color: "red", icon: "rgba(255, 0, 0, 0.7)" },
+                            { label: "Unhealthy for Sensitive Groups", range: "101-150", bg: "rgba(255, 165, 0, 0.3)", color: "orange", icon: "orange" },
+                            { label: "Moderate", range: "51-100", bg: "rgba(255, 223, 0, 0.4)", color: "goldenrod", icon: "rgba(255, 215, 0, 0.7)" },
+                            { label: "Good", range: "0-50", bg: "rgba(144, 238, 144, 0.4)", color: "green", icon: "rgba(82, 196, 26, 0.7)" },
+                          ].map((item, index) => (
+                            <div
+                              key={index}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                backgroundColor: item.bg,
+                                padding: "8px",
+                                borderRadius: "8px",
+                                marginBottom: "8px",
+                                boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "14px",
+                                  height: "14px",
+                                  backgroundColor: item.icon,
+                                  borderRadius: "50%",
+                                  marginRight: "10px",
+                                }}
+                              ></div>
+                              <div style={{ flex: 1 }}>
+                                <strong style={{ color: item.color }}>{item.label}</strong>
+                                <p style={{ margin: 0, fontSize: "10px", color: "#444", textAlign: "right" }}>{item.range}</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(153, 50, 204, 0.1)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            marginBottom: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "purple",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "purple" }}>Very Unhealthy</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>201-300</p>
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(236, 56, 56, 0.45)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            marginBottom: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "red",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "red" }}>Unhealthy</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>151-200</p>
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(255, 165, 0, 0.1)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            marginBottom: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "orange",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "orange" }}>Unhealthy for Sensitive Groups</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>101-150</p>
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(255, 255, 0, 0.1)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            marginBottom: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "yellow",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "goldenrod" }}>Moderate</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>51-100</p>
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(82, 196, 26, 0.45)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "green",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "green" }}>Good</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>0-50</p>
-                          </div>
-                        </div>
-                      </div>
                     </div>
               ) : filteredData1 && filteredData1.length > 0 && selectedSensor2 == "No Station 2 Selected" ? (
                 <div style={{
@@ -993,175 +874,54 @@ const AnalyticsScreen = () => {
                       </div>
 
                       {/* Legend */}
-                      <div
-                      style={{
-                        width: "200px", // Fixed width to prevent layout shifts
-                        visibility: isTemperatureOrHumidity ? "hidden" : "visible", // Hide legend content
-                        opacity: isTemperatureOrHumidity ? 0 : 1, // Smooth fade effect
-                        pointerEvents: isTemperatureOrHumidity ? "none" : "auto", // Disable interactions when hidden
-                        transition: "opacity 0.3s ease-in-out", // Smooth fade-in/out transition
-                        fontSize: "12px",
-                        lineHeight: "1.4",
-                        fontFamily: "Arial, sans-serif",
-                      }}
-                      >
-                        <div
+                      <div 
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(128, 0, 0, 0.1)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            marginBottom: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+                            width: "200px", // Fixed width for consistent alignment
+                            visibility: isTemperatureOrHumidity ? "hidden" : "visible", 
+                            opacity: isTemperatureOrHumidity ? 0 : 1, 
+                            pointerEvents: isTemperatureOrHumidity ? "none" : "auto",
+                            transition: "opacity 0.3s ease-in-out",
+                            fontSize: "12px",
+                            lineHeight: "1.4",
+                            fontFamily: "Arial, sans-serif",
                           }}
                         >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "maroon",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "#600" }}>Hazardous</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>301+</p>
-                          </div>
+                          {[
+                            { label: "Hazardous", range: "301+", bg: "rgba(128, 0, 0, 0.1)", color: "#600", icon: "maroon" },
+                            { label: "Very Unhealthy", range: "201-300", bg: "rgba(153, 50, 204, 0.1)", color: "purple", icon: "purple" },
+                            { label: "Unhealthy", range: "151-200", bg: "rgba(255, 99, 132, 0.3)", color: "red", icon: "rgba(255, 0, 0, 0.7)" },
+                            { label: "Unhealthy for Sensitive Groups", range: "101-150", bg: "rgba(255, 165, 0, 0.3)", color: "orange", icon: "orange" },
+                            { label: "Moderate", range: "51-100", bg: "rgba(255, 223, 0, 0.4)", color: "goldenrod", icon: "rgba(255, 215, 0, 0.7)" },
+                            { label: "Good", range: "0-50", bg: "rgba(144, 238, 144, 0.4)", color: "green", icon: "rgba(82, 196, 26, 0.7)" },
+                          ].map((item, index) => (
+                            <div
+                              key={index}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                backgroundColor: item.bg,
+                                padding: "8px",
+                                borderRadius: "8px",
+                                marginBottom: "8px",
+                                boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "14px",
+                                  height: "14px",
+                                  backgroundColor: item.icon,
+                                  borderRadius: "50%",
+                                  marginRight: "10px",
+                                }}
+                              ></div>
+                              <div style={{ flex: 1 }}>
+                                <strong style={{ color: item.color }}>{item.label}</strong>
+                                <p style={{ margin: 0, fontSize: "10px", color: "#444", textAlign: "right" }}>{item.range}</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(75, 0, 130, 0.2)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            marginBottom: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "purple",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "purple" }}>Very Unhealthy</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>201-300</p>
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(255, 0, 0, 0.1)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            marginBottom: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "red",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "red" }}>Unhealthy</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>151-200</p>
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(255, 140, 0, 0.2)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            marginBottom: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "darkorange",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "darkorange" }}>
-                              Unhealthy for Sensitive Groups
-                            </strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>101-150</p>
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(255, 255, 0, 0.2)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            marginBottom: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "gold",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "goldenrod" }}>Moderate</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>51-100</p>
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            backgroundColor: "rgba(82, 196, 26, 0.45)",
-                            padding: "8px",
-                            borderRadius: "8px",
-                            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              backgroundColor: "green",
-                              borderRadius: "50%",
-                              marginRight: "10px",
-                            }}
-                          ></div>
-                          <div>
-                            <strong style={{ color: "green" }}>Good</strong>
-                            <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>0-50</p>
-                          </div>
-                        </div>
-                      </div>
                     </div> 
               ) : filteredData2 && filteredData2.length > 0 ? (
                 <div style={{ height: "75vh" }}>
