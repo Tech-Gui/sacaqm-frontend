@@ -426,7 +426,7 @@ const AnalyticsScreen = () => {
   
   // Prepare dynamic yMax
   //const yMax = calculateYMax();
-  const isTemperatureOrHumidity = selectedType === "Temperature" || selectedType === "Humidity" || selectedType === "VOC" || selectedType === "NOx";
+  const isTemperatureOrHumidity = selectedType === "Temperature" || selectedType === "Humidity" || selectedType === "Voc" || selectedType === "Nox";
    
 
 
@@ -788,9 +788,15 @@ const AnalyticsScreen = () => {
                   <h3>Loading 30 Days Data...</h3>
                 </div>
               ) : filteredData2 && filteredData1 && filteredData2.length > 0 && filteredData1.length > 0 ? (
-                <div style={{ height: "75vh", display: "flex", flexDirection: "row" }}>
+                <div style={{
+                      height: "75vh",
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      gap: "20px",
+                    }}>
                       {/* Chart */}
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: "0" , height: "100%"}}>
                         <ChartCard
                           data={selectedData}
                           options={chartOptions}
@@ -800,14 +806,18 @@ const AnalyticsScreen = () => {
                       </div>
 
                       {/* Legend */}
+                      
                       <div
-                        style={{
-                          width: "200px",
-                          marginLeft: "20px",
-                          fontSize: "12px",
-                          lineHeight: "1.4",
-                          fontFamily: "Arial, sans-serif",
-                        }}
+                      style={{
+                        width: "200px", // Fixed width to prevent layout shifts
+                        visibility: isTemperatureOrHumidity ? "hidden" : "visible", // Hide legend content
+                        opacity: isTemperatureOrHumidity ? 0 : 1, // Smooth fade effect
+                        pointerEvents: isTemperatureOrHumidity ? "none" : "auto", // Disable interactions when hidden
+                        transition: "opacity 0.3s ease-in-out", // Smooth fade-in/out transition
+                        fontSize: "12px",
+                        lineHeight: "1.4",
+                        fontFamily: "Arial, sans-serif",
+                      }}
                       >
                         <div
                           style={{
@@ -908,9 +918,7 @@ const AnalyticsScreen = () => {
                             }}
                           ></div>
                           <div>
-                            <strong style={{ color: "orange" }}>
-                              Unhealthy for Sensitive Groups
-                            </strong>
+                            <strong style={{ color: "orange" }}>Unhealthy for Sensitive Groups</strong>
                             <p style={{ margin: 0, fontSize: "10px", color: "#444" }}>101-150</p>
                           </div>
                         </div>
@@ -968,9 +976,15 @@ const AnalyticsScreen = () => {
                       </div>
                     </div>
               ) : filteredData1 && filteredData1.length > 0 && selectedSensor2 == "No Station 2 Selected" ? (
-                <div style={{ height: "75vh", display: "flex", flexDirection: "row" }}>
+                <div style={{
+                      height: "75vh",
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      gap: "20px",
+                    }}>
                       {/* Chart */}
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: "0" , height: "100%" }}>
                         <ChartCard
                           data={selectedData}
                           options={chartOptions}
@@ -980,13 +994,16 @@ const AnalyticsScreen = () => {
 
                       {/* Legend */}
                       <div
-                        style={{
-                          width: "200px",
-                          marginLeft: "20px",
-                          fontSize: "12px",
-                          lineHeight: "1.4",
-                          fontFamily: "Arial, sans-serif",
-                        }}
+                      style={{
+                        width: "200px", // Fixed width to prevent layout shifts
+                        visibility: isTemperatureOrHumidity ? "hidden" : "visible", // Hide legend content
+                        opacity: isTemperatureOrHumidity ? 0 : 1, // Smooth fade effect
+                        pointerEvents: isTemperatureOrHumidity ? "none" : "auto", // Disable interactions when hidden
+                        transition: "opacity 0.3s ease-in-out", // Smooth fade-in/out transition
+                        fontSize: "12px",
+                        lineHeight: "1.4",
+                        fontFamily: "Arial, sans-serif",
+                      }}
                       >
                         <div
                           style={{
