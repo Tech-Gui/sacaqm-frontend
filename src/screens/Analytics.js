@@ -807,11 +807,11 @@ const AnalyticsScreen = () => {
 
                       {/* Legend */}
                       
-                      <div 
+                      <div
                           style={{
-                            width: "200px", // Fixed width for consistent alignment
-                            visibility: isTemperatureOrHumidity ? "hidden" : "visible", 
-                            opacity: isTemperatureOrHumidity ? 0 : 1, 
+                            width: "240px", // Consistent width for the legend container
+                            visibility: isTemperatureOrHumidity ? "hidden" : "visible",
+                            opacity: isTemperatureOrHumidity ? 0 : 1,
                             pointerEvents: isTemperatureOrHumidity ? "none" : "auto",
                             transition: "opacity 0.3s ease-in-out",
                             fontSize: "12px",
@@ -848,13 +848,40 @@ const AnalyticsScreen = () => {
                                   marginRight: "10px",
                                 }}
                               ></div>
-                              <div style={{ flex: 1 }}>
-                                <strong style={{ color: item.color }}>{item.label}</strong>
-                                <p style={{ margin: 0, fontSize: "10px", color: "#444", textAlign: "right" }}>{item.range}</p>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "flex-start",
+                                  width: "100%", // Ensure consistent space for text alignment
+                                }}
+                              >
+                                <strong
+                                  style={{
+                                    color: item.color,
+                                    whiteSpace: "nowrap", // Prevent text wrapping
+                                    overflow: "hidden", // Clip overflowing text
+                                    textOverflow: "ellipsis", // Add ellipsis for long text
+                                  }}
+                                >
+                                  {item.label}
+                                </strong>
+                                <p
+                                  style={{
+                                    margin: 0,
+                                    fontSize: "10px",
+                                    color: "#444",
+                                    textAlign: "left", // Align text to the left
+                                  }}
+                                >
+                                  {item.range}
+                                </p>
                               </div>
                             </div>
                           ))}
                         </div>
+
+
                     </div>
               ) : filteredData1 && filteredData1.length > 0 && selectedSensor2 == "No Station 2 Selected" ? (
                 <div style={{
@@ -874,11 +901,11 @@ const AnalyticsScreen = () => {
                       </div>
 
                       {/* Legend */}
-                      <div 
+                      <div
                           style={{
-                            width: "200px", // Fixed width for consistent alignment
-                            visibility: isTemperatureOrHumidity ? "hidden" : "visible", 
-                            opacity: isTemperatureOrHumidity ? 0 : 1, 
+                            width: "240px", // Consistent width for the legend container
+                            visibility: isTemperatureOrHumidity ? "hidden" : "visible",
+                            opacity: isTemperatureOrHumidity ? 0 : 1,
                             pointerEvents: isTemperatureOrHumidity ? "none" : "auto",
                             transition: "opacity 0.3s ease-in-out",
                             fontSize: "12px",
@@ -915,13 +942,39 @@ const AnalyticsScreen = () => {
                                   marginRight: "10px",
                                 }}
                               ></div>
-                              <div style={{ flex: 1 }}>
-                                <strong style={{ color: item.color }}>{item.label}</strong>
-                                <p style={{ margin: 0, fontSize: "10px", color: "#444", textAlign: "right" }}>{item.range}</p>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "flex-start",
+                                  width: "100%", // Ensure consistent space for text alignment
+                                }}
+                              >
+                                <strong
+                                  style={{
+                                    color: item.color,
+                                    whiteSpace: "nowrap", // Prevent text wrapping
+                                    overflow: "hidden", // Clip overflowing text
+                                    textOverflow: "ellipsis", // Add ellipsis for long text
+                                  }}
+                                >
+                                  {item.label}
+                                </strong>
+                                <p
+                                  style={{
+                                    margin: 0,
+                                    fontSize: "10px",
+                                    color: "#444",
+                                    textAlign: "left", // Align text to the left
+                                  }}
+                                >
+                                  {item.range}
+                                </p>
                               </div>
                             </div>
                           ))}
                         </div>
+
                     </div> 
               ) : filteredData2 && filteredData2.length > 0 ? (
                 <div style={{ height: "75vh" }}>
