@@ -42,6 +42,7 @@ const AnalyticsScreen = () => {
   const [dataResolution, setDataResolution] = useState("raw");
 
   const { selectedType, handleTypeSelect } = useDataType();
+  
 
   const [isLoading, setIsLoading] = useState(false); // Loading state
 
