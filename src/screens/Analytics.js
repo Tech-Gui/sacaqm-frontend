@@ -55,6 +55,7 @@ const AnalyticsScreen = () => {
     if (station) {
       // Default fetch is for 7 days
       fetchNodeData(station._id, 7);
+      console.log("station id", station._id);
       console.log("Data fetched for 7 days.");
     } else {
       console.log("Station 1 not found.");
