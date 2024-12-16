@@ -46,7 +46,7 @@ function Dashboard() {
   const [greeting, setGreeting] = useState("");
 
   useEffect(() => {
-    setSelectedSensor("66503777099ab1a7fbcfbd32");
+    setSelectedSensor("673304cb0872d4bb9ee442d8");
     const currentHour = new Date().getHours();
     if (currentHour < 12) {
       setGreeting("Good Morning");
