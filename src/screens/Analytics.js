@@ -496,121 +496,6 @@ const AnalyticsScreen = () => {
       legend: {
         display: selectedSensor2 !== "No Station 2 Selected",
       },
-      annotation:  isTemperatureOrHumidity
-      ? undefined // Disable annotations for temperature and humidity
-      : {
-        annotations: [
-          {
-            type: "box",
-            yMin: 300,
-            yMax: 350,
-            backgroundColor: "rgba(128, 0, 0, 0.5)", // Maroon for Hazardous
-            borderWidth: 0,
-            label: {
-              content: "Hazardous",
-              display: true,
-              backgroundColor: "maroon",
-              color: "white",
-              position: "end",
-              font: {
-                size: 14, // Increase font size
-                weight: "bold", // Ensure bold text
-              },
-
-            },
-          },
-          {
-            type: "box",
-            yMin: 200,
-            yMax: 300,
-            backgroundColor: "rgba(128, 0, 128, 0.5)", // Strong Purple for Very Unhealthy
-            borderWidth: 0,
-            label: {
-              content: "Very Unhealthy",
-              display: true,
-              backgroundColor: "rgba(128, 0, 128, 0.6)", // Fully Opaque Strong Purple
-              color: "white",
-              position: "end",
-              font: {
-                size: 14, // Increase font size
-                weight: "bold", // Ensure bold text
-              },
-            },
-          },
-          {
-            type: "box",
-            yMin: 150,
-            yMax: 200,
-            backgroundColor: "rgba(255, 0, 0, 0.5)", // Strong Red for Unhealthy
-            borderWidth: 0,
-            label: {
-              content: "Unhealthy",
-              display: true,
-              backgroundColor: "rgba(255, 0, 0, 0.9)", // Fully Opaque Strong Red
-              color: "white",
-              position: "end",
-              font: {
-                size: 14, // Increase font size
-                weight: "bold", // Ensure bold text
-              },
-            },
-          },          
-          {
-            type: "box",
-            yMin: 100,
-            yMax: 150,
-            backgroundColor: "rgba(255, 140, 0, 0.5)", // Strong Orange for Unhealthy for Sensitive Groups
-            borderWidth: 0,
-            label: {
-              content: "Unhealthy for Sensitive Groups",
-              display: true,
-              backgroundColor: "rgba(245, 116, 37, 0.45)", // Stronger Orange
-              color: "white",
-              position: "end",
-              font: {
-                size: 14, // Increase font size
-                weight: "bold", // Ensure bold text
-              },
-            },
-          },
-          {
-            type: "box",
-            yMin: 50,
-            yMax: 100,
-            backgroundColor: "rgba(255, 215, 0, 0.5)", // Strong Yellow for Moderate
-            borderWidth: 0,
-            label: {
-              content: "Moderate",
-              display: true,
-              backgroundColor: "rgba(255, 215, 0, 0.9)", // Stronger Yellow
-              color: "white",
-              position: "end",
-              font: {
-                size: 14, // Increase font size
-                weight: "bold", // Ensure bold text
-              },
-            },
-          },
-          {
-            type: "box",
-            yMin: 0,
-            yMax: 50,
-            backgroundColor: "rgba(82, 196, 26, 0.45)", // Green for Good
-            borderWidth: 0,
-            label: {
-              content: "Good",
-              display: true,
-              backgroundColor: "green",
-              color: "white",
-              position: "end", // Center the label horizontally
-              font: {
-                size: 14, // Increase font size
-                weight: "bold", // Ensure bold text
-              },
-            },
-          },
-        ],
-      },
     },
     elements: {
       line: {
@@ -790,13 +675,7 @@ const AnalyticsScreen = () => {
                   <h3>Loading 30 Days Data...</h3>
                 </div>
               ) : filteredData2 && filteredData1 && filteredData2.length > 0 && filteredData1.length > 0 ? (
-                <div style={{
-                      height: "75vh",
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "flex-start",
-                      gap: "20px",
-                    }}>
+                <div style={{  height: "75vh" }}>
                       {/* Chart */}
                       <div style={{ flex: 1, minWidth: "0" , height: "100%"}}>
                         <ChartCard
@@ -805,94 +684,10 @@ const AnalyticsScreen = () => {
                           title={getTitle(selectedType)}
                           multiAxis
                         />
-                      </div>
-
-                      {/* Legend */}
-                      
-                      <div
-                          style={{
-                            width: "240px", // Consistent width for the legend container
-                            visibility: isTemperatureOrHumidity ? "hidden" : "visible",
-                            opacity: isTemperatureOrHumidity ? 0 : 1,
-                            pointerEvents: isTemperatureOrHumidity ? "none" : "auto",
-                            transition: "opacity 0.3s ease-in-out",
-                            fontSize: "12px",
-                            lineHeight: "1.4",
-                            fontFamily: "Arial, sans-serif",
-                          }}
-                        >
-                          {[
-                            { label: "Hazardous", range: "301+", bg: "rgba(128, 0, 0, 0.1)", color: "#600", icon: "maroon" },
-                            { label: "Very Unhealthy", range: "201-300", bg: "rgba(153, 50, 204, 0.1)", color: "purple", icon: "purple" },
-                            { label: "Unhealthy", range: "151-200", bg: "rgba(255, 99, 132, 0.3)", color: "red", icon: "rgba(255, 0, 0, 0.7)" },
-                            { label: "Unhealthy for Sensitive Groups", range: "101-150", bg: "rgba(255, 165, 0, 0.3)", color: "orange", icon: "orange" },
-                            { label: "Moderate", range: "51-100", bg: "rgba(255, 223, 0, 0.4)", color: "goldenrod", icon: "rgba(255, 215, 0, 0.7)" },
-                            { label: "Good", range: "0-50", bg: "rgba(144, 238, 144, 0.4)", color: "green", icon: "rgba(82, 196, 26, 0.7)" },
-                          ].map((item, index) => (
-                            <div
-                              key={index}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                backgroundColor: item.bg,
-                                padding: "8px",
-                                borderRadius: "8px",
-                                marginBottom: "8px",
-                                boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: "14px",
-                                  height: "14px",
-                                  backgroundColor: item.icon,
-                                  borderRadius: "50%",
-                                  marginRight: "10px",
-                                }}
-                              ></div>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "flex-start",
-                                  width: "100%", // Ensure consistent space for text alignment
-                                }}
-                              >
-                                <strong
-                                  style={{
-                                    color: item.color,
-                                    whiteSpace: "nowrap", // Prevent text wrapping
-                                    overflow: "hidden", // Clip overflowing text
-                                    textOverflow: "ellipsis", // Add ellipsis for long text
-                                  }}
-                                >
-                                  {item.label}
-                                </strong>
-                                <p
-                                  style={{
-                                    margin: 0,
-                                    fontSize: "10px",
-                                    color: "#444",
-                                    textAlign: "left", // Align text to the left
-                                  }}
-                                >
-                                  {item.range}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-
-                    </div>
+                      </div> 
+                </div>
               ) : filteredData1 && filteredData1.length > 0 && selectedSensor2 == "No Station 2 Selected" ? (
-                <div style={{
-                      height: "75vh",
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "flex-start",
-                      gap: "20px",
-                    }}>
+                <div style={{ height: "75vh"  }}>
                       {/* Chart */}
                       <div style={{ flex: 1, minWidth: "0" , height: "100%" }}>
                         <ChartCard
@@ -901,83 +696,7 @@ const AnalyticsScreen = () => {
                           title={getTitle(selectedType)}
                         />
                       </div>
-
-                      {/* Legend */}
-                      <div
-                          style={{
-                            width: "240px", // Consistent width for the legend container
-                            visibility: isTemperatureOrHumidity ? "hidden" : "visible",
-                            opacity: isTemperatureOrHumidity ? 0 : 1,
-                            pointerEvents: isTemperatureOrHumidity ? "none" : "auto",
-                            transition: "opacity 0.3s ease-in-out",
-                            fontSize: "12px",
-                            lineHeight: "1.4",
-                            fontFamily: "Arial, sans-serif",
-                          }}
-                        >
-                          {[
-                            { label: "Hazardous", range: "301+", bg: "rgba(128, 0, 0, 0.1)", color: "#600", icon: "maroon" },
-                            { label: "Very Unhealthy", range: "201-300", bg: "rgba(153, 50, 204, 0.1)", color: "purple", icon: "purple" },
-                            { label: "Unhealthy", range: "151-200", bg: "rgba(255, 99, 132, 0.3)", color: "red", icon: "rgba(255, 0, 0, 0.7)" },
-                            { label: "Unhealthy for Sensitive Groups", range: "101-150", bg: "rgba(255, 165, 0, 0.3)", color: "orange", icon: "orange" },
-                            { label: "Moderate", range: "51-100", bg: "rgba(255, 223, 0, 0.4)", color: "goldenrod", icon: "rgba(255, 215, 0, 0.7)" },
-                            { label: "Good", range: "0-50", bg: "rgba(144, 238, 144, 0.4)", color: "green", icon: "rgba(82, 196, 26, 0.7)" },
-                          ].map((item, index) => (
-                            <div
-                              key={index}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                backgroundColor: item.bg,
-                                padding: "8px",
-                                borderRadius: "8px",
-                                marginBottom: "8px",
-                                boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: "14px",
-                                  height: "14px",
-                                  backgroundColor: item.icon,
-                                  borderRadius: "50%",
-                                  marginRight: "10px",
-                                }}
-                              ></div>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "flex-start",
-                                  width: "100%", // Ensure consistent space for text alignment
-                                }}
-                              >
-                                <strong
-                                  style={{
-                                    color: item.color,
-                                    whiteSpace: "nowrap", // Prevent text wrapping
-                                    overflow: "hidden", // Clip overflowing text
-                                    textOverflow: "ellipsis", // Add ellipsis for long text
-                                  }}
-                                >
-                                  {item.label}
-                                </strong>
-                                <p
-                                  style={{
-                                    margin: 0,
-                                    fontSize: "10px",
-                                    color: "#444",
-                                    textAlign: "left", // Align text to the left
-                                  }}
-                                >
-                                  {item.range}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                    </div> 
+                </div> 
               ) : filteredData2 && filteredData2.length > 0 ? (
                 <div style={{ height: "75vh" }}>
                   <div
