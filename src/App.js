@@ -13,6 +13,8 @@ import {
 import Stations from "./screens/Stations";
 import { DataProvider } from "./contextProviders/DataContext";
 import { StationProvider } from "./contextProviders/StationContext";
+import 'font-awesome/css/font-awesome.min.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
   return (

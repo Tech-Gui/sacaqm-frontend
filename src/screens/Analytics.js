@@ -4,6 +4,7 @@ import { Container, Row, Col, Card, Dropdown } from "react-bootstrap";
 import Sidebar from "../components/SideBar";
 import TopNavBar from "../components/topNavBar";
 import ChartCard from "../components/chartCard.js";
+import { Tooltip, OverlayTrigger } from "react-bootstrap"; // Import Tooltip
 
 import { useDataType } from "../contextProviders/dataTypeContext.js";
 import { useSensorData } from "../contextProviders/sensorDataContext.js";
@@ -26,6 +27,19 @@ const AnalyticsScreen = () => {
     setSelectedSensor,
     setSelectedPeriod,
   } = useSensorData();
+  const renderTooltip = (props) => (
+    <Tooltip id="data-resolution-tooltip" {...props}>
+      Switch to "Hourly Averages" or "Daily Averages" to view color-coded data. Refer to the color scale{" "}
+      <a
+        href="https://saaqis.environment.gov.za/Pagesfiles/SAAQIS%20Air%20Quality%20Index%20for%20General%20Public-Summary.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: "#ffffff", textDecoration: "underline" }}
+      >
+        here
+      </a>.
+    </Tooltip>
+  );
 
   const {
     selectedSensor2 = "No Station 2 Selected",
@@ -371,6 +385,273 @@ const AnalyticsScreen = () => {
     return station ? station["name"] : "Select Station";
   };
 
+
+
+
+  const pm25AnnotationScaleDaily = [
+    {
+      type: "box",
+      yMin: 40,
+      yMax: Infinity ,
+      backgroundColor: "rgba(255, 0, 0, 0.5)", // Strong Red for Unsafe
+      borderWidth: 0,
+      label: {
+        content: "UnSafe",
+        display: true,
+        backgroundColor: "rgba(255, 0, 0, 0.9)", // Fully Opaque Strong Red
+        color: "white",
+        position: "end",
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+    {
+      type: "box",
+      yMin: 0,
+      yMax: 40,
+      backgroundColor: "rgba(82, 196, 26, 0.45)", // Green for Good
+      borderWidth: 0,
+      label: {
+        content: "Safe",
+        display: true,
+        backgroundColor: "green",
+        color: "white",
+        position: "end", // Center the label horizontally
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+  ];
+  
+  const pm25AnnotationScaleHourly = [
+    {
+      type: "box",
+      yMin: 254,
+      yMax: Infinity,
+      backgroundColor: "rgba(128, 0, 128, 0.5)", // Strong Purple for Very Unhealthy
+      borderWidth: 0,
+      label: {
+        content: "Hazardous",
+        display: true,
+        backgroundColor: "rgba(128, 0, 128, 0.6)", // Fully Opaque Strong Purple
+        color: "white",
+        position: "end",
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+    {
+      type: "box",
+      yMin: 204,
+      yMax: 253,
+      backgroundColor: "rgba(255, 0, 0, 0.5)", // Strong Red for Unhealthy
+      borderWidth: 0,
+      label: {
+        content: "Very Unhealthy",
+        display: true,
+        backgroundColor: "rgba(255, 0, 0, 0.9)", // Fully Opaque Strong Red
+        color: "white",
+        position: "end",
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },          
+    {
+      type: "box",
+      yMin: 154,
+      yMax: 203,
+      backgroundColor: "rgba(255, 140, 0, 0.5)", // Strong Orange for Unhealthy for Sensitive Groups
+      borderWidth: 0,
+      label: {
+        content: "Unhealthy",
+        display: true,
+        backgroundColor: "rgba(245, 116, 37, 0.45)", // Stronger Orange
+        color: "white",
+        position: "end",
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+    {
+      type: "box",
+      yMin: 104,
+      yMax: 153,
+      backgroundColor: "rgba(255, 215, 0, 0.5)", // Strong Yellow for Moderate
+      borderWidth: 0,
+      label: {
+        content: "Moderate",
+        display: true,
+        backgroundColor: "rgba(255, 215, 0, 0.9)", // Stronger Yellow
+        color: "white",
+        position: "end",
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+    {
+      type: "box",
+      yMin: 0,
+      yMax: 103,
+      backgroundColor: "rgba(82, 196, 26, 0.45)", // Green for Good
+      borderWidth: 0,
+      label: {
+        content: "Good",
+        display: true,
+        backgroundColor: "green",
+        color: "white",
+        position: "end", // Center the label horizontally
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+  ];
+  
+  const pm10AnnotationScaleDaily = [
+    {
+      type: "box",
+      yMin: 75,
+      yMax: Infinity ,
+      backgroundColor: "rgba(255, 0, 0, 0.5)", // Strong Red for Unsafe
+      borderWidth: 0,
+      label: {
+        content: "UnSafe",
+        display: true,
+        backgroundColor: "rgba(255, 0, 0, 0.9)", // Fully Opaque Strong Red
+        color: "white",
+        position: "end",
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+    {
+      type: "box",
+      yMin: 0,
+      yMax: 75,
+      backgroundColor: "rgba(82, 196, 26, 0.45)", // Green for Good
+      borderWidth: 0,
+      label: {
+        content: "Safe",
+        display: true,
+        backgroundColor: "green",
+        color: "white",
+        position: "end", // Center the label horizontally
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+  ];
+  
+  const pm10AnnotationScaleHourly = [
+    {
+      type: "box",
+      yMin: 341,
+      yMax: Infinity,
+      backgroundColor: "rgba(128, 0, 128, 0.5)", // Strong Purple for Very Unhealthy
+      borderWidth: 0,
+      label: {
+        content: "Hazardous",
+        display: true,
+        backgroundColor: "rgba(128, 0, 128, 0.6)", // Fully Opaque Strong Purple
+        color: "white",
+        position: "end",
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+    {
+      type: "box",
+      yMin: 291,
+      yMax: 340,
+      backgroundColor: "rgba(255, 0, 0, 0.5)", // Strong Red for Unhealthy
+      borderWidth: 0,
+      label: {
+        content: "Very Unhealthy",
+        display: true,
+        backgroundColor: "rgba(255, 0, 0, 0.9)", // Fully Opaque Strong Red
+        color: "white",
+        position: "end",
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },          
+    {
+      type: "box",
+      yMin: 241,
+      yMax: 290,
+      backgroundColor: "rgba(255, 140, 0, 0.5)", // Strong Orange for Unhealthy for Sensitive Groups
+      borderWidth: 0,
+      label: {
+        content: "Unhealthy",
+        display: true,
+        backgroundColor: "rgba(245, 116, 37, 0.45)", // Stronger Orange
+        color: "white",
+        position: "end",
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+    {
+      type: "box",
+      yMin: 191,
+      yMax: 240,
+      backgroundColor: "rgba(255, 215, 0, 0.5)", // Strong Yellow for Moderate
+      borderWidth: 0,
+      label: {
+        content: "Moderate",
+        display: true,
+        backgroundColor: "rgba(255, 215, 0, 0.9)", // Stronger Yellow
+        color: "white",
+        position: "end",
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+    {
+      type: "box",
+      yMin: 0,
+      yMax: 190,
+      backgroundColor: "rgba(82, 196, 26, 0.45)", // Green for Good
+      borderWidth: 0,
+      label: {
+        content: "Good",
+        display: true,
+        backgroundColor: "green",
+        color: "white",
+        position: "end", // Center the label horizontally
+        font: {
+          size: 14, // Increase font size
+          weight: "bold", // Ensure bold text
+        },
+      },
+    },
+  ];
+  
   const chartInfo = {
     labels: xTimestamps,
     datasets: [
@@ -428,9 +709,52 @@ const AnalyticsScreen = () => {
   
   // Prepare dynamic yMax
   //const yMax = calculateYMax();
-  const isTemperatureOrHumidity = selectedType === "Temperature" || selectedType === "Humidity" || selectedType === "Voc" || selectedType === "Nox";
+  const isTemperatureOrHumidity = selectedType === "Temperature" || selectedType === "Humidity" || selectedType === "Voc" || selectedType === "Nox" || selectedType === "Pm1p0" || selectedType === "Pm4p0" ;
    
+  const generateAnnotations = (Dataresolution) => {
+    let scale;
 
+      if (Dataresolution === "daily") {
+        if (selectedType === "Pm10p0") {
+          scale = pm10AnnotationScaleDaily;
+        } else if (selectedType === "Pm2p5") {
+          scale = pm25AnnotationScaleDaily;
+        } else {
+          scale = []; // No annotations for other types
+        }
+      } else if (Dataresolution === "hourly") {
+        if (selectedType === "Pm10p0") {
+          scale = pm10AnnotationScaleHourly;
+        } else if (selectedType === "Pm2p5") {
+          scale = pm25AnnotationScaleHourly;
+        } else {
+          scale = []; // No annotations for other types
+        }
+      } else {
+        scale = []; // Empty array for unsupported resolutions
+      }
+  
+  
+    return scale.map((band) => ({
+      type: "box",
+      yMin: band.yMin,
+      yMax: band.yMax,
+      backgroundColor: band.backgroundColor,
+      borderWidth: 0, // No border for clean visuals
+      label: {
+        display: true,
+        content: band.label.content || band.label, // Ensure content is set correctly
+        position: band.label.position || "start",
+        font: band.label.font || {
+          size: 12,
+          weight: "normal",
+        },
+        color: band.label.color || "rgba(0, 0, 0, 0.7)",
+      },
+    }));
+  };
+  
+  
 
   const chartOptions = {
     type : 'line',
@@ -496,6 +820,9 @@ const AnalyticsScreen = () => {
       legend: {
         display: selectedSensor2 !== "No Station 2 Selected",
       },
+      annotation: {
+        annotations: generateAnnotations(dataResolution), // Dynamic annotations
+      },
     },
     elements: {
       line: {
@@ -524,12 +851,7 @@ const AnalyticsScreen = () => {
       <Container
         fluid
         className="p-4"
-        style={{
-          minHeight: "98vh",
-          maxHeight: "100vh",
-          overflowY: "scroll",
-          padding: "2rem",
-        }}>
+        >
         <TopNavBar />
         <div className="d-flex flex-row justify-content-between">
           {/* 1st Station Selector */}
@@ -538,10 +860,23 @@ const AnalyticsScreen = () => {
               id="dropdown-basic"
               size="sm"
               style={{
-                background: "#2068F3",
-                border: "No Station 2 Selected",
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-              }}>
+                background: "#4A90E2", // Modern blue shade
+                border: "none",
+                borderRadius: "20px", // Rounded corners
+                padding: "10px 20px", // Padding for a cleaner button size
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)", // Subtle shadow
+                fontSize: "14px", // Better readability
+                fontWeight: "600", // Semi-bold for better emphasis
+                color: "#fff", // White text for contrast
+                transition: "all 0.3s ease", // Smooth hover transition
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = "#357ABD"; // Darker blue on hover
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = "#4A90E2"; // Original blue
+              }}
+            >
               {getStationNameByStationId(selectedSensor)}
             </Dropdown.Toggle>
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
@@ -559,10 +894,23 @@ const AnalyticsScreen = () => {
               id="dropdown-basic"
               size="sm"
               style={{
-                background: "#2068F3",
-                border: "No Station 2 Selected",
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-              }}>
+                background: "#4A90E2", // Modern blue shade
+                border: "none",
+                borderRadius: "20px", // Rounded corners
+                padding: "10px 20px", // Padding for a cleaner button size
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)", // Subtle shadow
+                fontSize: "14px", // Better readability
+                fontWeight: "600", // Semi-bold for better emphasis
+                color: "#fff", // White text for contrast
+                transition: "all 0.3s ease", // Smooth hover transition
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = "#357ABD"; // Darker blue on hover
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = "#4A90E2"; // Original blue
+              }}
+            >
               {selectedSensor2 === "No Station 2 Selected" ? "Select station 2" : getStationNameByStationId(selectedSensor2)}
             </Dropdown.Toggle>
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
@@ -581,10 +929,23 @@ const AnalyticsScreen = () => {
               id="dropdown-basic"
               size="sm"
               style={{
-                background: "#2068F3",
+                background: "#4A90E2", // Modern blue shade
                 border: "none",
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-              }}>
+                borderRadius: "20px", // Rounded corners
+                padding: "10px 20px", // Padding for a cleaner button size
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)", // Subtle shadow
+                fontSize: "14px", // Better readability
+                fontWeight: "600", // Semi-bold for better emphasis
+                color: "#fff", // White text for contrast
+                transition: "all 0.3s ease", // Smooth hover transition
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = "#357ABD"; // Darker blue on hover
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = "#4A90E2"; // Original blue
+              }}
+            >
               {selectedPeriod}
             </Dropdown.Toggle>
             <Dropdown.Menu>
@@ -596,15 +957,29 @@ const AnalyticsScreen = () => {
           </Dropdown>
   
           {/* Data Resolution Selector */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Dropdown onSelect={(eventKey) => setDataResolution(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-resolution"
               size="sm"
               style={{
-                background: "#2068F3",
+                background: "#4A90E2", // Modern blue shade
                 border: "none",
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-              }}>
+                borderRadius: "20px", // Rounded corners
+                padding: "10px 20px", // Padding for a cleaner button size
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)", // Subtle shadow
+                fontSize: "14px", // Better readability
+                fontWeight: "600", // Semi-bold for better emphasis
+                color: "#fff", // White text for contrast
+                transition: "all 0.3s ease", // Smooth hover transition
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = "#357ABD"; // Darker blue on hover
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = "#4A90E2"; // Original blue
+              }}
+            >
               {dataResolution === "raw"
                 ? "Raw Data"
                 : `${dataResolution.charAt(0).toUpperCase() + dataResolution.slice(1)} Averages`}
@@ -615,9 +990,29 @@ const AnalyticsScreen = () => {
               <Dropdown.Item eventKey="daily">Daily Averages</Dropdown.Item>
               <Dropdown.Item eventKey="weekly">Weekly Averages</Dropdown.Item>
             </Dropdown.Menu>
-          </Dropdown>
+          </Dropdown>  
+              {/* Tooltip Icon */}
+              <OverlayTrigger
+                placement="bottom"
+                overlay={
+                  <Tooltip id="tooltip-info">
+                    Switch to "Hourly Averages" or "Daily Averages" to view color-coded data. 
+                  </Tooltip>
+                }
+              >
+                <i
+                  className="fa fa-info-circle"
+                  style={{
+                    fontSize: "16px",
+                    color: "#2068F3",
+                    cursor: "pointer",
+                    marginLeft: "10px", // Adjust spacing between dropdown and icon
+                  }}
+                ></i>
+               </OverlayTrigger>
+               </div>
         </div>
-        
+
         <Row className="mt-4">
           <Col>
             <Card
@@ -675,7 +1070,13 @@ const AnalyticsScreen = () => {
                   <h3>Loading 30 Days Data...</h3>
                 </div>
               ) : filteredData2 && filteredData1 && filteredData2.length > 0 && filteredData1.length > 0 ? (
-                <div style={{  height: "75vh" }}>
+                <div style={{
+                  height: "75vh",
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: "20px",
+                }}>
                       {/* Chart */}
                       <div style={{ flex: 1, minWidth: "0" , height: "100%"}}>
                         <ChartCard
@@ -685,18 +1086,333 @@ const AnalyticsScreen = () => {
                           multiAxis
                         />
                       </div> 
+                {/* Dynamic Legend */}
+                  <div
+                    style={{
+                      width: "240px",
+                     // marginTop: "20px",
+                      visibility: isTemperatureOrHumidity ? "hidden" : "visible",
+                      opacity: isTemperatureOrHumidity ? 0 : 1,
+                      pointerEvents: isTemperatureOrHumidity ? "none" : "auto",
+                      transition: "opacity 0.3s ease-in-out",
+                      fontSize: "12px",
+                      lineHeight: "1.4",
+                      fontFamily: "Arial, sans-serif",
+                    }}
+                  >
+                    {(
+                      dataResolution === "daily"
+                        ? selectedType === "Pm10p0"
+                          ? pm10AnnotationScaleDaily
+                          : pm25AnnotationScaleDaily
+                        : dataResolution === "hourly"
+                        ? selectedType === "Pm10p0"
+                          ? pm10AnnotationScaleHourly
+                          : pm25AnnotationScaleHourly
+                        : []
+                    ).map((band, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          backgroundColor: band.backgroundColor,
+                          padding: "8px",
+                          borderRadius: "8px",
+                          marginBottom: "8px",
+                          boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "14px",
+                            height: "14px",
+                            backgroundColor: band.backgroundColor,
+                            borderRadius: "50%",
+                            marginRight: "10px",
+                          }}
+                        ></div>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-start",
+                            width: "100%", // Ensure consistent space for text alignment
+                          }}
+                        >
+                          <strong
+                            style={{
+                              color: band.label.color || "black",
+                              whiteSpace: "nowrap", // Prevent text wrapping
+                              overflow: "hidden", // Clip overflowing text
+                              textOverflow: "ellipsis", // Add ellipsis for long text
+                            }}
+                          >
+                            {band.label.content || band.label}
+                          </strong>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "10px",
+                              color: "#444",
+                              textAlign: "left", // Align text to the left
+                            }}
+                          >
+                            {`Range: ${band.yMin} - ${band.yMax === Infinity ? "∞" : band.yMax}`}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                      {/* Information Note */}
+                      {dataResolution === "raw" &&  (
+                       <div
+                       style={{
+                         marginTop: "20px",
+                         textAlign: "center",
+                         fontSize: "12px",
+                         lineHeight: "1.6",
+                         color: "#444",
+                         backgroundColor: "#eef2f9",
+                         padding: "15px",
+                         borderRadius: "8px",
+                         boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+                         fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                         transition: "all 0.3s ease-in-out",
+                       }}
+                     >
+                       <div style={{ marginBottom: "10px", fontWeight: "bold", color: "#2068F3" }}>
+                         🌟 Explore More Insights!
+                       </div>
+                       <p style={{ margin: "0", color: "#555" }}>
+                         Learn more about the thresholds and air quality levels by switching your data resolution to{" "}
+                         <strong>Daily Averages</strong> or <strong>Hourly Averages</strong>.
+                       </p>
+                       <p style={{ margin: "0", fontSize: "11px", color: "#777", marginTop: "10px" }}>
+                         For additional information, refer to{" "}
+                         <a
+                           href="https://saaqis.environment.gov.za/Pagesfiles/SAAQIS%20Air%20Quality%20Index%20for%20General%20Public-Summary.pdf"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           style={{
+                             color: "#2068F3",
+                             textDecoration: "underline",
+                             fontWeight: "bold",
+                           }}
+                         >
+                           this link
+                         </a>{" "}
+                         to understand how air pollutant concentrations are categorized into levels like <strong>Good</strong>,{" "}
+                         <strong>Moderate</strong>, or <strong>Hazardous</strong>.
+                       </p>
+                     </div>                     
+                      )}
+
+                      {dataResolution !== "raw" && !isTemperatureOrHumidity && (
+                        <div
+                          style={{
+                            marginTop: "20px",
+                            textAlign: "center",
+                            fontSize: "10px",
+                            lineHeight: "1.5",
+                            color: "#555",
+                            backgroundColor: "#f9f9f9",
+                            padding: "10px",
+                            borderRadius: "6px",
+                            boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)",
+                            fontStyle: "italic",
+                          }}
+                        >
+                          Want to learn more? Check out{" "}
+                          <a
+                            href="https://saaqis.environment.gov.za/Pagesfiles/SAAQIS%20Air%20Quality%20Index%20for%20General%20Public-Summary.pdf"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: "#2068F3",
+                              textDecoration: "underline",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            this resource
+                          </a>{" "}
+                          for detailed insights.
+                        </div>
+                      )}
+                    </div>
                 </div>
               ) : filteredData1 && filteredData1.length > 0 && selectedSensor2 == "No Station 2 Selected" ? (
-                <div style={{ height: "75vh"  }}>
-                      {/* Chart */}
-                      <div style={{ flex: 1, minWidth: "0" , height: "100%" }}>
-                        <ChartCard
-                          data={selectedData}
-                          options={chartOptions}
-                          title={getTitle(selectedType)}
-                        />
-                      </div>
+                <div style={{
+                  height: "75vh",
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: "20px",
+                }}>
+                {/* Chart */}
+                <div style={{ flex: 1, minWidth: "0" , height: "100%"}}>
+                  <ChartCard
+                    data={selectedData}
+                    options={chartOptions}
+                    title={getTitle(selectedType)}
+                    multiAxis
+                  />
                 </div> 
+          {/* Dynamic Legend */}
+            <div
+              style={{
+                width: "240px",
+               // marginTop: "20px",
+                visibility: isTemperatureOrHumidity ? "hidden" : "visible",
+                opacity: isTemperatureOrHumidity ? 0 : 1,
+                pointerEvents: isTemperatureOrHumidity ? "none" : "auto",
+                transition: "opacity 0.3s ease-in-out",
+                fontSize: "12px",
+                lineHeight: "1.4",
+                fontFamily: "Arial, sans-serif",
+              }}
+            >
+              {(
+                dataResolution === "daily"
+                  ? selectedType === "Pm10p0"
+                    ? pm10AnnotationScaleDaily
+                    : pm25AnnotationScaleDaily
+                  : dataResolution === "hourly"
+                  ? selectedType === "Pm10p0"
+                    ? pm10AnnotationScaleHourly
+                    : pm25AnnotationScaleHourly
+                  : []
+              ).map((band, index) => (
+                <div
+                  key={index}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    backgroundColor: band.backgroundColor,
+                    padding: "8px",
+                    borderRadius: "8px",
+                    marginBottom: "8px",
+                    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "14px",
+                      height: "14px",
+                      backgroundColor: band.backgroundColor,
+                      borderRadius: "50%",
+                      marginRight: "10px",
+                    }}
+                  ></div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      width: "100%", // Ensure consistent space for text alignment
+                    }}
+                  >
+                    <strong
+                      style={{
+                        color: band.label.color || "black",
+                        whiteSpace: "nowrap", // Prevent text wrapping
+                        overflow: "hidden", // Clip overflowing text
+                        textOverflow: "ellipsis", // Add ellipsis for long text
+                      }}
+                    >
+                      {band.label.content || band.label}
+                    </strong>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "10px",
+                        color: "#444",
+                        textAlign: "left", // Align text to the left
+                      }}
+                    >
+                      {`Range: ${band.yMin} - ${band.yMax === Infinity ? "∞" : band.yMax}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+                 {/* Information Note */}
+                  {dataResolution === "raw" && (
+                   <div
+                   style={{
+                     marginTop: "20px",
+                     textAlign: "center",
+                     fontSize: "12px",
+                     lineHeight: "1.6",
+                     color: "#444",
+                     backgroundColor: "#eef2f9",
+                     padding: "15px",
+                     borderRadius: "8px",
+                     boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+                     fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                     transition: "all 0.3s ease-in-out",
+                   }}
+                 >
+                   <div style={{ marginBottom: "10px", fontWeight: "bold", color: "#2068F3" }}>
+                     🌟 Explore More Insights!
+                   </div>
+                   <p style={{ margin: "0", color: "#555" }}>
+                     Learn more about the thresholds and air quality levels by switching your data resolution to{" "}
+                     <strong>Daily Averages</strong> or <strong>Hourly Averages</strong>.
+                   </p>
+                   <p style={{ margin: "0", fontSize: "11px", color: "#777", marginTop: "10px" }}>
+                     For additional information, refer to{" "}
+                     <a
+                       href="https://saaqis.environment.gov.za/Pagesfiles/SAAQIS%20Air%20Quality%20Index%20for%20General%20Public-Summary.pdf"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       style={{
+                         color: "#2068F3",
+                         textDecoration: "underline",
+                         fontWeight: "bold",
+                       }}
+                     >
+                       this link
+                     </a>{" "}
+                     to understand how air pollutant concentrations are categorized into levels like <strong>Good</strong>,{" "}
+                     <strong>Moderate</strong>, or <strong>Hazardous</strong>.
+                   </p>
+                 </div>
+                 
+                 
+                  )}
+
+                  {dataResolution !== "raw" && dataResolution !== "weekly" && !isTemperatureOrHumidity && (
+                    <div
+                      style={{
+                        marginTop: "20px",
+                        textAlign: "center",
+                        fontSize: "10px",
+                        lineHeight: "1.5",
+                        color: "#555",
+                        backgroundColor: "#f9f9f9",
+                        padding: "10px",
+                        borderRadius: "6px",
+                        boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)",
+                        fontStyle: "italic",
+                      }}
+                    >
+                      Want to learn more? Check out{" "}
+                      <a
+                        href="https://saaqis.environment.gov.za/Pagesfiles/SAAQIS%20Air%20Quality%20Index%20for%20General%20Public-Summary.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          color: "#2068F3",
+                          textDecoration: "underline",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        this resource
+                      </a>{" "}
+                      for detailed insights.
+                    </div>
+                  )}
+              </div>
+          </div>
               ) : filteredData2 && filteredData2.length > 0 ? (
                 <div style={{ height: "75vh" }}>
                   <div
