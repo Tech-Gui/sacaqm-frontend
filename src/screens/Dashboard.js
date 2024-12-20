@@ -71,7 +71,7 @@ function Dashboard() {
       legend: {
         display: false,
       },
-    },      
+    },
     elements: {
       point: {
         radius: 1,
@@ -591,14 +591,15 @@ function Dashboard() {
                             ? noxValue
                             : "...."
                         }
-                        wrappedComponent={
-                          <IconBadge
-                            icon={<MdOutlineAir />}
-                            backgroundColor="rgba(255, 216, 0, 0.3)"
-                            color="#990033"
-                            iconSize={16}
-                          />
-                        }
+                        // wrappedComponent={
+                        //   <IconBadge
+                        //     icon={<MdOutlineAir />}
+                        //     backgroundColor="rgba(255, 216, 0, 0.3)"
+                        //     color="#990033"
+                        //     iconSize={16}
+                        //   />
+                        // }
+                        wrappedComponent={<> index</>}
                       />
                     </div>
                   </Col>
@@ -612,14 +613,16 @@ function Dashboard() {
                           ? vocValue
                           : "...."
                       }
-                      wrappedComponent={
-                        <IconBadge
-                          icon={<GiDustCloud />}
-                          backgroundColor="rgba(0, 0, 255, 0.3)"
-                          color="#00f"
-                          iconSize={15}
-                        />
-                      }
+                      // wrappedComponent={
+                      //   <IconBadge
+                      //     icon={<GiDustCloud />}
+                      //     backgroundColor="rgba(0, 0, 255, 0.3)"
+                      //     color="#00f"
+                      //     iconSize={15}
+                      //   />
+                      // }
+
+                      wrappedComponent={<> index</>}
                     />
                   </Col>
 
@@ -629,17 +632,10 @@ function Dashboard() {
                       title="PM 1.0"
                       value={
                         filteredData && filteredData.length > 0
-                          ? pm1Value
+                          ? `${pm1Value} `
                           : "...."
                       }
-                      wrappedComponent={
-                        <IconBadge
-                          icon={<GiDustCloud />}
-                          backgroundColor="rgba(0, 255, 0, 0.3)"
-                          color="#08A045"
-                          iconSize={19}
-                        />
-                      }
+                      wrappedComponent={<> μg/m³</>}
                     />
                   </Col>
                   <Col>
@@ -648,17 +644,10 @@ function Dashboard() {
                       title="PM 2.5"
                       value={
                         filteredData && filteredData.length > 0
-                          ? pm2p05Value
+                          ? `${pm2p05Value}`
                           : "...."
                       }
-                      wrappedComponent={
-                        <IconBadge
-                          icon={<GiDustCloud />}
-                          backgroundColor="rgba(255, 87, 51, 0.5)"
-                          color="#F00"
-                          iconSize={15}
-                        />
-                      }
+                      wrappedComponent={<> μg/m³</>}
                     />
                   </Col>
                 </Row>
@@ -838,7 +827,7 @@ function Dashboard() {
                   data={HumiditychartData}
                   options={chartOptions}
                   title="Humidity (%)"
-                 // disableAnnotation={true} // Disable annotations for Humidity
+                  // disableAnnotation={true} // Disable annotations for Humidity
                 />
               ) : null}
             </Card>
