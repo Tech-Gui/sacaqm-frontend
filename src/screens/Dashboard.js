@@ -328,6 +328,7 @@ function Dashboard() {
   var vocValue = VocchartData.datasets[0].data.slice(-1)[0];
   var pm1Value = pm1p0chartData.datasets[0].data.slice(-1)[0];
   var pm2p05Value = pm2p5chartData.datasets[0].data.slice(-1)[0];
+  
 
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
@@ -519,9 +520,21 @@ function Dashboard() {
               id="dropdown-basic"
               size="sm"
               style={{
-                background: "#2068F3",
+                background: "#4A90E2", // Modern blue shade
                 border: "none",
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                borderRadius: "20px", // Rounded corners
+                padding: "10px 20px", // Padding for a cleaner button size
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)", // Subtle shadow
+                fontSize: "14px", // Better readability
+                fontWeight: "600", // Semi-bold for better emphasis
+                color: "#fff", // White text for contrast
+                transition: "all 0.3s ease", // Smooth hover transition
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = "#357ABD"; // Darker blue on hover
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = "#4A90E2"; // Original blue
               }}>
               {getStationNameByStationId(selectedSensor) || "Origin Center -1"}
             </Dropdown.Toggle>
@@ -539,9 +552,21 @@ function Dashboard() {
               id="dropdown-basic"
               size="sm"
               style={{
-                background: "#2068F3",
+                background: "#4A90E2", // Modern blue shade
                 border: "none",
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                borderRadius: "20px", // Rounded corners
+                padding: "10px 20px", // Padding for a cleaner button size
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)", // Subtle shadow
+                fontSize: "14px", // Better readability
+                fontWeight: "600", // Semi-bold for better emphasis
+                color: "#fff", // White text for contrast
+                transition: "all 0.3s ease", // Smooth hover transition
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = "#357ABD"; // Darker blue on hover
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = "#4A90E2"; // Original blue
               }}>
               {selectedPeriod}
             </Dropdown.Toggle>
