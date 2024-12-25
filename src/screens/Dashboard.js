@@ -328,6 +328,7 @@ function Dashboard() {
   var vocValue = VocchartData.datasets[0].data.slice(-1)[0];
   var pm1Value = pm1p0chartData.datasets[0].data.slice(-1)[0];
   var pm2p05Value = pm2p5chartData.datasets[0].data.slice(-1)[0];
+  
 
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
