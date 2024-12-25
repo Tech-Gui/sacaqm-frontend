@@ -1207,7 +1207,7 @@ const AnalyticsScreen = () => {
                      </div>                     
                       )}
 
-                      {dataResolution !== "raw" && !isTemperatureOrHumidity && (
+                      {dataResolution !== "raw" && dataResolution !== "weekly" && !isTemperatureOrHumidity && (
                         <div
                           style={{
                             marginTop: "20px",
