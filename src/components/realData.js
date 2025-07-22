@@ -36,6 +36,7 @@ export function getData(request) {
   var pm10p0 = [];
   var humidity = [];
   var temperature = [];
+  var co2 = [];
 
   $.ajax({
     url: "https://sacaqm.web.cern.ch/dbread.php",
@@ -63,6 +64,7 @@ export function getData(request) {
           x: date.getTime(),
           y: parseFloat(p["temperature"]),
         });
+        co2.push({x : date.getTime(), y : parseFloat(p['co2'])});
       }
     },
     error: function (jqXHR, textStatus, errorThrown) {
@@ -75,7 +77,7 @@ export function getData(request) {
   // calculation of the averages and other data must take place here.
   // console.log(length(temperature))
 
-  return { dates, pm1p0, pm2p5, pm4p0, pm10p0, temperature, humidity };
+  return { dates, pm1p0, pm2p5, pm4p0, pm10p0, temperature, humidity, co2 };
 }
 
 // creates the parameters for the data to be requested

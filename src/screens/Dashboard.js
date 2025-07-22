@@ -323,12 +323,42 @@ function Dashboard() {
     ],
   };
 
+   const co2ChartData = {
+    labels: dates,
+    datasets: [
+      {
+        label: "Co2",
+        data: filteredData.map((data) => data.co2),
+        fill: true,
+        backgroundColor: function (context) {
+          var ctx = context.chart.ctx;
+          var gradient = ctx.createLinearGradient(0, 0, 0, 200);
+          gradient.addColorStop(0, "rgba(88, 130, 239, 1)");
+          gradient.addColorStop(0.25, "rgba(88, 130, 239, 0.75)");
+          gradient.addColorStop(0.5, "rgba(88, 130, 239, 0.5)");
+          gradient.addColorStop(0.75, "rgba(88, 130, 239, 0.25)");
+          gradient.addColorStop(1, "rgba(88, 130, 239, 0.0)");
+          return gradient;
+        },
+        borderColor: "#ff3030ff",
+        tension: 0.4,
+        borderWidth: 2,
+        fill: true,
+        pointBackgroundColor: "#FFFFFF",
+        // pointRadius: 3,
+        pointBorderColor: "#ff3030ff",
+        pointBorderWidth: 2,
+      },
+    ],
+  };
+
+
   var noxValue = NoxChartData.datasets[0].data.slice(-1)[0];
   var tempDisplay = TemperatureChartData.datasets[0].data.slice(-1)[0];
   var vocValue = VocchartData.datasets[0].data.slice(-1)[0];
   var pm1Value = pm1p0chartData.datasets[0].data.slice(-1)[0];
   var pm2p05Value = pm2p5chartData.datasets[0].data.slice(-1)[0];
-  
+  var co2Value = co2ChartData.datasets[0].data.slice(-1)[0];
 
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
@@ -858,7 +888,41 @@ function Dashboard() {
             </Card>
           </Col>
         </Row>
+
+            <Row>
+      <Col md={6}>
+  <Card
+    className="mt-2"
+    style={{
+      border: "none",
+      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+      paddingBottom: "0.2rem",
+      minHeight: "25vh",
+    }}
+  >
+    {filteredData && filteredData.length > 0 ? (
+      <ChartCard
+        data={co2ChartData} 
+        options={chartOptions}
+        title="CO₂ (ppm)"
+      />
+    ) : (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "25vh",
+        }}
+      >
+        <Spinner animation="border" role="status" />
+      </div>
+    )}
+  </Card>
+</Col>
+    </Row>
       </Container>
+
     </div>
   );
 }

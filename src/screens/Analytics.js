@@ -318,6 +318,8 @@ const AnalyticsScreen = () => {
           return entry.pm4p0;
         case "Pm10p0":
           return entry.pm10p0;
+        case "Co2":
+          return entry.co2;
         default:
           return null;
       }
@@ -348,6 +350,8 @@ const AnalyticsScreen = () => {
           return entry.pm4p0;
         case "Pm10p0":
           return entry.pm10p0;
+        case "Co2":
+          return entry.co2;
         default:
           return null;
       }
@@ -376,6 +380,8 @@ const AnalyticsScreen = () => {
         return "VOC (ppb)";
       case "Nox":
         return "NOx (ppb)";
+      case "Co2":
+        return "CO2 (ppm)";
       default:
         return "";
     }

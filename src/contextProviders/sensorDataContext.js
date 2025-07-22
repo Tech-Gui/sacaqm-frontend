@@ -14,7 +14,7 @@ const SensorDataProvider = ({ children }) => {
   const navigate = useNavigate();
   const fetchData = async () => {
     try {
-      const { dates, Pm1p0, Pm2p5, Pm4p0, Pm10p0, Temperature, Humidity } =
+      const { dates, Pm1p0, Pm2p5, Pm4p0, Pm10p0, Temperature, Humidity, Co2 } =
         selectedSensor !== null
           ? await sendData(selectedSensor, selectedPeriod)
           : await sendData("350457790740896", selectedPeriod);
@@ -27,6 +27,7 @@ const SensorDataProvider = ({ children }) => {
         Pm10p0,
         Temperature,
         Humidity,
+        Co2,
       });
     } catch (error) {
       console.error("Error fetching data:", error);
