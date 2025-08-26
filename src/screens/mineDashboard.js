@@ -1,8 +1,8 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import Sidebar from "../components/SideBar";
-import TopNavBar from "../components/topNavBar";
+import Sidebar from "../components/SideBar.js";
+import TopNavBar from "../components/topNavBar.js";
 import {
   Button,
   Card,
@@ -11,8 +11,8 @@ import {
   Modal,
   Spinner,
 } from "react-bootstrap";
-import StatsCard from "../components/statsCard";
-import IconBadge from "../components/iconBadge";
+import StatsCard from "../components/statsCard.js";
+import IconBadge from "../components/iconBadge.js";
 import { GiDustCloud } from "react-icons/gi";
 import { MdOutlineAir } from "react-icons/md";
 import ChartCard from "../components/chartCard.js";
@@ -26,7 +26,7 @@ import { DataContext } from "../contextProviders/DataContext.js";
 import { StationContext } from "../contextProviders/StationContext.js";
 import { useDataType } from "../contextProviders/dataTypeContext.js";
 
-function mineDashboard() {
+function MineDashboard() {
   const {
     selectedSensor,
     selectedPeriod,
@@ -927,4 +927,4 @@ function mineDashboard() {
   );
 }
 
-export default Dashboard;
+export default MineDashboard;
