@@ -64,13 +64,15 @@ export function getData(request) {
           x: date.getTime(),
           y: parseFloat(p["temperature"]),
         });
-        co2.push({x : date.getTime(), y : parseFloat(p['co2'])});
+        co2.push({x : date.getTime(), y : parseFloat(p["co2"])});
       }
     },
     error: function (jqXHR, textStatus, errorThrown) {
       // Log the error details here
       console.error("Error:", textStatus, errorThrown);
       console.error("Request:", jqXHR.responseText);
+
+      alert("Sensors appear to be offline, please try again later.");
     },
   });
 

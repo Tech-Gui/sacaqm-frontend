@@ -5,6 +5,8 @@ import Dashboard from "./screens/Dashboard";
 import Information from "./screens/Information";
 import AppMap from "./map/index";
 import AnalyticsScreen from "./screens/Analytics";
+import MineLogin from "./screens/mine";
+import mineDashboard from "./screens/mineDashboard";
 import { DataTypeProvider } from "./contextProviders/dataTypeContext";
 import {
   SensorDataProvider,
@@ -31,6 +33,9 @@ function App() {
                   <Route path="/analytics" element={<AnalyticsScreen />} />
                   <Route path="/stations" element={<Stations />} />
                   <Route path="/information" element={<Information />} />
+                  <Route path="/mine" element={<MineLogin />} />
+                  <Route path="/mineDashboard" element={<mineDashboard />} />
+                  {/* Placeholder for mine dashboard */}
                 </Routes>
               </StationProvider>
             </DataProvider>

@@ -8,7 +8,7 @@ import { IoPieChartSharp } from "react-icons/io5";
 import { FaFileInvoiceDollar } from "react-icons/fa";
 import { IoIosPeople } from "react-icons/io";
 import { GiCoalWagon } from "react-icons/gi";
-import { BiSupport } from "react-icons/bi";
+import { BiLogIn, BiSupport } from "react-icons/bi";
 import { SiMicrosoftexcel } from "react-icons/si";
 import { FaInfoCircle } from "react-icons/fa";
 import { RiAlarmWarningFill } from "react-icons/ri";
@@ -90,7 +90,20 @@ function Sidebar() {
             <FaInfoCircle size={30} />
             <span style={{ marginLeft: "1rem" }}>More Info</span>
           </Nav.Link>
+        
+
+        <Nav.Link
+          as = {Link}
+          to = "/mine"
+          style = {{
+            textAlign: "left",
+            color: isLinkActive("/mine") ? "#1B2791" : "#3DA2E6",
+          }}>
+          <BiLogIn size={30} />
+          <span style={{ marginLeft: "1rem" }}>Mine Login</span>
+        </Nav.Link>
         </Nav>
+
       </Navbar.Collapse>
 
       <div
