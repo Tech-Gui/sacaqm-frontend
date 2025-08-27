@@ -18,13 +18,18 @@ import { MdOutlineAir } from "react-icons/md";
 import ChartCard from "../components/chartCard.js";
 import { FaTemperatureThreeQuarters } from "react-icons/fa6";
 import { WiHumidity } from "react-icons/wi";
-import AppMap from "../map/index.js";
+import AppMap from "../map/AppMap.js";
 import { Dropdown } from "react-bootstrap";
 
 import { useSensorData } from "../contextProviders/sensorDataContext.js";
 import { DataContext } from "../contextProviders/DataContext.js";
 import { StationContext } from "../contextProviders/StationContext.js";
 import { useDataType } from "../contextProviders/dataTypeContext.js";
+import axios from "axios";
+
+
+const API_BASE = process.env.REACT_APP_API_BASE;
+
 
 function MineDashboard() {
   const {
@@ -35,9 +40,12 @@ function MineDashboard() {
   } = useSensorData();
 
   const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
-  const { stations, loading, error, fetchStations } =
-    useContext(StationContext);
+  const [stations, setStations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { selectedType, handleTypeSelect } = useDataType();
+  const fetchStations = async () => fetchMySensorsAndNames();
+  const [sensorNameMap, setSensorNameMap] = useState({});
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -46,7 +54,7 @@ function MineDashboard() {
   const [greeting, setGreeting] = useState("");
 
   useEffect(() => {
-    setSelectedSensor("673304cb0872d4bb9ee442d8");
+    setSelectedSensor("68aeec026bb2d3b1a11f79e4");
     const currentHour = new Date().getHours();
     if (currentHour < 12) {
       setGreeting("Good Morning");
@@ -56,6 +64,67 @@ function MineDashboard() {
       setGreeting("Good Evening");
     }
   }, []);
+
+  const fetchMySensorsAndNames = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem("authToken");
+      if (!token) throw new Error("No auth token found. Please log in again.");
+
+      const [meResp, stationsResp] = await Promise.all([
+        axios.get(`${API_BASE}/api/users_sensors/me/sensors`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API_BASE}/api/stations`, {
+          headers: { Authorization: `Bearer ${token}` }, // fine if public too
+        }),
+      ]);
+
+      const mySensorIds = new Set((meResp?.data?.sensorIds || []).map(String));
+      const allStations = Array.isArray(stationsResp?.data) ? stationsResp.data : [];
+
+      // Build station list the user actually owns (by intersecting sensorIds)
+      const mineStations = [];
+      const seenStationIds = new Set();
+
+      for (const st of allStations) {
+        const sidList = Array.isArray(st?.sensorIds) ? st.sensorIds.map(String) : [];
+        const hasMine = sidList.some((sid) => mySensorIds.has(sid));
+        if (hasMine && st?._id && !seenStationIds.has(String(st._id))) {
+          seenStationIds.add(String(st._id));
+          mineStations.push({
+            _id: String(st._id),           // << stationId (IMPORTANT)
+            name: st?.name || "Unnamed Station",
+            sensorIds: sidList,            // keep for display if you want
+          });
+        }
+      }
+
+      // Sort by station name and store for the dropdown
+      mineStations.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      setStations(mineStations);
+
+      // Auto-select first stationId and fetch data
+      if (mineStations.length > 0) {
+        const firstStationId = mineStations[0]._id;  // << stationId
+        setSelectedSensor(firstStationId);           // note: this now holds a stationId
+        setSelectedPeriod("Today");
+        fetchNodeData(firstStationId, 1);            // << stationId goes here
+      }
+    } catch (e) {
+      setError(e?.response?.data?.message || e.message || "Failed to load sensors");
+      setStations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchStations();
+  }, []); 
 
   const chartOptions = {
     responsive: true,

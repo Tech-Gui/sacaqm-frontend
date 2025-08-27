@@ -1,27 +1,56 @@
 import React, { useState } from "react";
 import { Form, Button, Container, Row, Col, Card } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { FaUser, FaLock } from "react-icons/fa"; // icons
-import Sidebar from "../components/SideBar";
+import { FaUser, FaLock } from "react-icons/fa";
+import axios from "axios";
+
+// get API base from env
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 const MineLogin = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");   
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!username || !password) {
-      setError("Please enter both username and password.");
+    setError("");
+
+    if (!email || !password) {
+      setError("Please enter both email and password.");
       return;
     }
-    // Fake auth (replace with API later)
-    if (username === "admin" && password === "password") {
-      setError("");
+
+    try {
+      setLoading(true);
+
+      const payload = { email, password };
+
+      const { data } = await axios.post(`${API_BASE}/api/user/login`, payload, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const { token, user } = data;
+
+      // persist
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("authUser", JSON.stringify(user));
+
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
       navigate("/mineDashboard");
-    } else {
-      setError("Invalid username or password.");
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setError("Invalid credentials.");
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Login failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,7 +68,6 @@ const MineLogin = () => {
         <Row className="justify-content-center">
           <Col md={5}>
             <Card className="p-4 shadow-lg border-0 rounded-4 text-center">
-              {/* Logo Section */}
               <div className="mb-3">
                 <img
                   src="/logo.png"
@@ -57,18 +85,20 @@ const MineLogin = () => {
               )}
 
               <Form onSubmit={handleSubmit} className="text-start">
-                <Form.Group className="mb-3" controlId="formUsername">
-                  <Form.Label className="fw-semibold">Username</Form.Label>
+                <Form.Group className="mb-3" controlId="formEmail">
+                  <Form.Label className="fw-semibold">Email</Form.Label>
                   <div className="d-flex align-items-center">
                     <span className="px-2 text-muted">
                       <FaUser />
                     </span>
                     <Form.Control
-                      type="text"
-                      placeholder="Enter username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      type="email"
+                      placeholder="Enter email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="rounded-3"
+                      autoComplete="email"
+                      disabled={loading}
                     />
                   </div>
                 </Form.Group>
@@ -85,6 +115,8 @@ const MineLogin = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="rounded-3"
+                      autoComplete="current-password"
+                      disabled={loading}
                     />
                   </div>
                 </Form.Group>
@@ -94,8 +126,9 @@ const MineLogin = () => {
                   type="submit"
                   className="w-100 rounded-3 fw-semibold"
                   style={{ padding: "10px" }}
+                  disabled={loading}
                 >
-                  Login
+                  {loading ? "Signing in..." : "Login"}
                 </Button>
               </Form>
             </Card>
