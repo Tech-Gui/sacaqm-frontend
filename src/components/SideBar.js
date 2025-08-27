@@ -94,10 +94,10 @@ function Sidebar() {
 
         <Nav.Link
           as = {Link}
-          to = "/mine"
+          to = "/login"
           style = {{
             textAlign: "left",
-            color: isLinkActive("/mine") ? "#1B2791" : "#3DA2E6",
+            color: isLinkActive("/login") ? "#1B2791" : "#3DA2E6",
           }}>
           <BiLogIn size={30} />
           <span style={{ marginLeft: "1rem" }}>Private Login</span>

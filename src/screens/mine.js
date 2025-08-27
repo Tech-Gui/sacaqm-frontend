@@ -3,10 +3,10 @@ import { Form, Button, Card } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { FaUser, FaLock } from "react-icons/fa";
 import axios from "axios";
+import Sidebar from "../components/SideBar";
 
 // get API base from env
 const API_BASE = process.env.REACT_APP_API_BASE;
-import Sidebar from "../components/SideBar";
 
 const MineLogin = () => {
   const [email, setEmail] = useState("");   

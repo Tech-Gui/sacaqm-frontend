@@ -27,11 +27,12 @@ import { DataContext } from "../contextProviders/DataContext.js";
 import { StationContext } from "../contextProviders/StationContext.js";
 import { useDataType } from "../contextProviders/dataTypeContext.js";
 import axios from "axios";
+import { point } from "leaflet";
 
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
-import { point } from "leaflet";
+
 
 function MineDashboard() {
   const navigate = useNavigate();
@@ -130,7 +131,7 @@ function MineDashboard() {
   }, []); 
 
   const handleLogout = () => {
-    navigate("/mine");
+    navigate("/login");
   };
   
   const chartOptions = {
@@ -798,6 +799,18 @@ function MineDashboard() {
                       value={
                         filteredData && filteredData.length > 0
                           ? `${pm2p05Value}`
+                          : "...."
+                      }
+                      wrappedComponent={<> μg/m³</>}
+                    />
+                  </Col>
+                  <Col>
+                    {" "}
+                    <StatsCard
+                      title="Decibel"
+                      value={
+                        filteredData && filteredData.length > 0
+                          ? `${decibelValue}`
                           : "...."
                       }
                       wrappedComponent={<> μg/m³</>}
