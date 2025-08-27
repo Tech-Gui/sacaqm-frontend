@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import Row from "react-bootstrap/Row";
+import { useNavigate } from "react-router-dom";
 import Col from "react-bootstrap/Col";
 import Sidebar from "../components/SideBar.js";
 import TopNavBar from "../components/topNavBar.js";
@@ -20,7 +21,7 @@ import { FaTemperatureThreeQuarters } from "react-icons/fa6";
 import { WiHumidity } from "react-icons/wi";
 import AppMap from "../map/AppMap.js";
 import { Dropdown } from "react-bootstrap";
-
+import { FaSignOutAlt } from "react-icons/fa";
 import { useSensorData } from "../contextProviders/sensorDataContext.js";
 import { DataContext } from "../contextProviders/DataContext.js";
 import { StationContext } from "../contextProviders/StationContext.js";
@@ -30,8 +31,10 @@ import axios from "axios";
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
+import { point } from "leaflet";
 
 function MineDashboard() {
+  const navigate = useNavigate();
   const {
     selectedSensor,
     selectedPeriod,
@@ -126,6 +129,10 @@ function MineDashboard() {
     fetchStations();
   }, []); 
 
+  const handleLogout = () => {
+    navigate("/mine");
+  };
+  
   const chartOptions = {
     responsive: true,
     scales: {
@@ -392,42 +399,41 @@ function MineDashboard() {
     ],
   };
 
-   const co2ChartData = {
+   const decibelChartData = {
     labels: dates,
     datasets: [
       {
-        label: "Co2",
-        data: filteredData.map((data) => data.co2),
-        fill: true,
-        backgroundColor: function (context) {
+        labels: "Decibel (dB)",
+        data : filteredData.map((data) => data.dba),
+        fill: true, 
+        backgroundColor: function (context){
           var ctx = context.chart.ctx;
-          var gradient = ctx.createLinearGradient(0, 0, 0, 200);
-          gradient.addColorStop(0, "rgba(88, 130, 239, 1)");
-          gradient.addColorStop(0.25, "rgba(88, 130, 239, 0.75)");
-          gradient.addColorStop(0.5, "rgba(88, 130, 239, 0.5)");
-          gradient.addColorStop(0.75, "rgba(88, 130, 239, 0.25)");
-          gradient.addColorStop(1, "rgba(88, 130, 239, 0.0)");
-          return gradient;
+          var gradient = ctx.createLinearGradient(0,0,0,200);
+        gradient.addColorStop(0, "rgba(180, 75, 250, 1)");
+        gradient.addColorStop(0.25, "rgba(180, 75, 250, 0.75)");
+        gradient.addColorStop(0.5, "rgba(180, 75, 250, 0.5)");
+        gradient.addColorStop(0.75, "rgba(180, 75, 250, 0.25)");
+        gradient.addColorStop(1, "rgba(180, 75, 250, 0.0)");
+        return gradient;
         },
-        borderColor: "#ff3030ff",
+        borderColor: "#b44bfa",
         tension: 0.4,
         borderWidth: 2,
         fill: true,
         pointBackgroundColor: "#FFFFFF",
-        // pointRadius: 3,
-        pointBorderColor: "#ff3030ff",
+        pointBorderColor: "#b44bfa",
         pointBorderWidth: 2,
       },
     ],
-  };
-
+   };
 
   var noxValue = NoxChartData.datasets[0].data.slice(-1)[0];
   var tempDisplay = TemperatureChartData.datasets[0].data.slice(-1)[0];
   var vocValue = VocchartData.datasets[0].data.slice(-1)[0];
   var pm1Value = pm1p0chartData.datasets[0].data.slice(-1)[0];
   var pm2p05Value = pm2p5chartData.datasets[0].data.slice(-1)[0];
-  var co2Value = co2ChartData.datasets[0].data.slice(-1)[0];
+  var decibelValue = decibelChartData.datasets[0].data.slice(-1)[0];
+  // var co2Value = co2ChartData.datasets[0].data.slice(-1)[0]; 
 
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
@@ -611,8 +617,31 @@ function MineDashboard() {
           maxHeight: "100vh",
           overflowY: "scroll",
         }}>
+       
+         <div className="d-flex justify-content-between align-items-center mb-3">
         <TopNavBar />
-
+        <Button 
+          variant="outline-light" 
+          onClick={handleLogout}
+          style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            fontWeight: '600',
+            background: "linear-gradient(45deg, #FF416C, #FF4B2B)",
+            border: 'none',
+            borderRadius: '30px',
+            padding: '10px 20px',
+            color: '#fff',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.2)',
+            transition: 'transform 0.2s ease',
+           }}
+            onMouseOver={(e) => { e.currentTarget.style.transform = "scale(1.05)" }}
+            onMouseOut={(e) => { e.currentTarget.style.transform = "scale(1)" }}
+        >
+          <FaSignOutAlt style={{ marginRight: "8px" }} />
+          Logout
+        </Button>
+      </div>
         <div className="d-flex flex-row justify-content-between">
           <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
@@ -958,38 +987,39 @@ function MineDashboard() {
           </Col>
         </Row>
 
-            <Row>
-      <Col md={6}>
-  <Card
-    className="mt-2"
-    style={{
-      border: "none",
-      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-      paddingBottom: "0.2rem",
-      minHeight: "25vh",
-    }}
-  >
-    {filteredData && filteredData.length > 0 ? (
-      <ChartCard
-        data={co2ChartData} 
-        options={chartOptions}
-        title="CO₂ (ppm)"
-      />
-    ) : (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "25vh",
-        }}
-      >
-        <Spinner animation="border" role="status" />
-      </div>
-    )}
-  </Card>
-</Col>
-    </Row>
+  <Row>
+  <Col md={6}>
+    <Card
+      className="mt-2"
+      style={{
+        border: "none",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+        paddingBottom: "0.2rem",
+        minHeight: "25vh",
+      }}
+    >
+      {filteredData && filteredData.length > 0 ? (
+        <ChartCard
+          data={decibelChartData}
+          options={chartOptions}
+          title="Decibel (dB)"
+        />
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "25vh",
+          }}
+        >
+          <Spinner animation="border" role="status"></Spinner>
+        </div>
+      )}
+    </Card>
+  </Col>
+  {/* Optionally, add another column or arrange placement as needed */}
+</Row>
       </Container>
 
     </div>
