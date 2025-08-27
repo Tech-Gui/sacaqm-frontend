@@ -405,7 +405,7 @@ function MineDashboard() {
     datasets: [
       {
         labels: "Decibel (dB)",
-        data : filteredData.map((data) => data.dba),
+        data : filteredData.map((data) => data.decibel),
         fill: true, 
         backgroundColor: function (context){
           var ctx = context.chart.ctx;
