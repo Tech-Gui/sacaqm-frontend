@@ -100,7 +100,7 @@ function Sidebar() {
             color: isLinkActive("/mine") ? "#1B2791" : "#3DA2E6",
           }}>
           <BiLogIn size={30} />
-          <span style={{ marginLeft: "1rem" }}>Mine Login</span>
+          <span style={{ marginLeft: "1rem" }}>Private Login</span>
         </Nav.Link>
         </Nav>
 

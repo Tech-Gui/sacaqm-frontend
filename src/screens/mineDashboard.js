@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import Row from "react-bootstrap/Row";
+import { useNavigate } from "react-router-dom";
 import Col from "react-bootstrap/Col";
 import Sidebar from "../components/SideBar.js";
 import TopNavBar from "../components/topNavBar.js";
@@ -20,7 +21,7 @@ import { FaTemperatureThreeQuarters } from "react-icons/fa6";
 import { WiHumidity } from "react-icons/wi";
 import AppMap from "../map/index.js";
 import { Dropdown } from "react-bootstrap";
-
+import { FaSignOutAlt } from "react-icons/fa";
 import { useSensorData } from "../contextProviders/sensorDataContext.js";
 import { DataContext } from "../contextProviders/DataContext.js";
 import { StationContext } from "../contextProviders/StationContext.js";
@@ -28,6 +29,7 @@ import { useDataType } from "../contextProviders/dataTypeContext.js";
 import { point } from "leaflet";
 
 function MineDashboard() {
+  const navigate = useNavigate();
   const {
     selectedSensor,
     selectedPeriod,
@@ -57,7 +59,10 @@ function MineDashboard() {
       setGreeting("Good Evening");
     }
   }, []);
-
+  const handleLogout = () => {
+    navigate("/mine");
+  };
+  
   const chartOptions = {
     responsive: true,
     scales: {
@@ -329,7 +334,7 @@ function MineDashboard() {
     datasets: [
       {
         labels: "Decibel (dB)",
-        data : filteredData.map((data) => data.db),
+        data : filteredData.map((data) => data.dba),
         fill: true, 
         backgroundColor: function (context){
           var ctx = context.chart.ctx;
@@ -542,8 +547,31 @@ function MineDashboard() {
           maxHeight: "100vh",
           overflowY: "scroll",
         }}>
+       
+         <div className="d-flex justify-content-between align-items-center mb-3">
         <TopNavBar />
-
+        <Button 
+          variant="outline-light" 
+          onClick={handleLogout}
+          style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            fontWeight: '600',
+            background: "linear-gradient(45deg, #FF416C, #FF4B2B)",
+            border: 'none',
+            borderRadius: '30px',
+            padding: '10px 20px',
+            color: '#fff',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.2)',
+            transition: 'transform 0.2s ease',
+           }}
+            onMouseOver={(e) => { e.currentTarget.style.transform = "scale(1.05)" }}
+            onMouseOut={(e) => { e.currentTarget.style.transform = "scale(1)" }}
+        >
+          <FaSignOutAlt style={{ marginRight: "8px" }} />
+          Logout
+        </Button>
+      </div>
         <div className="d-flex flex-row justify-content-between">
           <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
