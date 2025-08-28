@@ -400,12 +400,12 @@ function MineDashboard() {
     ],
   };
 
-   const decibelChartData = {
+   const dbaChartData = {
     labels: dates,
     datasets: [
       {
         labels: "Decibel (dB)",
-        data : filteredData.map((data) => data.dba),
+        data : filteredData.map((data) => data.decibel),
         fill: true, 
         backgroundColor: function (context){
           var ctx = context.chart.ctx;
@@ -433,7 +433,7 @@ function MineDashboard() {
   var vocValue = VocchartData.datasets[0].data.slice(-1)[0];
   var pm1Value = pm1p0chartData.datasets[0].data.slice(-1)[0];
   var pm2p05Value = pm2p5chartData.datasets[0].data.slice(-1)[0];
-  var decibelValue = decibelChartData.datasets[0].data.slice(-1)[0];
+  var dbaValue = dbaChartData.datasets[0].data.slice(-1)[0];
   // var co2Value = co2ChartData.datasets[0].data.slice(-1)[0]; 
 
   const handlePeriodSelect = (period) => {
@@ -810,7 +810,7 @@ function MineDashboard() {
                       title="Decibel"
                       value={
                         filteredData && filteredData.length > 0
-                          ? `${decibelValue}`
+                          ? `${dbaValue}`
                           : "...."
                       }
                       wrappedComponent={<> μg/m³</>}
@@ -1013,7 +1013,7 @@ function MineDashboard() {
     >
       {filteredData && filteredData.length > 0 ? (
         <ChartCard
-          data={decibelChartData}
+          data={dbaChartData}
           options={chartOptions}
           title="Decibel (dB)"
         />
