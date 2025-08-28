@@ -66,8 +66,8 @@ export function getData(request) {
           y: parseFloat(p["temperature"]),
         });
         co2.push({x : date.getTime(), y : parseFloat(p["co2"])});
+        dba.push({ x: date.getTime(), y: parseFloat(p["dba"]) });
       }
-      dba.push({ x: date.getTime(), y: parseFloat(p["dba"]) });
     },
     error: function (jqXHR, textStatus, errorThrown) {
       // Log the error details here
