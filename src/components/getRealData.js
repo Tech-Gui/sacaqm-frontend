@@ -17,7 +17,7 @@ export function sendData(sensorId, period) {
   // var request = requestData("350457790740979");
   var request = requestData(sensorId, period);
 
-  var { dates, pm1p0, pm2p5, pm4p0, pm10p0, temperature, humidity, co2 } =
+  var { dates, pm1p0, pm2p5, pm4p0, pm10p0, temperature, humidity, co2, dba } =
     getData(request);
 
   const Temperature = {
@@ -224,5 +224,35 @@ export function sendData(sensorId, period) {
     ],
   }
 
-  return { dates, Pm1p0, Pm2p5, Pm4p0, Pm10p0, Temperature, Humidity, Co2 };
+  const Dba = {
+    labels: dates,
+    datasets: [
+      {
+        label: "Dba",
+        data: dba,
+        fill: true,
+        backgroundColor: function (context) {
+          var ctx = context.chart.ctx;
+          var gradient = ctx.createLinearGradient(0, 0, 0, 200);
+          gradient.addColorStop(0, "rgba(88, 130, 239, 1)");
+          gradient.addColorStop(0.25, "rgba(88, 130, 239, 0.75)");
+          gradient.addColorStop(0.5, "rgba(88, 130, 239, 0.5)");
+          gradient.addColorStop(0.75, "rgba(88, 130, 239, 0.25)");
+          gradient.addColorStop(1, "rgba(88, 130, 239, 0.0)");
+          return gradient;
+        },
+        borderColor: "#ffb84d",
+        tension: 0.4,
+        borderWidth: 2,
+        fill: true,
+        pointBackgroundColor: "#FFFFFF",
+        // pointRadius: 3,
+        pointBorderColor: "#ffb84d",
+        pointBorderWidth: 2,
+      },
+    ],
+  }
+  return { dates, Pm1p0, Pm2p5, Pm4p0, Pm10p0, Temperature, Humidity, Co2, dba };
 }
+
+
