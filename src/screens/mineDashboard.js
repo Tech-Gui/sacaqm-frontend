@@ -813,7 +813,7 @@ function MineDashboard() {
                           ? `${dbaValue}`
                           : "...."
                       }
-                      wrappedComponent={<> μg/m³</>}
+                      wrappedComponent={<> dB</>}
                     />
                   </Col>
                 </Row>
