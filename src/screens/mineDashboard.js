@@ -28,7 +28,7 @@ import { StationContext } from "../contextProviders/StationContext.js";
 import { useDataType } from "../contextProviders/dataTypeContext.js";
 import axios from "axios";
 import { point } from "leaflet";
-
+import { useAuth } from '../contextProviders/AuthContext.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
@@ -56,6 +56,18 @@ function MineDashboard() {
   const [filteredData, setFilteredData] = useState([]);
   const [showModal, setShowModal] = useState(true);
   const [greeting, setGreeting] = useState("");
+
+  const { logout, user } = useAuth();
+  const handleLogout = () => {
+    // Remove axios authorization header
+    delete axios.defaults.headers.common["Authorization"];
+    
+    // Call logout from context
+    logout();
+    
+    // Navigate to login page
+    navigate("/login");
+  };
 
   useEffect(() => {
     setSelectedSensor("68aeec026bb2d3b1a11f79e4");
@@ -130,9 +142,9 @@ function MineDashboard() {
     fetchStations();
   }, []); 
 
-  const handleLogout = () => {
-    navigate("/login");
-  };
+  // const handleLogout = () => {
+  //   navigate("/login");
+  // };
   
   const chartOptions = {
     responsive: true,

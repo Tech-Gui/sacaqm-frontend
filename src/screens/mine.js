@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FaUser, FaLock } from "react-icons/fa";
 import axios from "axios";
 import Sidebar from "../components/SideBar";
+import { useAuth } from '../contextProviders/AuthContext';
 
 // get API base from env
 const API_BASE = process.env.REACT_APP_API_BASE;
@@ -14,6 +15,7 @@ const MineLogin = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,7 +42,7 @@ const MineLogin = () => {
       localStorage.setItem("authUser", JSON.stringify(user));
 
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
+      login(token, user);
       navigate("/mineDashboard");
     } catch (err) {
       if (err.response?.status === 401) {
