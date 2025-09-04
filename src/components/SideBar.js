@@ -12,10 +12,24 @@ import { BiLogIn, BiSupport } from "react-icons/bi";
 import { SiMicrosoftexcel } from "react-icons/si";
 import { FaInfoCircle } from "react-icons/fa";
 import { RiAlarmWarningFill } from "react-icons/ri";
+import { useAuth } from '../contextProviders/AuthContext';
+import { useNavigate } from "react-router-dom";
 
 function Sidebar() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthed } = useAuth();
+
+
+  const handlePrivateClick = (e) => {
+    e.preventDefault();
+    if (isAuthed) {
+      navigate("/mineDashboard");
+    } else {
+      navigate("/login");
+    }
+  };
 
   const isLinkActive = (path) => location.pathname === path;
 
@@ -92,7 +106,7 @@ function Sidebar() {
           </Nav.Link>
         
 
-        <Nav.Link
+        {/* <Nav.Link
           as = {Link}
           to = "/login"
           style = {{
@@ -101,7 +115,20 @@ function Sidebar() {
           }}>
           <BiLogIn size={30} />
           <span style={{ marginLeft: "1rem" }}>Private Login</span>
-        </Nav.Link>
+        </Nav.Link> */}
+    <Nav.Link
+    onClick={handlePrivateClick}
+    style={{
+      textAlign: "left",
+      color: isLinkActive("/login") || isLinkActive("/mineDashboard") 
+        ? "#1B2791" 
+        : "#3DA2E6",
+    }}>
+    <BiLogIn size={30} />
+    <span style={{ marginLeft: "1rem" }}>
+      {isAuthed ? "Private Dashboard" : "Private Login"}
+    </span>
+  </Nav.Link>
         </Nav>
 
       </Navbar.Collapse>
