@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from "react";
 import axios from "axios";
-import { formatLastSeen } from "../components/dateFormatter"; // Adjust the path as needed
+import { useLocation } from "react-router-dom";
+import { formatLastSeen } from "../components/dateFormatter"; // Adjust path as needed
 
 export const StationContext = createContext();
 
@@ -8,13 +9,19 @@ export const StationProvider = ({ children }) => {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const location = useLocation(); // gives you the current URL path
 
   const fetchStations = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        "https://try-again-test-isaiah.app.cern.ch/api/stations"
-      );
+
+      let url = "https://try-again-test-isaiah.app.cern.ch/api/stations";
+
+      if (location.pathname.includes("mineDashboard")) {
+        url = "https://try-again-test-isaiah.app.cern.ch/api/stations/private";
+      }
+
+      const response = await axios.get(url);
       const stationsData = response.data;
 
       // Sort stations alphabetically by name
@@ -32,11 +39,10 @@ export const StationProvider = ({ children }) => {
 
   useEffect(() => {
     fetchStations();
-  }, []);
+  }, [location.pathname]); // re-run when the page changes
 
   return (
-    <StationContext.Provider
-      value={{ stations, loading, error, fetchStations }}>
+    <StationContext.Provider value={{ stations, loading, error, fetchStations }}>
       {children}
     </StationContext.Provider>
   );
