@@ -44,11 +44,9 @@ function MineDashboard() {
   } = useSensorData();
 
   const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
-  const [stations, setStations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const { selectedType, handleTypeSelect } = useDataType();
-  const fetchStations = async () => fetchMySensorsAndNames();
+  const { stations, setStations, loading, setLoading, error, setError,fetchStations } =
+      useContext(StationContext)
   const [sensorNameMap, setSensorNameMap] = useState({});
 
   const [startDate, setStartDate] = useState("");
@@ -56,6 +54,8 @@ function MineDashboard() {
   const [filteredData, setFilteredData] = useState([]);
   const [showModal, setShowModal] = useState(true);
   const [greeting, setGreeting] = useState("");
+
+
 
   const { logout, user } = useAuth();
   const handleLogout = () => {
