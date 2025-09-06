@@ -1045,11 +1045,69 @@ function MineDashboard() {
       )}
     </Card>
   </Col>
+  <Col md={6}>
+            <Card
+              className="mt-2 "
+              style={{
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                paddingBottom: "0.2rem",
+                minHeight: "25vh",
+              }}>
+              {filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={VocchartData}
+                  options={chartOptions}
+                  title="PM2.5 (μg/m³)"
+                />
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                  }}>
+                  <Spinner animation="border" role="status"></Spinner>
+                </div>
+              )}
+            </Card>
+    </Col>
   {/* Optionally, add another column or arrange placement as needed */}
-</Row>
+  </Row>
+  <Row>
+    <Col md={6}>
+            <Card
+              className="mt-2 "
+              style={{
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                paddingBottom: "0.2rem",
+                minHeight: "25vh",
+              }}>
+              {filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={NoxChartData}
+                  options={chartOptions}
+                  title="PM2.5 (μg/m³)"
+                />
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                  }}>
+                  <Spinner animation="border" role="status"></Spinner>
+                </div>
+              )}
+            </Card>
+    </Col>
+  </Row>
       </Container>
 
-    </div>
+</div>
   );
 }
 
