@@ -1058,7 +1058,7 @@ function MineDashboard() {
                 <ChartCard
                   data={VocchartData}
                   options={chartOptions}
-                  title="PM2.5 (μg/m³)"
+                  title="voc (ppb)"
                 />
               ) : (
                 <div
@@ -1089,7 +1089,7 @@ function MineDashboard() {
                 <ChartCard
                   data={NoxChartData}
                   options={chartOptions}
-                  title="PM2.5 (μg/m³)"
+                  title="nox (ppb)"
                 />
               ) : (
                 <div
