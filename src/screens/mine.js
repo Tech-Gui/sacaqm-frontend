@@ -85,7 +85,7 @@ const MineLogin = () => {
             />
           </div>
 
-          <h2 className="mb-4 text-primary fw-bold">Mine Login</h2>
+          <h2 className="mb-4 text-primary fw-bold">Login</h2>
 
           {error && (
             <div className="alert alert-danger py-2 text-center rounded-3">
