@@ -25,6 +25,8 @@ import { useSensorData } from "../contextProviders/sensorDataContext.js";
 import { DataContext } from "../contextProviders/DataContext.js";
 import { StationContext } from "../contextProviders/StationContext.js";
 import { useDataType } from "../contextProviders/dataTypeContext.js";
+import DatePicker from 'react-datepicker'; 
+import "react-datepicker/dist/react-datepicker.css"
 
 function Dashboard() {
   const {
@@ -41,9 +43,37 @@ function Dashboard() {
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [customStartDate, setCustomStartDate] = useState(null);
+  const [customEndDate, setCustomEndDate] = useState(null);
+  const [isCustomRange, setIsCustomRange] = useState(false);
   const [filteredData, setFilteredData] = useState([]);
   const [showModal, setShowModal] = useState(true);
   const [greeting, setGreeting] = useState("");
+
+
+  const handleCustomDateRange = () => {
+    if (!customStartDate || !customEndDate) return ;
+    setSelectedPeriod("Custom Range");
+    setFilteredData([]);
+
+    const station = stations.find(
+      (station) => station["_id"] === selectedSensor
+    );
+
+    if(station) {
+      const diffTime = Math.abs(customEndDate - customStartDate);
+      const diffDays = Math.ceil(diffTime /(1000 * 60 * 60 * 24));
+
+      fetchNodeData(station._id, diffDays);
+
+      const filtered = nodeData.filter((item) => {
+        const timestamp = new Date(item.timestamp);
+        return timestamp >= customStartDate && timestamp <= customEndDate;
+      });
+
+      setFilteredData(filtered);
+    } 
+  };
 
   useEffect(() => {
     setSelectedSensor("673304cb0872d4bb9ee442d8");
@@ -605,10 +635,68 @@ function Dashboard() {
               <Dropdown.Item eventKey="Last Day">Last Day</Dropdown.Item>
               <Dropdown.Item eventKey="7 Days">7 Days</Dropdown.Item>
               <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
+              <Dropdown.Divider />
+              <Dropdown.Item onClick={(e) => {
+                e.preventDefault();
+                setIsCustomRange(true);
+              }} 
+              >
+                Custom Range
+              </Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
         </div>
-
+{isCustomRange && (
+  <Card className="mt-2 p-3" style={{ border: 'none', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }}>
+    <div className="d-flex align-items-center gap-3">
+      <DatePicker
+        selected={customStartDate}
+        onChange={(date) => setCustomStartDate(date)}
+        selectsStart
+        startDate={customStartDate}
+        endDate={customEndDate}
+        maxDate={new Date()}
+        placeholderText="Start Date"
+        className="form-control"
+      />
+      <DatePicker
+        selected={customEndDate}
+        onChange={(date) => setCustomEndDate(date)}
+        selectsEnd
+        startDate={customStartDate}
+        endDate={customEndDate}
+        minDate={customStartDate}
+        maxDate={new Date()}
+        placeholderText="End Date"
+        className="form-control"
+      />
+      <Button 
+        onClick={handleCustomDateRange}
+        disabled={!customStartDate || !customEndDate}
+        style={{
+          background: "#4A90E2",
+          border: "none",
+          borderRadius: "20px",
+        }}
+      >
+        Apply Range
+      </Button>
+      <Button 
+        variant="outline-secondary"
+        onClick={() => {
+          setIsCustomRange(false);
+          setCustomStartDate(null);
+          setCustomEndDate(null);
+        }}
+        style={{
+          borderRadius: "20px",
+        }}
+      >
+        Cancel
+      </Button>
+    </div>
+  </Card>
+)}
         <Row>
           <Col lg={12} md={12}>
             {" "}
