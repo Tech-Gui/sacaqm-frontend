@@ -825,7 +825,9 @@ function MineDashboard() {
                           ? `${dbaValue}`
                           : "...."
                       }
+
                       wrappedComponent={<> dB </>}
+
                     />
                   </Col>
                 </Row>
