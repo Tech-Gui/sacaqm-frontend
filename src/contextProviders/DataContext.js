@@ -43,7 +43,7 @@ const DataProvider = ({ children }) => {
 
   // Fetch data for nodeData on component mount
   useEffect(() => {
-    fetchNodeData("673304cb0872d4bb9ee442d8", 1); // Replace with actual stationId for station 1
+    fetchNodeData("692f0d09452eaa161c204975", 1); // Replace with actual stationId for station 1
   }, []);
 
   // Fetch data for nodeData2 on component mount
