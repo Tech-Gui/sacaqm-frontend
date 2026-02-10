@@ -1060,6 +1060,7 @@ const AnalyticsScreen = () => {
                       <Dropdown.Item eventKey="Humidity">Humidity</Dropdown.Item>
                       <Dropdown.Item eventKey="Voc">VOC</Dropdown.Item>
                       <Dropdown.Item eventKey="Nox">NOx</Dropdown.Item>
+                      <Dropdown.Item eventKey="Co2">CO2</Dropdown.Item>
                     </Dropdown.Menu>
                   </Dropdown>
                 </div>
