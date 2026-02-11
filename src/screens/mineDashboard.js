@@ -70,7 +70,7 @@ function MineDashboard() {
   };
 
   useEffect(() => {
-    setSelectedSensor("68aeec026bb2d3b1a11f79e4");
+    //setSelectedSensor("68aeec026bb2d3b1a11f79e4");
     const currentHour = new Date().getHours();
     if (currentHour < 12) {
       setGreeting("Good Morning");
