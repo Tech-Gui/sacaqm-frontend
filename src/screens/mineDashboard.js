@@ -451,7 +451,7 @@ function MineDashboard() {
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
   };
-  // https://try-again-test-isaiah.app.cern.ch
+
   const handleStationSelect = (stationId) => {
     setSelectedPeriod("Today");
     setFilteredData([]);
