@@ -1,44 +1,82 @@
-// src/contextProviders/AuthContext.js
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
-export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem("authToken"));
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("authUser");
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-  const isAuthed = !!token;
+// ---------- helper: SAFE JSON PARSE ----------
+const safeParse = (value) => {
+  try {
+    if (!value || value === "undefined") return null;
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
 
+export function AuthProvider({ children }) {
+  // ---------- state ----------
+  const [token, setToken] = useState(() =>
+    localStorage.getItem("authToken")
+  );
+
+  const [user, setUser] = useState(() =>
+    safeParse(localStorage.getItem("authUser"))
+  );
+
+  const isAuthed = Boolean(token);
+
+  // ---------- login ----------
   const login = (jwt, userData) => {
     localStorage.setItem("authToken", jwt);
-    localStorage.setItem("authUser", JSON.stringify(userData)); // Example user data
+
+    if (userData) {
+      localStorage.setItem("authUser", JSON.stringify(userData));
+    } else {
+      localStorage.removeItem("authUser");
+    }
+
     setToken(jwt);
-    setUser(userData);
+    setUser(userData ?? null);
   };
+
+  // ---------- logout ----------
   const logout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("authUser");
-    setUser(null);
     setToken(null);
+    setUser(null);
   };
 
+  // ---------- auto-clean corrupted storage (one-time) ----------
+  useEffect(() => {
+    const rawUser = localStorage.getItem("authUser");
+    if (rawUser === "undefined") {
+      localStorage.removeItem("authUser");
+      localStorage.removeItem("authToken");
+    }
+  }, []);
+
+  // ---------- sync across tabs ----------
   useEffect(() => {
     const onStorage = () => {
-      const currentToken = localStorage.getItem("authToken");
-      const currentUser = localStorage.getItem("authUser");
-      setToken(currentToken);
-      setUser(currentUser ? JSON.parse(currentUser) : null);
+      setToken(localStorage.getItem("authToken"));
+      setUser(safeParse(localStorage.getItem("authUser")));
     };
 
- window.addEventListener("storage", onStorage);
+    window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuthed, token, user, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        isAuthed,
+        token,
+        user,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
