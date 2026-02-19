@@ -13,7 +13,7 @@ import TempWidget from "../components/envDashboard/TempWidget";
 import ComplianceTable from "../components/envDashboard/ComplianceTable";
 import ComplianceSummaryStrip from "../components/envDashboard/ComplianceSummary";
 
-const BASE = process.env.REACT_APP_API_BASE_2;
+const BASE = process.env.REACT_APP_API_BASE;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(d) {
@@ -145,16 +145,16 @@ export default function EnvComplianceDashboard() {
     setLoading(true);
     setError(null);
 
-    console.log("📡 Fetching:", `${BASE}/nodedata/aggregated`, { sensor_id: sensorId, start: startDate, end: endDate, resolution });
+    console.log("📡 Fetching:", `${BASE}/api/nodedata/aggregated`, { sensor_id: sensorId, start: startDate, end: endDate, resolution });
 
     try {
       const prev = getPrevPeriod(startDate, endDate);
 
       const [currRes, prevRes] = await Promise.all([
-        axios.get(`${BASE}/nodedata/aggregated`, {
+        axios.get(`${BASE}/api/nodedata/aggregated`, {
           params: { sensor_id: sensorId, start: startDate, end: endDate, resolution },
         }),
-        axios.get(`${BASE}/nodedata/aggregated`, {
+        axios.get(`${BASE}/api/nodedata/aggregated`, {
           params: { sensor_id: sensorId, start: prev.start, end: prev.end, resolution },
         }).catch(() => ({ data: [] })),
       ]);
@@ -175,7 +175,7 @@ export default function EnvComplianceDashboard() {
       const mmFields = ["pm1p0", "pm2p5", "pm4p0", "pm10p0", "dba", "temperature"];
       const mmResults = await Promise.allSettled(
         mmFields.map((field) =>
-          axios.get(`${BASE}/nodedata/daily-trend-minmax`, {
+          axios.get(`${BASE}/api/nodedata/daily-trend-minmax`, {
             params: { sensor_id: sensorId, start: startDate, end: endDate, field },
           })
         )
@@ -227,7 +227,7 @@ export default function EnvComplianceDashboard() {
     } catch (err) {
       console.error("❌ Fetch error:", err.response?.status, err.message);
       if (err.response?.status === 404) {
-        setError(`404: Endpoint not found. The URL "${BASE}/nodedata/aggregated" doesn't exist — check your backend routes.`);
+        setError(`404: Endpoint not found. The URL "${BASE}/api/nodedata/aggregated" doesn't exist — check your backend routes.`);
       } else if (err.response?.status === 401) {
         setError("401: Unauthorized — try logging in again.");
       } else if (err.code === "ERR_NETWORK") {
