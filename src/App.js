@@ -17,6 +17,8 @@ import { SensorDataProvider } from "./contextProviders/sensorDataContext";
 import { DataProvider } from "./contextProviders/DataContext";
 import { StationProvider } from "./contextProviders/StationContext";
 
+import EnvComplianceDashboard from "./screens/EnvComplianceDashboard";
+
 function App() {
   return (
     <div className="App">
@@ -35,10 +37,10 @@ function App() {
                     <Route path="/analytics" element={<AnalyticsScreen />} />
                     <Route path="/stations" element={<Stations />} />
                     <Route path="/information" element={<Information />} />
-
+                    <Route path="/env-dashboard" element={<EnvComplianceDashboard />} />
                     {/* Login (public) */}
                     <Route path="/login" element={<MineLogin />} />
-
+                    <Route path="/test-env" element={<div>TEST OK</div>} />
                     {/* Private dashboard (protected) */}
                     <Route
                       path="/mineDashboard"

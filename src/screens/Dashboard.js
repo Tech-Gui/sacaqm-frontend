@@ -51,7 +51,7 @@ function Dashboard() {
   const [greeting, setGreeting] = useState("");
 
 
-  const handleCustomDateRange = () => {
+  const handleCustomDateRange =  async () => {
     if (!customStartDate || !customEndDate) return ;
     setSelectedPeriod("Custom Range");
     setFilteredData([]);
