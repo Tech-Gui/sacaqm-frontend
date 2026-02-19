@@ -59,7 +59,7 @@ const getPreviousPeriod = (startDate, endDate) => {
 export async function getEnvComplianceData(sensorId, startDate, endDate, resolutionParam = 'daily') {
   try {
     // Fetch current period data
-    const currentResponse = await axios.get('/nodedata/aggregated', {
+    const currentResponse = await axios.get('/api/nodedata/aggregated', {
       params: {
         sensor_id: sensorId,
         start: startDate,
@@ -72,7 +72,7 @@ export async function getEnvComplianceData(sensorId, startDate, endDate, resolut
     
     // Fetch previous period data for trend
     const previousPeriod = getPreviousPeriod(startDate, endDate);
-    const previousResponse = await axios.get('/nodedata/aggregated', {
+    const previousResponse = await axios.get('/api/nodedata/aggregated', {
       params: {
         sensor_id: sensorId,
         start: previousPeriod.start,
@@ -85,22 +85,22 @@ export async function getEnvComplianceData(sensorId, startDate, endDate, resolut
     
     // Fetch min/max data for each parameter
     const minMaxPromises = [
-      axios.get('/nodedata/daily-trend-minmax', {
+      axios.get('/api/nodedata/daily-trend-minmax', {
         params: { sensor_id: sensorId, start: startDate, end: endDate, field: 'pm1p0' }
       }),
-      axios.get('/nodedata/daily-trend-minmax', {
+      axios.get('/api/nodedata/daily-trend-minmax', {
         params: { sensor_id: sensorId, start: startDate, end: endDate, field: 'pm2p5' }
       }),
-      axios.get('/nodedata/daily-trend-minmax', {
+      axios.get('/api/nodedata/daily-trend-minmax', {
         params: { sensor_id: sensorId, start: startDate, end: endDate, field: 'pm4p0' }
       }),
-      axios.get('/nodedata/daily-trend-minmax', {
+      axios.get('/api/nodedata/daily-trend-minmax', {
         params: { sensor_id: sensorId, start: startDate, end: endDate, field: 'pm10p0' }
       }),
-      axios.get('/nodedata/daily-trend-minmax', {
+      axios.get('/api/nodedata/daily-trend-minmax', {
         params: { sensor_id: sensorId, start: startDate, end: endDate, field: 'dba' }
       }),
-      axios.get('/nodedata/daily-trend-minmax', {
+      axios.get('/api/nodedata/daily-trend-minmax', {
         params: { sensor_id: sensorId, start: startDate, end: endDate, field: 'temperature' }
       })
     ];
@@ -287,7 +287,7 @@ export async function getSensorsList() {
     
     // Fallback: Get distinct sensor_ids from nodedata
     try {
-      const response = await axios.get('/nodedata/sensors');
+      const response = await axios.get('/api/nodedata/sensors');
       return response.data;
     } catch (err) {
       // If all fails, return empty array
