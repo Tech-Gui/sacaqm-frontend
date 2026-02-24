@@ -13,7 +13,8 @@ export const StationProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "https://try-again-test-isaiah.app.cern.ch/api/stations"
+        // "https://try-again-test-isaiah.app.cern.ch/api/stations"
+       "http://localhost:8080/api/stations"
       );
       const stationsData = response.data;
 

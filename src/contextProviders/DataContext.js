@@ -12,7 +12,8 @@ const DataProvider = ({ children }) => {
     console.log("Fetching data...");
     try {
       const response = await axios.get(
-        `https://try-again-test-isaiah.app.cern.ch/api/stations/${stationId}/sensorData?days=${days}`
+        // `https://try-again-test-isaiah.app.cern.ch/api/stations/${stationId}/sensorData?days=${days}`
+         `http://localhost:8080/api/stations/${stationId}/sensorData?days=${days}`
       );
 
       // Reverse the data order
@@ -29,7 +30,8 @@ const DataProvider = ({ children }) => {
     console.log("Fetching data...");
     try {
       const response = await axios.get(
-        `https://try-again-test-isaiah.app.cern.ch/api/stations/${stationId}/sensorData?days=${days}`
+        // `https://try-again-test-isaiah.app.cern.ch/api/stations/${stationId}/sensorData?days=${days}`
+        `http://localhost:8080/api/stations/${stationId}/sensorData?days=${days}`
       );
 
       // Reverse the data order
