@@ -167,14 +167,7 @@ export default function PMChartWidget({
             borderDash: [8, 4],
             borderWidth: 2,
             label: {
-              display: true,
-              content: `Threshold: ${threshold}`,
-              position: 'end',
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              color: 'white',
-              font: { size: 10, weight: 700 },
-              padding: 6,
-              borderRadius: 6
+              display: false  // Hide the "Threshold: XX" label
             }
           }
         }
@@ -200,7 +193,10 @@ export default function PMChartWidget({
           font: { size: 10, weight: 500 },
           color: '#94a3b8',
           count: 5,
-          padding: 8
+          padding: 8,
+          callback: function(value) {
+            return value + ' µg/m³';
+          }
         }
       }
     }
@@ -253,8 +249,8 @@ export default function PMChartWidget({
           <Line data={data} options={options} />
         </Box>
 
-        {/* Value + Trend */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 2 }}>
+        {/* Value */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
           <Typography sx={{ 
             fontWeight: 800, 
             fontSize: '2.25rem', 
@@ -271,23 +267,20 @@ export default function PMChartWidget({
           <Box component="span" sx={{ fontSize: '1rem', color: '#94a3b8', fontWeight: 500, mt: 0.5 }}>
             µg/m³
           </Box>
-          
-          {trend !== 0 && (
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              ml: 1, 
-              color: getTrendColor(), 
-              bgcolor: `${getTrendColor()}15`, 
-              px: 1, 
-              py: 0.5, 
-              borderRadius: 1.5 
-            }}>
-              <Typography sx={{ fontSize: '0.9rem', fontWeight: 700 }}>{getTrendIcon()}</Typography>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, ml: 0.3 }}>{Math.abs(trend)}%</Typography>
-            </Box>
-          )}
         </Box>
+
+        {/* Daily Average Label */}
+        <Typography sx={{ 
+          fontSize: '0.7rem', 
+          color: '#94a3b8', 
+          fontWeight: 600, 
+          textAlign: 'center',
+          mb: 2,
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Daily Average
+        </Typography>
 
         {/* Min/Max */}
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, pt: 2, borderTop: '2px solid #f1f5f9' }}>

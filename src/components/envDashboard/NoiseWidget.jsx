@@ -28,18 +28,18 @@ const cardSx = {
   }
 };
 
-export default function TempWidget({ 
-  title = "Ambient Temperature", 
+export default function NoiseWidget({ 
+  title = "Noise Levels", 
   labels = [], 
   data = [], 
-  threshold = 32 
+  threshold = 70 
 }) {
   const avg = data.length ? Math.round(data.reduce((a, b) => a + b, 0) / data.length) : 0;
 
   const createGradient = (ctx, chartArea) => {
     const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-    gradient.addColorStop(0, 'rgba(96, 165, 250, 0.1)');
-    gradient.addColorStop(1, 'rgba(96, 165, 250, 0.3)');
+    gradient.addColorStop(0, 'rgba(251, 146, 60, 0.1)');
+    gradient.addColorStop(1, 'rgba(251, 146, 60, 0.3)');
     return gradient;
   };
 
@@ -50,17 +50,17 @@ export default function TempWidget({
       backgroundColor: (context) => {
         const chart = context.chart;
         const {ctx, chartArea} = chart;
-        if (!chartArea) return 'rgba(96, 165, 250, 0.15)';
+        if (!chartArea) return 'rgba(251, 146, 60, 0.15)';
         return createGradient(ctx, chartArea);
       },
-      borderColor: '#60a5fa',
+      borderColor: '#fb923c',
       borderWidth: 2.5,
       tension: 0.4,
       pointRadius: 0,
       pointHoverRadius: 5,
       pointHoverBorderWidth: 2,
       pointHoverBackgroundColor: 'white',
-      pointHoverBorderColor: '#60a5fa',
+      pointHoverBorderColor: '#fb923c',
       fill: true
     }]
   };
@@ -79,7 +79,7 @@ export default function TempWidget({
         bodyFont: { size: 11 },
         displayColors: false,
         callbacks: {
-          label: (ctx) => `${ctx.parsed.y}°C`
+          label: (ctx) => `${ctx.parsed.y} dB`
         }
       }
     },
@@ -87,7 +87,6 @@ export default function TempWidget({
       x: {
         grid: { display: false },
         ticks: {
-          // ✅ SHOW X-AXIS LABELS (dates)
           display: true,
           font: { size: 9, weight: 500 },
           color: '#94a3b8',
@@ -156,7 +155,7 @@ export default function TempWidget({
             ml: 0.5
           }}
         >
-          °C
+          dB
         </Box>
       </Typography>
     </Paper>

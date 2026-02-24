@@ -28,11 +28,12 @@ const cardSx = {
   }
 };
 
-export default function TempWidget({ 
-  title = "Ambient Temperature", 
+export default function ParameterWidget({ 
+  title = "Parameter", 
   labels = [], 
   data = [], 
-  threshold = 32 
+  threshold = 100,
+  unit = "" // Custom unit: "", "%", "ppm", "°C", etc.
 }) {
   const avg = data.length ? Math.round(data.reduce((a, b) => a + b, 0) / data.length) : 0;
 
@@ -79,7 +80,7 @@ export default function TempWidget({
         bodyFont: { size: 11 },
         displayColors: false,
         callbacks: {
-          label: (ctx) => `${ctx.parsed.y}°C`
+          label: (ctx) => `${ctx.parsed.y}${unit}`
         }
       }
     },
@@ -87,7 +88,6 @@ export default function TempWidget({
       x: {
         grid: { display: false },
         ticks: {
-          // ✅ SHOW X-AXIS LABELS (dates)
           display: true,
           font: { size: 9, weight: 500 },
           color: '#94a3b8',
@@ -135,7 +135,7 @@ export default function TempWidget({
         <Line data={chartData} options={options} />
       </Box>
 
-      {/* Value */}
+      {/* Value with Custom Unit */}
       <Typography 
         align="center" 
         sx={{ 
@@ -156,7 +156,7 @@ export default function TempWidget({
             ml: 0.5
           }}
         >
-          °C
+          {unit}
         </Box>
       </Typography>
     </Paper>

@@ -2,7 +2,7 @@ import { Grid, Box, Typography } from "@mui/material";
 
 export default function ComplianceSummaryStrip({ compliant = 6, warnings = 2, nonCompliant = 1 }) {
   return (
-    <Grid container spacing={3}>
+    <Grid container spacing={2}>
       <Tile 
         color="#22c55e" 
         shadowColor="rgba(34, 197, 94, 0.25)"
@@ -32,15 +32,16 @@ function Tile({ color, shadowColor, label, value }) {
         sx={{
           bgcolor: color,
           borderRadius: 3, 
-          p: 3, 
+          p: 2.5,  // Reduced from 3
           textAlign: 'center',
           boxShadow: `0 4px 16px ${shadowColor}`,
           transition: 'all 0.3s ease',
           height: '100%',
-          minHeight: 120,
+          minHeight: 140,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
+          alignItems: 'center',  // Added for horizontal centering
           '&:hover': {
             transform: 'translateY(-4px)',
             boxShadow: `0 8px 24px ${shadowColor.replace('0.25', '0.35')}`
@@ -54,7 +55,7 @@ function Tile({ color, shadowColor, label, value }) {
             color: 'white',
             fontSize: '3rem',
             lineHeight: 1,
-            mb: 1
+            mb: 0.5  // Reduced from 1
           }}
         >
           {value}
