@@ -139,7 +139,7 @@ function MineDashboard() {
 
 
   useEffect(() => {
-    fetchStations();
+    fetchMySensorsAndNames();
   }, []); 
 
   // const handleLogout = () => {
