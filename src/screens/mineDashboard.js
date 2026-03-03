@@ -45,9 +45,8 @@ function MineDashboard() {
 
   const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
   const { selectedType, handleTypeSelect } = useDataType();
-  const [stations, setStations] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { stations, setStations, loading, setLoading, error, setError,fetchStations } =
+      useContext(StationContext)
   const [sensorNameMap, setSensorNameMap] = useState({});
 
   const [startDate, setStartDate] = useState("");
