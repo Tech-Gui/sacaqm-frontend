@@ -168,15 +168,14 @@ function MineDashboard() {
     }
   };
 
-
   useEffect(() => {
-    // when user becomes available (after login) OR changes (logout/login)
     if (!user) {
       setStations([]);
       return;
     }
-    fetchMyStations();
-  }, [user]);
+    fetchStations(); 
+  }, [user, fetchStations]);
+
 
   // const handleLogout = () => {
   //   navigate("/login");

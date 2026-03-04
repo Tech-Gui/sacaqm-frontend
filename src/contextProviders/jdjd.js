@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect } from "react";
 import axios from "axios";
 import { useLocation } from "react-router-dom";
-import { formatLastSeen } from "../components/dateFormatter"; 
+import { formatLastSeen } from "../components/dateFormatter"; // Adjust path as needed
 
 export const StationContext = createContext();
 
@@ -40,7 +40,7 @@ export const StationProvider = ({ children }) => {
         stationsData = [...(publicRes.data || []), ...(privateRes.data || [])];
       }
 
-      else if (path.includes("/mineDashboard")) {
+      else if (path.includes("/minedashboard")) {
         if (!token) {
           // No token = not logged in => return empty list (or you can keep public)
           stationsData = [];
@@ -78,7 +78,7 @@ export const StationProvider = ({ children }) => {
 
   useEffect(() => {
     fetchStations();
-  }, [location.pathname]); 
+  }, [location.pathname]); // re-run when the page changes
 
   return (
     <StationContext.Provider value={{ stations, loading, error, fetchStations }}>
