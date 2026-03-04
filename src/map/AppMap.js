@@ -35,107 +35,14 @@ const AppMap = ({ mapRef }) => {
   const { fetchNodeData } = useContext(DataContext);
 
   // My membership
-  const [myStations, setMyStations] = useState([]);
-  const [mineLoading, setMineLoading] = useState(true);
-  const [mineError, setMineError] = useState(null);
 
   // 1) Fetch "mine" from /me/sensors and filter the StationContext list
-  useEffect(() => {
-    (async () => {
-      try {
-        setMineLoading(true);
-        setMineError(null);
-
-        const token = localStorage.getItem("authToken");
-        if (!token) throw new Error('No auth token found in localStorage as "authToken".');
-
-        const { data } = await axios.get(`${API_BASE}/api/users_sensors/me/sensors`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        // Build filters
-        let allowedStationIds = new Set();
-        let mySensorIds = new Set();
-
-        // Case A: array of stations
-        if (Array.isArray(data) && data.length && (data[0]?._id || data[0]?.latitude !== undefined)) {
-          for (const st of data) allowedStationIds.add(asString(st._id));
-        }
-        // Case B: { stations:[...] }
-        else if (Array.isArray(data?.stations)) {
-          for (const st of data.stations) allowedStationIds.add(asString(st?._id));
-        }
-        // Case C: { sensorIds:[...] }
-        else if (Array.isArray(data?.sensorIds)) {
-          for (const sid of data.sensorIds) mySensorIds.add(asString(sid));
-        } else {
-          console.warn("[AppMap] Unrecognized /me/sensors shape:", data);
-        }
-
-        // Filter the StationContext list
-        const list = (Array.isArray(stations) ? stations : [])
-          .map((s) => ({
-            ...s,
-            latitude: toNum(s?.latitude),
-            longitude: toNum(s?.longitude),
-          }))
-          .filter((s) => Number.isFinite(s.latitude) && Number.isFinite(s.longitude))
-          .filter((s) => {
-            // If we have station IDs from API, use them
-            if (allowedStationIds.size > 0) {
-              return allowedStationIds.has(asString(s._id));
-            }
-            // Otherwise, intersect sensorIds with mine
-            if (mySensorIds.size > 0 && Array.isArray(s.sensorIds)) {
-              return s.sensorIds.some((sid) => mySensorIds.has(asString(sid)));
-            }
-            // If API gave us nothing to filter with, hide all (private map)
-            return false;
-          });
-
-        setMyStations(list);
-
-        // Auto-select first
-        if (list.length > 0) {
-          const first = list[0];
-          setSelectedSensor(first._id);
-          setSelectedPeriod("Today");
-          fetchNodeData(first._id, 1);
-        }
-      } catch (e) {
-        setMineError(e?.response?.data?.message || e.message || "Failed to load your stations");
-        setMyStations([]);
-      } finally {
-        setMineLoading(false);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stations]); // re-run when StationContext stations load
-
-  // 2) Fit to bounds once we know myStations
-  useEffect(() => {
-    if (!myStations.length) return;
-    const lats = myStations.map((s) => s.latitude);
-    const lons = myStations.map((s) => s.longitude);
-    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    const minLon = Math.min(...lons), maxLon = Math.max(...lons);
-
-    if (minLat === maxLat && minLon === maxLon) {
-      setViewState((v) => ({ ...v, latitude: minLat, longitude: minLon, zoom: 13 }));
-    } else {
-      setViewState((v) => ({
-        ...v,
-        latitude: (minLat + maxLat) / 2,
-        longitude: (minLon + maxLon) / 2,
-        zoom: 10,
-      }));
-    }
-  }, [myStations]);
+ 
 
   // 3) Keep data refreshed when selected changes
   useEffect(() => {
     if (!selectedSensor) return;
-    const st = myStations.find((s) => asString(s._id) === asString(selectedSensor));
+    const st = stations.find((s) => asString(s._id) === asString(selectedSensor));
     setSelectedPeriod("Today");
     if (st) fetchNodeData(st._id, 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,10 +58,9 @@ const AppMap = ({ mapRef }) => {
     }
   };
 
-  if (stationsLoading || mineLoading) return <div>Loading map…</div>;
+  if (stationsLoading) return <div>Loading map…</div>;
   if (stationsError) return <div>Error: {stationsError?.message || stationsError}</div>;
-  if (mineError) return <div>Error: {mineError}</div>;
-  if (!myStations.length) return <div>No stations for this user.</div>;
+  if (!stations.length) return <div>No stations for this user.</div>;
 
   return (
     <ReactMapGL
@@ -166,7 +72,7 @@ const AppMap = ({ mapRef }) => {
       transitionDuration={200}
       attributionControl={false}
     >
-      {myStations.map((marker) => (
+      {stations.map((marker) => (
         <Marker key={asString(marker._id)} latitude={marker.latitude} longitude={marker.longitude}>
           <div
             onClick={() => {
