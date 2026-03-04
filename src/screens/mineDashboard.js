@@ -495,7 +495,7 @@ function MineDashboard() {
     setFilteredData([]);
     setSelectedSensor(stationId);
 
-    const station = stations.find((station) => station["_id"] === stationId);
+    const station = myStations.find((station) => station["_id"] === stationId);
 
     if (station) {
       fetchNodeData(station._id, 1);
@@ -510,7 +510,7 @@ function MineDashboard() {
     setSelectedPeriod("30 Days");
     setFilteredData([]);
 
-    const station = stations.find(
+    const station = myStations.find(
       (station) => station["_id"] === selectedSensor
     );
     console.log("Ndashaiwa ini 1");
@@ -533,7 +533,7 @@ function MineDashboard() {
     setSelectedPeriod("7 Days");
     setFilteredData([]);
 
-    const station = stations.find(
+    const station = myStations.find(
       (station) => station["_id"] === selectedSensor
     );
     console.log("Ndashaiwa ini 1");
@@ -556,7 +556,7 @@ function MineDashboard() {
     setSelectedPeriod("Last Day");
     setFilteredData([]);
 
-    const station = stations.find(
+    const station = myStations.find(
       (station) => station["_id"] === selectedSensor
     );
     console.log("Ndashaiwa ini 1");
@@ -596,7 +596,7 @@ function MineDashboard() {
 
   const getStationNameByStationId = (sensorId) => {
     // Loop through each station data object
-    for (const station of stations) {
+    for (const station of myStationsstations) {
       // Check if the current station's ID matches the provided sensorId
       if (station["_id"] === sensorId) {
         // If there's a match, return the station name
