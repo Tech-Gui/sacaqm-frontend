@@ -23,11 +23,11 @@ export const StationProvider = ({ children }) => {
         url = `${API_BASE}/api/stations/private`;
       }
 
-      const response = await axios.get(url);
-      //const authToken = localStorage.getItem("authToken");
-      /*const response = await axios.get(url, {
+      //const response = await axios.get(url);
+      const authToken = localStorage.getItem("authToken");
+      const response = await axios.get(url, {
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-      });*/
+      });
       const stationsData = response.data;
 
       // Sort stations alphabetically by name
