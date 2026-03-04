@@ -878,7 +878,7 @@ function MineDashboard() {
                   }}>
                   <Row className="d-flex justify-content-center">
                     <Col className="col-height">
-                      <AppMap selSensor={selectedSensor} />
+                      <AppMap stations={myStations} selSensor={selectedSensor} />
                     </Col>
                   </Row>
                 </div>
