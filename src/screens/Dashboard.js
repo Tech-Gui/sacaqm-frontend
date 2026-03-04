@@ -324,6 +324,34 @@ function Dashboard() {
     ],
   };
 
+  const dbaChartData = {
+    labels: dates,
+    datasets: [
+      {
+        labels: "Decibel (dB)",
+        data : filteredData.map((data) => data.dba),
+        fill: true, 
+        backgroundColor: function (context){
+          var ctx = context.chart.ctx;
+          var gradient = ctx.createLinearGradient(0,0,0,200);
+        gradient.addColorStop(0, "rgba(180, 75, 250, 1)");
+        gradient.addColorStop(0.25, "rgba(180, 75, 250, 0.75)");
+        gradient.addColorStop(0.5, "rgba(180, 75, 250, 0.5)");
+        gradient.addColorStop(0.75, "rgba(180, 75, 250, 0.25)");
+        gradient.addColorStop(1, "rgba(180, 75, 250, 0.0)");
+        return gradient;
+        },
+        borderColor: "#b44bfa",
+        tension: 0.4,
+        borderWidth: 2,
+        fill: true,
+        pointBackgroundColor: "#FFFFFF",
+        pointBorderColor: "#b44bfa",
+        pointBorderWidth: 2,
+      },
+    ],
+  };
+
   const NoxChartData = {
     labels: dates,
     datasets: [
@@ -388,12 +416,13 @@ function Dashboard() {
   var vocValue = VocchartData.datasets[0].data.slice(-1)[0];
   var pm1Value = pm1p0chartData.datasets[0].data.slice(-1)[0];
   var pm2p05Value = pm2p5chartData.datasets[0].data.slice(-1)[0];
+  var dbaValue = dbaChartData.datasets[0].data.slice(-1)[0];
   var co2Value = co2ChartData.datasets[0].data.slice(-1)[0];
 
   const handlePeriodSelect = (period) => {
     setSelectedPeriod(period);
   };
-  // https://try-again-test-isaiah.app.cern.ch
+  
   const handleStationSelect = (stationId) => {
     setSelectedPeriod("Today");
     setFilteredData([]);
@@ -1008,7 +1037,37 @@ function Dashboard() {
     )}
   </Card>
 </Col>
-    </Row>
+  <Col md={6}>
+    <Card
+      className="mt-2"
+      style={{
+        border: "none",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+        paddingBottom: "0.2rem",
+        minHeight: "25vh",
+      }}
+    >
+      {filteredData && filteredData.length > 0 ? (
+        <ChartCard
+          data={dbaChartData}
+          options={chartOptions}
+          title="Decibel (dB)"
+        />
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "25vh",
+          }}
+        >
+          <Spinner animation="border" role="status"></Spinner>
+        </div>
+      )}
+    </Card>
+  </Col>
+  </Row>
       </Container>
 
     </div>
