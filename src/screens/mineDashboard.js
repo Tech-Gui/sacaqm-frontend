@@ -81,6 +81,37 @@ function MineDashboard() {
     }
   }, []);
 
+  const fetchMyStations = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem("authToken");
+      if (!token) throw new Error("No auth token found. Please log in again.");
+
+      const { data } = await axios.get(`${API_BASE}/api/users_sensors/me/stations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const list = Array.isArray(data) ? data : [];
+      list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+      setStations(list);
+
+      if (list.length > 0) {
+        const firstStationId = String(list[0]._id);
+        setSelectedSensor(firstStationId);
+        setSelectedPeriod("Today");
+        fetchNodeData(firstStationId, 1);
+      }
+    } catch (e) {
+      setError(e?.response?.data?.message || e.message || "Failed to load your stations");
+      setStations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchMySensorsAndNames = async () => {
     try {
       setLoading(true);
@@ -139,7 +170,7 @@ function MineDashboard() {
 
 
   useEffect(() => {
-    fetchStations();
+    fetchMyStations();
   }, []); 
 
   // const handleLogout = () => {
