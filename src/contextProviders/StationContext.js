@@ -16,7 +16,8 @@ export const StationProvider = ({ children }) => {
   const fetchStations = async() => {
     try{ 
       setLoading(true); 
-      const path = location.pathname.toLowerCase();
+      //const path = location.pathname.toLowerCase();
+      const path = (location.hash || location.pathname || "").toLowerCase();
 
       const publicUrl = `${API_BASE}/api/stations`;
 
@@ -34,7 +35,7 @@ export const StationProvider = ({ children }) => {
         ...(privateRes.data || [])
       ];
     }
-     else if (path.includes("/mineDashboard")) {
+     else if (path.includes("/minedashboard")) {
       const res = await axios.get(privateUrl);
       stationsData = res.data;
     }

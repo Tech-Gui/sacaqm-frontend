@@ -169,13 +169,9 @@ function MineDashboard() {
   };
 
   useEffect(() => {
-    if (!user) {
-      setStations([]);
-      return;
-    }
-    fetchStations(); 
-  }, [user, fetchStations]);
-
+    if (!user) return;
+    fetchMyStations();
+  }, [user]);
 
   // const handleLogout = () => {
   //   navigate("/login");
