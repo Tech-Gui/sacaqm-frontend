@@ -22,6 +22,7 @@ export const StationProvider = ({ children }) => {
 
       const privateUrl = `${API_BASE}/api/stations/private`;
 
+
       let stationsData = []; 
       if(path.includes("/env-dashboard")){
             const [publicRes, privateRes] = await Promise.all([
@@ -33,7 +34,7 @@ export const StationProvider = ({ children }) => {
         ...(privateRes.data || [])
       ];
     }
-     else if (path.includes("/minedashboard")) {
+     else if (path.includes("/mineDashboard")) {
       const res = await axios.get(privateUrl);
       stationsData = res.data;
     }
@@ -102,7 +103,3 @@ export const StationProvider = ({ children }) => {
 };
 
 export default StationProvider;
-
-
-//
-
