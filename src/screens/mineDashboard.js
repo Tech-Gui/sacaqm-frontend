@@ -30,6 +30,7 @@ import axios from "axios";
 import { point } from "leaflet";
 import { useAuth } from '../contextProviders/AuthContext.js';
 
+
 const API_BASE = process.env.REACT_APP_API_BASE;
 
 
@@ -54,6 +55,9 @@ function MineDashboard() {
   const [filteredData, setFilteredData] = useState([]);
   const [showModal, setShowModal] = useState(true);
   const [greeting, setGreeting] = useState("");
+  const [myStations, setMyStations] = useState([]);
+  const [stationsLoading, setStationsLoading] = useState(false);
+  const [stationsError, setStationsError] = useState(null);
 
 
 
@@ -83,20 +87,21 @@ function MineDashboard() {
 
   const fetchMyStations = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setStationsLoading(true);
+      setStationsError(null);
 
       const token = localStorage.getItem("authToken");
       if (!token) throw new Error("No auth token found. Please log in again.");
 
-      const { data } = await axios.get(`${API_BASE}/api/users_sensors/me/stations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await axios.get(
+        `${API_BASE}/api/users_sensors/me/stations`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       const list = Array.isArray(data) ? data : [];
       list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
-      setStations(list);
+      setMyStations(list);
 
       if (list.length > 0) {
         const firstStationId = String(list[0]._id);
@@ -105,13 +110,12 @@ function MineDashboard() {
         fetchNodeData(firstStationId, 1);
       }
     } catch (e) {
-      setError(e?.response?.data?.message || e.message || "Failed to load your stations");
-      setStations([]);
+      setStationsError(e?.response?.data?.message || e.message || "Failed to load your stations");
+      setMyStations([]);
     } finally {
-      setLoading(false);
+      setStationsLoading(false);
     }
   };
-
   const fetchMySensorsAndNames = async () => {
     try {
       setLoading(true);
@@ -169,7 +173,10 @@ function MineDashboard() {
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setMyStations([]);
+      return;
+    }
     fetchMyStations();
   }, [user]);
 
@@ -711,7 +718,7 @@ function MineDashboard() {
               {getStationNameByStationId(selectedSensor) || "Origin Center -1"}
             </Dropdown.Toggle>
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
-              {stations.map((station, index) => (
+              {myStations.map((station, index) => (
                 <Dropdown.Item key={index} eventKey={station["_id"]}>
                   {station["name"]}
                 </Dropdown.Item>
