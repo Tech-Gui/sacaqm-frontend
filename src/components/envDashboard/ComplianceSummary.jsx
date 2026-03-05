@@ -1,5 +1,5 @@
 import { Grid, Box, Typography } from "@mui/material";
-
+import { Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, TableContainer } from "@mui/material";
 export default function ComplianceSummaryStrip({ compliant = 6, warnings = 2, nonCompliant = 1 }) {
   return (
     <Grid container spacing={2}>
