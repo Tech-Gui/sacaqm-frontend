@@ -34,9 +34,13 @@ export const StationProvider = ({ children }) => {
         ...(publicRes.data || []),
         ...(privateRes.data || [])
       ];
-    }
-     else if (path.includes("/minedashboard")) {
-      const res = await axios.get(privateUrl);
+    } else if (path.includes("/minedashboard")) {
+      const token = localStorage.getItem("authToken");
+
+      const res = await axios.get(`${API_BASE}/api/users_sensors/me/stations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       stationsData = res.data;
     }
     else {
@@ -61,37 +65,6 @@ export const StationProvider = ({ children }) => {
   }
 };
  
-  // const fetchStations = async () => {
-  //   try {
-  //     setLoading(true);
-
-  //     let url = "https://try-again-test-isaiah.app.cern.ch/api/stations";
-
- 
-  //     if (location.pathname.includes("mineDashboard") || location.pathname.includes("env-dashboard")) 
-  //       {
-  //       url = "https://try-again-test-isaiah.app.cern.ch/api/stations/private";
-  //     }
-  //     if (location.pathname.includes("env-dashboard")) {
-  //       let url = "https://try-again-test-isaiah.app.cern.ch/api/stations";
-  //     }
-
-  //     const response = await axios.get(url);
-  //     const stationsData = response.data;
-
-  //     // Sort stations alphabetically by name
-  //     const sortedStations = stationsData.sort((a, b) =>
-  //       a.name.localeCompare(b.name)
-  //     );
-
-  //     setStations(sortedStations);
-  //   } catch (err) {
-  //     setError(err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   useEffect(() => {
     fetchStations();
   }, [location.pathname]); // re-run when the page changes
