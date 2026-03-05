@@ -13,9 +13,11 @@
 // import ParameterWidget from "../components/envDashboard/ParameterWidget";
 // import ComplianceTable from "../components/envDashboard/ComplianceTable";
 // import ComplianceSummaryStrip from "../components/envDashboard/ComplianceSummary";
+// import ExceedancesOverTimeChart from "../components/envDashboard/ExceedancesOverTimeChart";
+// import ExceedancesTable from "../components/envDashboard/ExceedancesTable";
 
 // // ─── Use environment variable for API base URL ────────────────────────────────
-// const BASE = process.env.REACT_APP_API_BASE 
+// const BASE = process.env.REACT_APP_API_BASE ;
 
 // // ─── Helpers ──────────────────────────────────────────────────────────────────
 // function formatDate(d) {
@@ -55,19 +57,22 @@
 // const safeMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map((d) => d.min ?? 0))) : 0;
 // const safeMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map((d) => d.max ?? 0))) : 0;
 
-
+// // ✅ SAAQIS AQI Thresholds (South African Government Standards)
+// // Based on transition from AQI Band 3 (Good/Green) to Band 4 (Moderate/Yellow)
+// // Source: SAAQIS Air Quality Index for General Public - DEFF
 // const THRESHOLDS = { 
-//   pm1: 40,      
-//   pm25: 103,    
-//   pm4: 60,     
-//   pm10: 190,    
-//   noise: 70,    
-//   temperature: 32, 
-//   humidity: 80,   
-//   co2: 1000,       
-//   nox: 106,        
-//   voc: 500         
+//   pm1: 40,      // Estimated (no official standard, using PM2.5 as reference)
+//   pm25: 40,     // PM2.5: 40 µg/m³ (hourly) - SAAQIS Band 3→4 transition
+//   pm5: 60,      // Estimated (no official standard, between PM2.5 and PM10)
+//   pm10: 75,     // PM10: 75 µg/m³ (hourly) - SAAQIS Band 3→4 transition
+//   noise: 70,    // dB (not in SAAQIS, using typical occupational health standard)
+//   temperature: 32, // °C (not in SAAQIS, using health comfort standard)
+//   humidity: 80,    // % (not in SAAQIS, using comfort standard)
+//   co2: 1000,       // ppm (not in SAAQIS, using indoor air quality standard)
+//   nox: 106,        // NO2: 106 ppb (hourly) - SAAQIS Band 3→4 transition
+//   voc: 500         // No official SAAQIS standard, using typical indoor air quality guideline
 // };
+
 // // ─── Styles ───────────────────────────────────────────────────────────────────
 // const filterBarSx = {
 //   bgcolor: "rgba(255,255,255,0.95)", backdropFilter: "blur(20px)",
@@ -183,7 +188,7 @@
 //       const hourly = hourlyRes.data || []; // ✅ Hourly data for exceedance counting
 //       const prevData = prevRes.data || [];
 
-//       console.log("Display data:", curr.length, "records | Hourly data:", hourly.length, "hours");
+//       console.log("✅ Display data:", curr.length, "records | Hourly data:", hourly.length, "hours");
 //       console.log("Sample display record:", curr[0]);
 //       console.log("Sample hourly record:", hourly[0]);
 
@@ -214,7 +219,7 @@
 //       const pmData = {
 //         pm1:  { title: "PM1.0", labels, values: curr.map((d) => Math.round(d.pm1p0  || 0)), current: avgField(curr, "pm1p0"),  trend: calcTrend(curr.map((d) => d.pm1p0  || 0), prevData.map((d) => d.pm1p0  || 0)), min: safeMin(mm1),  max: safeMax(mm1) },
 //         pm25: { title: "PM2.5", labels, values: curr.map((d) => Math.round(d.pm2p5  || 0)), current: avgField(curr, "pm2p5"),  trend: calcTrend(curr.map((d) => d.pm2p5  || 0), prevData.map((d) => d.pm2p5  || 0)), min: safeMin(mm25), max: safeMax(mm25) },
-//         pm4:  { title: "PM4.0", labels, values: curr.map((d) => Math.round(d.pm4p0  || 0)), current: avgField(curr, "pm4p0"),  trend: calcTrend(curr.map((d) => d.pm4p0  || 0), prevData.map((d) => d.pm4p0  || 0)), min: safeMin(mm4),  max: safeMax(mm4) },
+//         pm5:  { title: "PM4.0", labels, values: curr.map((d) => Math.round(d.pm4p0  || 0)), current: avgField(curr, "pm4p0"),  trend: calcTrend(curr.map((d) => d.pm4p0  || 0), prevData.map((d) => d.pm4p0  || 0)), min: safeMin(mm4),  max: safeMax(mm4) },
 //         pm10: { title: "PM10",  labels, values: curr.map((d) => Math.round(d.pm10p0 || 0)), current: avgField(curr, "pm10p0"), trend: calcTrend(curr.map((d) => d.pm10p0 || 0), prevData.map((d) => d.pm10p0 || 0)), min: safeMin(mm10), max: safeMax(mm10) },
 //       };
 
@@ -229,7 +234,7 @@
 //       const statuses = {
 //         pm1:   statusFor(pmData.pm1.current,   THRESHOLDS.pm1),
 //         pm25:  statusFor(pmData.pm25.current,  THRESHOLDS.pm25),
-//         pm4:   statusFor(pmData.pm4.current,   THRESHOLDS.pm4),
+//         pm5:   statusFor(pmData.pm5.current,   THRESHOLDS.pm5),
 //         pm10:  statusFor(pmData.pm10.current,  THRESHOLDS.pm10),
 //         noise: statusFor(noiseData.current,    THRESHOLDS.noise),
 //         temp:  statusFor(tempData.current,     THRESHOLDS.temperature),
@@ -241,6 +246,7 @@
 
 //       setDashData({
 //         pmData, noiseData, tempData, humidityData, co2Data, noxData, vocData,
+//         hourlyData: hourly, // ✅ Pass hourly data for exceedances chart
 //         summary: {
 //           compliant:    Object.values(statuses).filter((s) => s === "Green").length,
 //           warnings:     Object.values(statuses).filter((s) => s === "Amber").length,
@@ -249,7 +255,7 @@
 //         table: [
 //           { parameter: "PM1.0", status: statuses.pm1,   exceedances: hourly.filter((d) => (d.pm1p0       || 0) > THRESHOLDS.pm1).length },
 //           { parameter: "PM2.5", status: statuses.pm25,  exceedances: hourly.filter((d) => (d.pm2p5       || 0) > THRESHOLDS.pm25).length },
-//           { parameter: "PM4.0", status: statuses.pm4,   exceedances: hourly.filter((d) => (d.pm4p0       || 0) > THRESHOLDS.pm4).length },
+//           { parameter: "PM4.0", status: statuses.pm5,   exceedances: hourly.filter((d) => (d.pm4p0       || 0) > THRESHOLDS.pm5).length },
 //           { parameter: "PM10",  status: statuses.pm10,  exceedances: hourly.filter((d) => (d.pm10p0      || 0) > THRESHOLDS.pm10).length },
 //           { parameter: "Noise", status: statuses.noise, exceedances: hourly.filter((d) => (d.dba         || 0) > THRESHOLDS.noise).length },
 //           { parameter: "Humidity", status: statuses.humidity, exceedances: hourly.filter((d) => (d.humidity || 0) > THRESHOLDS.humidity).length },
@@ -261,7 +267,7 @@
 //       });
 
 //     } catch (err) {
-//       console.error("Fetch error:", err.response?.status, err.message);
+//       console.error("❌ Fetch error:", err.response?.status, err.message);
 //       if (err.response?.status === 404) {
 //         setError(`404: Endpoint not found. The URL "${BASE}/api/nodedata/aggregated" doesn't exist — check your backend routes.`);
 //       } else if (err.response?.status === 401) {
@@ -376,6 +382,27 @@
 //               </Grid>
 //             </Grid>
 
+//             {/* ROW 1.5: Exceedances Over Time */}
+//             <Grid container spacing={3} sx={{ mb: 3 }}>
+//               <Grid item xs={12} md={6}>
+//                 <Box sx={fadeIn(0.15)}>
+//                   <ExceedancesOverTimeChart 
+//                     hourlyData={dashData.hourlyData}
+//                     thresholds={THRESHOLDS}
+//                   />
+//                 </Box>
+//               </Grid>
+              
+//               <Grid item xs={12} md={6}>
+//                 <Box sx={fadeIn(0.16)}>
+//                   <ExceedancesTable 
+//                     hourlyData={dashData.hourlyData}
+//                     thresholds={THRESHOLDS}
+//                   />
+//                 </Box>
+//               </Grid>
+//             </Grid>
+
 //             {/* ROW 2: PM Widgets */}
 //             <Grid container spacing={3} sx={{ mb: 3 }}>
 //               {Object.entries(dashData.pmData).map(([key, widget], idx) => (
@@ -466,11 +493,10 @@
 //     </Box>
 //   );
 // }
-// 
 import React, { useState, useEffect, useContext } from "react";
 import {
-  FormControl, Select, MenuItem, InputLabel, Button,
-  CircularProgress, Alert
+  FormControl, Select, MenuItem, InputLabel, Button, Popover,
+  TextField, CircularProgress, Alert
 } from "@mui/material";
 import { Grid, Box, Typography, Paper, Container } from "@mui/material";
 import axios from "axios";
@@ -478,15 +504,17 @@ import axios from "axios";
 import { StationContext } from "../contextProviders/StationContext";
 import PMWidget from "../components/envDashboard/PMWidget";
 import NoiseGauge from "../components/envDashboard/NoiseGauge";
+import NoiseWidget from "../components/envDashboard/NoiseWidget";
 import TempWidget from "../components/envDashboard/TempWidget";
 import ParameterWidget from "../components/envDashboard/ParameterWidget";
 import ComplianceTable from "../components/envDashboard/ComplianceTable";
 import ComplianceSummaryStrip from "../components/envDashboard/ComplianceSummary";
 import ExceedancesOverTimeChart from "../components/envDashboard/ExceedancesOverTimeChart";
 import ExceedancesTable from "../components/envDashboard/ExceedancesTable";
+import ExceedancesSeverityChart from "../components/envDashboard/ExceedancesSeverityChart";
 
 // ─── Use environment variable for API base URL ────────────────────────────────
-const BASE = process.env.REACT_APP_API_BASE ;
+const BASE = process.env.REACT_APP_API_BASE || "https://try-again-test-isaiah.app.cern.ch/api";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(d) {
@@ -526,7 +554,7 @@ const avgField = (arr, key) =>
 const safeMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map((d) => d.min ?? 0))) : 0;
 const safeMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map((d) => d.max ?? 0))) : 0;
 
-// ✅ SAAQIS AQI Thresholds (South African Government Standards)
+// SAAQIS AQI Thresholds (South African Government Standards)
 // Based on transition from AQI Band 3 (Good/Green) to Band 4 (Moderate/Yellow)
 // Source: SAAQIS Air Quality Index for General Public - DEFF
 const THRESHOLDS = { 
@@ -601,6 +629,7 @@ export default function EnvComplianceDashboard() {
   const [dashData, setDashData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [anchor, setAnchor] = useState(null);
 
   // ─── Build flat list of { sensorId, label } from all stations ───────────
   // Station schema: { name, sensorIds: [String], ... }
@@ -618,7 +647,7 @@ export default function EnvComplianceDashboard() {
   // Auto-select first sensor once stations load
   useEffect(() => {
     if (sensorOptions.length > 0 && !sensorId) {
-      console.log("✅ Sensor options:", sensorOptions);
+      console.log(" Sensor options:", sensorOptions);
       setSensorId(sensorOptions[0].id);
     }
   }, [stations]);
@@ -636,7 +665,7 @@ export default function EnvComplianceDashboard() {
     try {
       const prev = getPrevPeriod(startDate, endDate);
 
-      // ✅ Fetch data in THREE resolutions:
+      // Fetch data in THREE resolutions:
       // 1. Current period - user's selected resolution (for display charts)
       // 2. Current period - HOURLY resolution (for exceedance counting)
       // 3. Previous period (for trend calculation)
@@ -654,10 +683,10 @@ export default function EnvComplianceDashboard() {
       ]);
 
       const curr = currRes.data || [];
-      const hourly = hourlyRes.data || []; // ✅ Hourly data for exceedance counting
+      const hourly = hourlyRes.data || []; // Hourly data for exceedance counting
       const prevData = prevRes.data || [];
 
-      console.log("✅ Display data:", curr.length, "records | Hourly data:", hourly.length, "hours");
+      console.log("Display data:", curr.length, "records | Hourly data:", hourly.length, "hours");
       console.log("Sample display record:", curr[0]);
       console.log("Sample hourly record:", hourly[0]);
 
@@ -715,7 +744,7 @@ export default function EnvComplianceDashboard() {
 
       setDashData({
         pmData, noiseData, tempData, humidityData, co2Data, noxData, vocData,
-        hourlyData: hourly, // ✅ Pass hourly data for exceedances chart
+        hourlyData: hourly, //  Pass hourly data for exceedances chart
         summary: {
           compliant:    Object.values(statuses).filter((s) => s === "Green").length,
           warnings:     Object.values(statuses).filter((s) => s === "Amber").length,
@@ -736,7 +765,7 @@ export default function EnvComplianceDashboard() {
       });
 
     } catch (err) {
-      console.error("❌ Fetch error:", err.response?.status, err.message);
+      console.error(" Fetch error:", err.response?.status, err.message);
       if (err.response?.status === 404) {
         setError(`404: Endpoint not found. The URL "${BASE}/api/nodedata/aggregated" doesn't exist — check your backend routes.`);
       } else if (err.response?.status === 401) {
@@ -764,7 +793,18 @@ export default function EnvComplianceDashboard() {
       case "all":     s = "2020-01-01"; e = formatDate(today); label = "All Time"; break;
       default: return;
     }
-    setStartDate(s); setEndDate(e); setDateLabel(label);
+    setStartDate(s); setEndDate(e); setDateLabel(label); setAnchor(null);
+  };
+
+  const applyCustomRange = () => {
+    const s = new Date(startDate); const e = new Date(endDate);
+    const sm = s.toLocaleDateString("en-US", { month: "short" });
+    const em = e.toLocaleDateString("en-US", { month: "short" });
+    const sy = s.getFullYear(); const ey = e.getFullYear();
+    if (sy === ey && sm === em) setDateLabel(`${sm} ${sy}`);
+    else if (sy === ey) setDateLabel(`${sm} - ${em} ${sy}`);
+    else setDateLabel(`${sm} ${sy} - ${em} ${ey}`);
+    setAnchor(null);
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -797,8 +837,15 @@ export default function EnvComplianceDashboard() {
               </FormControl>
             </Grid>
 
-            {/* Quick Presets - Removed custom date range */}
-            <Grid item xs={12} sm={6} md={5}>
+            {/* Date Range Button */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Button fullWidth onClick={(e) => setAnchor(e.currentTarget)} sx={dateButtonSx} disabled={loading}>
+                📅 {dateLabel}
+              </Button>
+            </Grid>
+
+            {/* Quick Presets */}
+            <Grid item xs={12} sm={6} md={4.5}>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: 'flex-end' }}>
                 <Button size="small" onClick={() => applyPreset('today')} sx={presetSx} disabled={loading}>Today</Button>
                 <Button size="small" onClick={() => applyPreset('week')} sx={presetSx} disabled={loading}>Week</Button>
@@ -809,6 +856,32 @@ export default function EnvComplianceDashboard() {
             </Grid>
           </Grid>
         </Paper>
+
+        {/* Date Range Popover */}
+        <Popover open={Boolean(anchor)} anchorEl={anchor} onClose={() => setAnchor(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+          transformOrigin={{ vertical: "top", horizontal: "left" }}
+          sx={{ "& .MuiPaper-root": { borderRadius: 3, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", p: 3, mt: 1 } }}>
+          <Box sx={{ minWidth: 420 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: "#1e293b" }}>Select Date Range</Typography>
+            <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
+              {["today","week","month","quarter","year"].map((p) => (
+                <Button key={p} size="small" onClick={() => applyPreset(p)} sx={presetSx}>
+                  {p==="today"&&"Today"}{p==="week"&&"Last 7 Days"}{p==="month"&&"This Month"}
+                  {p==="quarter"&&"This Quarter"}{p==="year"&&"This Year"}
+                </Button>
+              ))}
+            </Box>
+            <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+              <TextField label="Start Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+              <TextField label="End Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} inputProps={{ min: startDate }} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+            </Box>
+            <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+              <Button onClick={() => setAnchor(null)} sx={{ textTransform: "none" }}>Cancel</Button>
+              <Button variant="contained" onClick={applyCustomRange} sx={{ bgcolor: "#667eea", textTransform: "none", px: 3, "&:hover": { bgcolor: "#5568d3" } }}>Apply</Button>
+            </Box>
+          </Box>
+        </Popover>
 
         {/* Loading */}
         {loading && (
@@ -828,42 +901,10 @@ export default function EnvComplianceDashboard() {
         {/* Dashboard Content */}
         {!loading && dashData && (
           <>
-            {/* ROW 1: Compliance Summary & Table */}
+            {/* ROW 1: Exceedances by Parameter & Severity - AT TOP */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12}>
                 <Box sx={fadeIn(0)}>
-                  <ComplianceSummaryStrip 
-                    compliant={dashData.summary.compliant} 
-                    warnings={dashData.summary.warnings} 
-                    nonCompliant={dashData.summary.nonCompliant} 
-                  />
-                </Box>
-                
-                {/* Noise Gauge - below compliance */}
-                <Box sx={{ ...fadeIn(0.1), mt: 3 }}>
-                  <NoiseGauge value={dashData.noiseData.current} />
-                </Box>
-              </Grid>
-              <Grid item xs={12} md={8}>
-                <Box sx={fadeIn(0.1)}>
-                  <ComplianceTable data={dashData.table} />
-                </Box>
-              </Grid>
-            </Grid>
-
-            {/* ROW 1.5: Exceedances Over Time */}
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={6}>
-                <Box sx={fadeIn(0.15)}>
-                  <ExceedancesOverTimeChart 
-                    hourlyData={dashData.hourlyData}
-                    thresholds={THRESHOLDS}
-                  />
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <Box sx={fadeIn(0.16)}>
                   <ExceedancesTable 
                     hourlyData={dashData.hourlyData}
                     thresholds={THRESHOLDS}
@@ -872,7 +913,58 @@ export default function EnvComplianceDashboard() {
               </Grid>
             </Grid>
 
-            {/* ROW 2: PM Widgets */}
+            {/* ROW 2: Exceedances Over Time Chart */}
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+              <Grid item xs={12}>
+                <Box sx={fadeIn(0.1)}>
+                  <ExceedancesOverTimeChart 
+                    hourlyData={dashData.hourlyData}
+                    thresholds={THRESHOLDS}
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+
+            {/* ROW 3: Severity Breakdown Charts (Moderate, High, Very High) */}
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+              <Grid item xs={12} md={4}>
+                <Box sx={fadeIn(0.15)}>
+                  <ExceedancesSeverityChart 
+                    hourlyData={dashData.hourlyData}
+                    thresholds={THRESHOLDS}
+                    severity="moderate"
+                    title="Moderate Exceedances"
+                    color="#fbbf24"
+                  />
+                </Box>
+              </Grid>
+              
+              <Grid item xs={12} md={4}>
+                <Box sx={fadeIn(0.16)}>
+                  <ExceedancesSeverityChart 
+                    hourlyData={dashData.hourlyData}
+                    thresholds={THRESHOLDS}
+                    severity="high"
+                    title="High Exceedances"
+                    color="#fb923c"
+                  />
+                </Box>
+              </Grid>
+              
+              <Grid item xs={12} md={4}>
+                <Box sx={fadeIn(0.17)}>
+                  <ExceedancesSeverityChart 
+                    hourlyData={dashData.hourlyData}
+                    thresholds={THRESHOLDS}
+                    severity="veryHigh"
+                    title="Very High Exceedances"
+                    color="#ef4444"
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+
+            {/* ROW 4: PM Widgets */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
               {Object.entries(dashData.pmData).map(([key, widget], idx) => (
                 <Grid item xs={12} sm={6} lg={3} key={key}>
@@ -889,7 +981,26 @@ export default function EnvComplianceDashboard() {
               ))}
             </Grid>
 
-            {/* ROW 3: Environmental Parameters */}
+            {/* ROW 5: Noise (Gauge + Chart) */}
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+              <Grid item xs={12} md={4}>
+                <Box sx={fadeIn(0.6)}>
+                  <NoiseGauge value={dashData.noiseData.current} />
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={8}>
+                <Box sx={fadeIn(0.65)}>
+                  <NoiseWidget 
+                    title="Noise Levels Over Time"
+                    labels={dashData.noiseData.labels}
+                    data={dashData.noiseData.values}
+                    threshold={THRESHOLDS.noise}
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+
+            {/* ROW 6: Environmental Parameters */}
             <Grid container spacing={3} sx={{ mb: 3 }}>              
               <Grid item xs={12} md={dashData.co2Data.values.some(v => v > 0) ? 4 : 6}>
                 <Box sx={fadeIn(0.7)}>
@@ -930,7 +1041,7 @@ export default function EnvComplianceDashboard() {
               )}
             </Grid>
 
-            {/* ROW 4: NOx, VOC */}
+            {/* ROW 7: NOx, VOC */}
             <Grid container spacing={3}>              
               <Grid item xs={12} md={6}>
                 <Box sx={fadeIn(1.0)}>
