@@ -596,7 +596,7 @@ function MineDashboard() {
 
   const getStationNameByStationId = (sensorId) => {
     // Loop through each station data object
-    for (const station of myStationsstations) {
+    for (const station of myStations) {
       // Check if the current station's ID matches the provided sensorId
       if (station["_id"] === sensorId) {
         // If there's a match, return the station name
