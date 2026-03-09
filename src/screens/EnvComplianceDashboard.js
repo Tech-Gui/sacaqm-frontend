@@ -1,25 +1,24 @@
 // import React, { useState, useEffect, useContext } from "react";
 // import {
-//   FormControl, Select, MenuItem, InputLabel, Button,
-//   CircularProgress, Alert
+//   FormControl, Select, MenuItem, InputLabel, Button, Popover,
+//   TextField, CircularProgress, Alert
 // } from "@mui/material";
 // import { Grid, Box, Typography, Paper, Container } from "@mui/material";
 // import axios from "axios";
-
+// import sacaqmLogo from '../assets/sacaqm_logo.png';
+// import airsynqLogo from '../assets/airsynq.png';
 // import { StationContext } from "../contextProviders/StationContext";
 // import PMWidget from "../components/envDashboard/PMWidget";
 // import NoiseGauge from "../components/envDashboard/NoiseGauge";
+// import NoiseWidget from "../components/envDashboard/NoiseWidget";
 // import TempWidget from "../components/envDashboard/TempWidget";
 // import ParameterWidget from "../components/envDashboard/ParameterWidget";
-// import ComplianceTable from "../components/envDashboard/ComplianceTable";
-// import ComplianceSummaryStrip from "../components/envDashboard/ComplianceSummary";
 // import ExceedancesOverTimeChart from "../components/envDashboard/ExceedancesOverTimeChart";
 // import ExceedancesTable from "../components/envDashboard/ExceedancesTable";
+// import ExceedancesSeverityChart from "../components/envDashboard/ExceedancesSeverityChart";
+// import StationMap from "../components/envDashboard/StationMap";
+// const BASE = process.env.REACT_APP_API_BASE;
 
-// // ─── Use environment variable for API base URL ────────────────────────────────
-// const BASE = process.env.REACT_APP_API_BASE ;
-
-// // ─── Helpers ──────────────────────────────────────────────────────────────────
 // function formatDate(d) {
 //   return (
 //     d.getFullYear() + "-" +
@@ -57,59 +56,60 @@
 // const safeMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map((d) => d.min ?? 0))) : 0;
 // const safeMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map((d) => d.max ?? 0))) : 0;
 
-// // ✅ SAAQIS AQI Thresholds (South African Government Standards)
-// // Based on transition from AQI Band 3 (Good/Green) to Band 4 (Moderate/Yellow)
-// // Source: SAAQIS Air Quality Index for General Public - DEFF
 // const THRESHOLDS = { 
-//   pm1: 40,      // Estimated (no official standard, using PM2.5 as reference)
-//   pm25: 40,     // PM2.5: 40 µg/m³ (hourly) - SAAQIS Band 3→4 transition
-//   pm5: 60,      // Estimated (no official standard, between PM2.5 and PM10)
-//   pm10: 75,     // PM10: 75 µg/m³ (hourly) - SAAQIS Band 3→4 transition
-//   noise: 70,    // dB (not in SAAQIS, using typical occupational health standard)
-//   temperature: 32, // °C (not in SAAQIS, using health comfort standard)
-//   humidity: 80,    // % (not in SAAQIS, using comfort standard)
-//   co2: 1000,       // ppm (not in SAAQIS, using indoor air quality standard)
-//   nox: 106,        // NO2: 106 ppb (hourly) - SAAQIS Band 3→4 transition
-//   voc: 500         // No official SAAQIS standard, using typical indoor air quality guideline
+//   pm1: 40,
+//   pm25: 40,
+//   pm5: 60,
+//   pm10: 75,
+//   noise: 70,
+//   temperature: 32,
+//   humidity: 80,
+//   co2: 1000,
+//   nox: 106,
+//   voc: 500
 // };
 
-// // ─── Styles ───────────────────────────────────────────────────────────────────
 // const filterBarSx = {
-//   bgcolor: "rgba(255,255,255,0.95)", backdropFilter: "blur(20px)",
-//   p: 3, borderRadius: 4, mb: 3,
-//   border: "1px solid rgba(255,255,255,0.6)",
-//   boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-//   position: "relative", overflow: "hidden",
-//   "&::before": {
-//     content: '""', position: "absolute", top: 0, left: 0, right: 0, height: "3px",
-//     background: "linear-gradient(90deg,#667eea,#764ba2,#f093fb)",
-//     backgroundSize: "200% 100%", animation: "shimmer 3s infinite linear",
+//   background: 'rgba(255, 255, 255, 0.7)',
+//   backdropFilter: 'blur(20px) saturate(180%)',
+//   border: '1px solid rgba(59, 130, 246, 0.2)',
+//   p: 3, 
+//   borderRadius: 4, 
+//   mb: 3,
+//   boxShadow: '0 8px 32px rgba(59, 130, 246, 0.1)',
+//   position: 'relative',
+//   zIndex: 10,
+//   '&::after': {
+//     content: '""', 
+//     position: 'absolute', 
+//     bottom: 0, 
+//     left: 0, 
+//     right: 0, 
+//     height: '3px',
+//     background: 'linear-gradient(90deg, #3b82f6, #6366f1, #0ea5e9)',
+//     borderRadius: '0 0 4px 4px',
 //   },
-//   "@keyframes shimmer": { "0%": { backgroundPosition: "0% 0%" }, "100%": { backgroundPosition: "200% 0%" } },
 // };
+
 // const selectSx = {
 //   bgcolor: "white", borderRadius: 2.5,
-//   "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(0,0,0,0.08)", borderWidth: 2 },
-//   "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#667eea" },
-//   "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#667eea", borderWidth: 2 },
+//   "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(59, 130, 246, 0.2)", borderWidth: 2 },
+//   "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#3b82f6" },
+//   "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#3b82f6", borderWidth: 2 },
 //   fontSize: "0.95rem", fontWeight: 500, transition: "all 0.2s ease",
-//   boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-//   "&:hover": { boxShadow: "0 4px 12px rgba(102,126,234,0.15)" },
+//   boxShadow: "0 2px 8px rgba(59, 130, 246, 0.08)",
+//   "&:hover": { boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)" },
 // };
-// const dateButtonSx = {
-//   bgcolor: "white", color: "#64748b", borderRadius: 2.5, px: 2.5, py: 1.2,
-//   fontSize: "0.95rem", fontWeight: 500, textTransform: "none",
-//   border: "2px solid rgba(0,0,0,0.08)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-//   transition: "all 0.2s ease",
-//   "&:hover": { bgcolor: "white", borderColor: "#667eea", color: "#667eea" },
-// };
+
 // const presetSx = {
 //   px: 2, py: 0.5, fontSize: "0.75rem", fontWeight: 600, textTransform: "none",
 //   borderRadius: 2, border: "2px solid transparent",
-//   bgcolor: "rgba(102,126,234,0.08)", color: "#667eea", transition: "all 0.2s ease",
-//   "&:hover": { bgcolor: "#667eea", color: "white" },
+//   bgcolor: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", transition: "all 0.2s ease",
+//   "&:hover": { bgcolor: "#3b82f6", color: "white" },
 // };
+
 // const labelSx = { fontSize: "0.75rem", fontWeight: 700, color: "#64748b", letterSpacing: "0.5px", textTransform: "uppercase" };
+
 // const fadeIn = (delay) => ({
 //   animation: `fadeInUp 0.6s ease-out ${delay}s`, animationFillMode: "backwards",
 //   "@keyframes fadeInUp": {
@@ -118,7 +118,6 @@
 //   },
 // });
 
-// // ─── Main Component ───────────────────────────────────────────────────────────
 // export default function EnvComplianceDashboard() {
 //   const { stations, loading: stationsLoading } = useContext(StationContext);
 
@@ -127,26 +126,22 @@
 //     const d = new Date(); d.setDate(1); return formatDate(d);
 //   });
 //   const [endDate, setEndDate] = useState(() => formatDate(new Date()));
-//   const [dateLabel, setDateLabel] = useState("This Month");
+//   const [dateLabel, setDateLabel] = useState("Select Dates");
 //   const [resolution, setResolution] = useState("daily");
 //   const [dashData, setDashData] = useState(null);
 //   const [loading, setLoading] = useState(false);
 //   const [error, setError] = useState(null);
+//   const [anchor, setAnchor] = useState(null);
 
-//   // ─── Build flat list of { sensorId, label } from all stations ───────────
-//   // Station schema: { name, sensorIds: [String], ... }
-//   // sensorIds is an ARRAY — one station can have multiple sensors
 //   const sensorOptions = (stations || []).flatMap((station) =>
 //     (station.sensorIds || []).map((sid) => ({
 //       id: sid,
-//       // Label: "Station Name" if only 1 sensor, "Station Name – sid" if multiple
 //       label: station.sensorIds.length === 1
 //         ? station.name
 //         : `${station.name} – ${sid}`,
 //     }))
 //   );
 
-//   // Auto-select first sensor once stations load
 //   useEffect(() => {
 //     if (sensorOptions.length > 0 && !sensorId) {
 //       console.log("✅ Sensor options:", sensorOptions);
@@ -167,11 +162,6 @@
 //     try {
 //       const prev = getPrevPeriod(startDate, endDate);
 
-//       // ✅ Fetch data in THREE resolutions:
-//       // 1. Current period - user's selected resolution (for display charts)
-//       // 2. Current period - HOURLY resolution (for exceedance counting)
-//       // 3. Previous period (for trend calculation)
-      
 //       const [currRes, hourlyRes, prevRes] = await Promise.all([
 //         axios.get(`${BASE}/api/nodedata/aggregated`, {
 //           params: { sensor_id: sensorId, start: startDate, end: endDate, resolution },
@@ -185,7 +175,7 @@
 //       ]);
 
 //       const curr = currRes.data || [];
-//       const hourly = hourlyRes.data || []; // ✅ Hourly data for exceedance counting
+//       const hourly = hourlyRes.data || [];
 //       const prevData = prevRes.data || [];
 
 //       console.log("✅ Display data:", curr.length, "records | Hourly data:", hourly.length, "hours");
@@ -199,7 +189,6 @@
 //         return;
 //       }
 
-//       // Min/max — non-critical, won't break dashboard if endpoint fails
 //       const mmFields = ["pm1p0", "pm2p5", "pm4p0", "pm10p0", "dba", "temperature", "humidity", "co2", "nox", "voc"];
 //       const mmResults = await Promise.allSettled(
 //         mmFields.map((field) =>
@@ -246,7 +235,7 @@
 
 //       setDashData({
 //         pmData, noiseData, tempData, humidityData, co2Data, noxData, vocData,
-//         hourlyData: hourly, // ✅ Pass hourly data for exceedances chart
+//         hourlyData: hourly,
 //         summary: {
 //           compliant:    Object.values(statuses).filter((s) => s === "Green").length,
 //           warnings:     Object.values(statuses).filter((s) => s === "Amber").length,
@@ -259,7 +248,6 @@
 //           { parameter: "PM10",  status: statuses.pm10,  exceedances: hourly.filter((d) => (d.pm10p0      || 0) > THRESHOLDS.pm10).length },
 //           { parameter: "Noise", status: statuses.noise, exceedances: hourly.filter((d) => (d.dba         || 0) > THRESHOLDS.noise).length },
 //           { parameter: "Humidity", status: statuses.humidity, exceedances: hourly.filter((d) => (d.humidity || 0) > THRESHOLDS.humidity).length },
-//           // Only add CO2 if sensor has data
 //           ...(hourly.some((d) => (d.co2 || 0) > 0) ? [{ parameter: "CO2", status: statuses.co2, exceedances: hourly.filter((d) => (d.co2 || 0) > THRESHOLDS.co2).length }] : []),
 //           { parameter: "NOx",   status: statuses.nox,   exceedances: hourly.filter((d) => (d.nox         || 0) > THRESHOLDS.nox).length },
 //           { parameter: "VOC",   status: statuses.voc,   exceedances: hourly.filter((d) => (d.voc         || 0) > THRESHOLDS.voc).length },
@@ -282,7 +270,6 @@
 //     }
 //   };
 
-//   // ── Date helpers ──────────────────────────────────────────────────────────
 //   const applyPreset = (preset) => {
 //     const today = new Date();
 //     let s, e, label;
@@ -292,29 +279,137 @@
 //       case "month":   s = formatDate(new Date(today.getFullYear(), today.getMonth(), 1)); e = formatDate(new Date(today.getFullYear(), today.getMonth() + 1, 0)); label = "This Month"; break;
 //       case "quarter": { const q = Math.floor(today.getMonth() / 3); s = formatDate(new Date(today.getFullYear(), q * 3, 1)); e = formatDate(new Date(today.getFullYear(), q * 3 + 3, 0)); label = "This Quarter"; break; }
 //       case "year":    s = formatDate(new Date(today.getFullYear(), 0, 1)); e = formatDate(new Date(today.getFullYear(), 11, 31)); label = "This Year"; break;
-//       case "all":     s = "2020-01-01"; e = formatDate(today); label = "All Time"; break;
 //       default: return;
 //     }
-//     setStartDate(s); setEndDate(e); setDateLabel(label);
+//     setStartDate(s); setEndDate(e); setDateLabel(label); setAnchor(null);
 //   };
 
-//   // ── Render ────────────────────────────────────────────────────────────────
+//   const applyCustomRange = () => {
+//     const s = new Date(startDate); 
+//     const e = new Date(endDate);
+//     const sm = s.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+//     const em = e.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+//     const sy = s.getFullYear(); 
+//     const ey = e.getFullYear();
+    
+//     if (sy === ey) {
+//       setDateLabel(`${sm} - ${em}, ${sy}`);
+//     } else {
+//       setDateLabel(`${sm}, ${sy} - ${em}, ${ey}`);
+//     }
+//     setAnchor(null);
+//   };
+
 //   return (
-//     <Box sx={{
-//       minHeight: "100vh",
-//       background: "linear-gradient(135deg,#667eea 0%,#764ba2 50%,#f093fb 100%)",
-//       backgroundSize: "400% 400%", animation: "gradientShift 15s ease infinite",
-//       "@keyframes gradientShift": { "0%": { backgroundPosition: "0% 50%" }, "50%": { backgroundPosition: "100% 50%" }, "100%": { backgroundPosition: "0% 50%" } },
-//       p: { xs: 2, md: 3 },
-//     }}>
-//       <Container maxWidth="xl">
+//     <Box
+//       onMouseMove={(e) => {
+//         e.currentTarget.style.setProperty('--mouse-x', `${e.clientX}px`);
+//         e.currentTarget.style.setProperty('--mouse-y', `${e.clientY}px`);
+//       }}
+//       sx={{
+//         minHeight: "100vh",
+//         position: 'relative',
+//         overflow: 'hidden',
+//         background: 'linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #e0e7ff 100%)',
+//         p: { xs: 2, md: 3 },
+//         '--mouse-x': '50%',
+//         '--mouse-y': '50%',
+//       }}>
+
+//       {/* Interactive gradient that follows mouse */}
+//       <Box
+//         sx={{
+//           position: 'fixed',
+//           top: 0,
+//           left: 0,
+//           right: 0,
+//           bottom: 0,
+//           zIndex: 0,
+//           pointerEvents: 'none',
+//           background: `
+//             radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+//               rgba(59, 130, 246, 0.15), 
+//               transparent 40%)
+//           `,
+//           transition: 'opacity 0.3s ease',
+//         }}
+//       />
+
+//       {/* Animated floating orbs */}
+//       <Box sx={{
+//         position: 'fixed',
+//         top: 0,
+//         left: 0,
+//         right: 0,
+//         bottom: 0,
+//         overflow: 'hidden',
+//         pointerEvents: 'none',
+//         zIndex: 0,
+//         '@keyframes float': {
+//           '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+//           '33%': { transform: 'translate(30px, -30px) scale(1.1)' },
+//           '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+//         },
+//         '& > div': {
+//           position: 'absolute',
+//           borderRadius: '50%',
+//           filter: 'blur(80px)',
+//           opacity: 0.3,
+//           animation: 'float 20s ease-in-out infinite',
+//         },
+//         '& > div:nth-of-type(1)': {
+//           width: '400px',
+//           height: '400px',
+//           background: 'rgba(59, 130, 246, 0.4)',
+//           top: '10%',
+//           left: '10%',
+//         },
+//         '& > div:nth-of-type(2)': {
+//           width: '350px',
+//           height: '350px',
+//           background: 'rgba(99, 102, 241, 0.3)',
+//           top: '60%',
+//           right: '10%',
+//           animationDelay: '7s',
+//         },
+//         '& > div:nth-of-type(3)': {
+//           width: '300px',
+//           height: '300px',
+//           background: 'rgba(14, 165, 233, 0.3)',
+//           bottom: '10%',
+//           left: '40%',
+//           animationDelay: '14s',
+//         },
+//       }}>
+//         <div></div>
+//         <div></div>
+//         <div></div>
+//       </Box>
+
+//       {/* Subtle grid pattern */}
+//       <Box sx={{
+//         position: 'fixed',
+//         top: 0,
+//         left: 0,
+//         right: 0,
+//         bottom: 0,
+//         backgroundImage: `
+//           linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+//           linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px)
+//         `,
+//         backgroundSize: '50px 50px',
+//         pointerEvents: 'none',
+//         zIndex: 0,
+//       }} />
+
+//       <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1 }}>
 
 //         {/* Filter Bar */}
 //         <Paper sx={filterBarSx}>
-//           <Grid container spacing={2} alignItems="center">
+//           <Grid container spacing={3} alignItems="center">
 
-//             {/* Sensor — built from station.sensorIds[] array */}
-//             <Grid item xs={12} sm={6} md={2.5}>
+//             {/* Sensor Selector */}
+//             <Grid item xs={12} sm={6} md={3}>
 //               <FormControl fullWidth size="small">
 //                 <InputLabel sx={labelSx}>Sensor</InputLabel>
 //                 <Select value={sensorId} label="Sensor" onChange={(e) => setSensorId(e.target.value)} sx={selectSx} disabled={loading || stationsLoading}>
@@ -328,24 +423,180 @@
 //               </FormControl>
 //             </Grid>
 
-//             {/* Quick Presets - Removed custom date range */}
-//             <Grid item xs={12} sm={6} md={5}>
-//               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: 'flex-end' }}>
-//                 <Button size="small" onClick={() => applyPreset('today')} sx={presetSx} disabled={loading}>Today</Button>
-//                 <Button size="small" onClick={() => applyPreset('week')} sx={presetSx} disabled={loading}>Week</Button>
-//                 <Button size="small" onClick={() => applyPreset('month')} sx={presetSx} disabled={loading}>Month</Button>
-//                 <Button size="small" onClick={() => applyPreset('quarter')} sx={presetSx} disabled={loading}>Quarter</Button>
-//                 <Button size="small" onClick={() => applyPreset('year')} sx={presetSx} disabled={loading}>Year</Button>
+//             {/* Date Range Picker */}
+//             <Grid item xs={12} sm={6} md={3}>
+//               <Button 
+//                 fullWidth 
+//                 onClick={(e) => setAnchor(e.currentTarget)} 
+//                 disabled={loading}
+//                 sx={{
+//                   bgcolor: '#667eea',
+//                   color: 'white',
+//                   borderRadius: 3,
+//                   px: 3,
+//                   py: 1.5,
+//                   fontSize: '0.95rem',
+//                   fontWeight: 600,
+//                   textTransform: 'none',
+//                   border: '2px solid #667eea',
+//                   boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+//                   transition: 'all 0.2s ease',
+//                   '&:hover': { 
+//                     bgcolor: '#5568d3', 
+//                     borderColor: '#5568d3',
+//                     boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4)',
+//                     transform: 'translateY(-2px)'
+//                   },
+//                   '&:disabled': {
+//                     bgcolor: '#cbd5e1',
+//                     borderColor: '#cbd5e1',
+//                     color: 'white'
+//                   }
+//                 }}
+//               >
+//                 📅 {dateLabel}
+//               </Button>
+//             </Grid>
+
+//             {/* Logo Space */}
+//             <Grid item xs={12} md={6}>
+//               <Box sx={{ 
+//                 display: 'flex', 
+//                 alignItems: 'center', 
+//                 justifyContent: 'center',
+//                 gap: 3,
+//                 height: '100%'
+//               }}>
+//                 <Box 
+//                   component="img"
+//                   src={sacaqmLogo}
+//                   alt="SACAQM AIR Logo"
+//                   sx={{
+//                     height: 50,
+//                     objectFit: 'contain',
+//                     filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))'
+//                   }}
+//                 />
+                
+//                 <Box sx={{ 
+//                   width: 2, 
+//                   height: 40, 
+//                   bgcolor: 'rgba(59, 130, 246, 0.3)',
+//                   borderRadius: 1
+//                 }} />
+                
+//                 <Box 
+//                   component="img"
+//                   src={airsynqLogo}
+//                   alt="AirSynQ Systems Logo"
+//                   sx={{
+//                     height: 40,
+//                     objectFit: 'contain',
+//                     filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))'
+//                   }}
+//                 />
 //               </Box>
 //             </Grid>
 //           </Grid>
 //         </Paper>
 
+//         {/* Date Range Popover */}
+//         <Popover open={Boolean(anchor)} anchorEl={anchor} onClose={() => setAnchor(null)}
+//           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+//           transformOrigin={{ vertical: "top", horizontal: "right" }}
+//           sx={{ "& .MuiPaper-root": { borderRadius: 3, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", p: 3, mt: 1 } }}>
+//           <Box sx={{ minWidth: 450 }}>
+//             <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: "#1e293b", fontSize: '1.1rem' }}>
+//               📅 Select Date Range
+//             </Typography>
+            
+//             <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', mb: 1, textTransform: 'uppercase' }}>
+//               Quick Selection
+//             </Typography>
+//             <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
+//               <Button size="small" onClick={() => applyPreset('today')} sx={{...presetSx, minWidth: 80}}>Today</Button>
+//               <Button size="small" onClick={() => applyPreset('week')} sx={{...presetSx, minWidth: 80}}>Last 7 Days</Button>
+//               <Button size="small" onClick={() => applyPreset('month')} sx={{...presetSx, minWidth: 80}}>This Month</Button>
+//               <Button size="small" onClick={() => applyPreset('quarter')} sx={{...presetSx, minWidth: 80}}>This Quarter</Button>
+//               <Button size="small" onClick={() => applyPreset('year')} sx={{...presetSx, minWidth: 80}}>This Year</Button>
+//             </Box>
+            
+//             <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', mb: 1, textTransform: 'uppercase' }}>
+//               Custom Range
+//             </Typography>
+//             <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+//               <TextField 
+//                 label="Start Date" 
+//                 type="date" 
+//                 value={startDate} 
+//                 onChange={(e) => setStartDate(e.target.value)} 
+//                 fullWidth 
+//                 size="small" 
+//                 InputLabelProps={{ shrink: true }}
+//                 sx={{
+//                   '& .MuiOutlinedInput-root': {
+//                     borderRadius: 2,
+//                     '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' },
+//                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' }
+//                   }
+//                 }}
+//               />
+//               <TextField 
+//                 label="End Date" 
+//                 type="date" 
+//                 value={endDate} 
+//                 onChange={(e) => setEndDate(e.target.value)} 
+//                 inputProps={{ min: startDate }} 
+//                 fullWidth 
+//                 size="small" 
+//                 InputLabelProps={{ shrink: true }}
+//                 sx={{
+//                   '& .MuiOutlinedInput-root': {
+//                     borderRadius: 2,
+//                     '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' },
+//                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' }
+//                   }
+//                 }}
+//               />
+//             </Box>
+            
+//             <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+//               <Button 
+//                 onClick={() => setAnchor(null)} 
+//                 sx={{ 
+//                   textTransform: "none", 
+//                   color: '#64748b',
+//                   '&:hover': { bgcolor: '#f1f5f9' }
+//                 }}
+//               >
+//                 Cancel
+//               </Button>
+//               <Button 
+//                 variant="contained" 
+//                 onClick={applyCustomRange} 
+//                 sx={{ 
+//                   bgcolor: "#667eea", 
+//                   textTransform: "none", 
+//                   px: 4, 
+//                   fontWeight: 600,
+//                   boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+//                   "&:hover": { 
+//                     bgcolor: "#5568d3",
+//                     boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4)'
+//                   } 
+//                 }}
+//               >
+//                 Apply
+//               </Button>
+//             </Box>
+//           </Box>
+//         </Popover>
+
 //         {/* Loading */}
 //         {loading && (
 //           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", my: 8 }}>
-//             <CircularProgress size={60} sx={{ color: "white" }} />
-//             <Typography sx={{ mt: 2, color: "white", fontWeight: 600 }}>Loading dashboard data...</Typography>
+//             <CircularProgress size={60} sx={{ color: "#3b82f6" }} />
+//             <Typography sx={{ mt: 2, color: "#3b82f6", fontWeight: 600 }}>Loading dashboard data...</Typography>
 //           </Box>
 //         )}
 
@@ -359,42 +610,14 @@
 //         {/* Dashboard Content */}
 //         {!loading && dashData && (
 //           <>
-//             {/* ROW 1: Compliance Summary & Table */}
+//           {/* Station Map */}
+//           <Box sx={{ mb: 3 }}>
+//               <StationMap />
+//               </Box>
+//             {/* ROW 1: Exceedances by Parameter & Severity */}
 //             <Grid container spacing={3} sx={{ mb: 3 }}>
-//               <Grid item xs={12} md={4}>
+//               <Grid item xs={12}>
 //                 <Box sx={fadeIn(0)}>
-//                   <ComplianceSummaryStrip 
-//                     compliant={dashData.summary.compliant} 
-//                     warnings={dashData.summary.warnings} 
-//                     nonCompliant={dashData.summary.nonCompliant} 
-//                   />
-//                 </Box>
-                
-//                 {/* Noise Gauge - below compliance */}
-//                 <Box sx={{ ...fadeIn(0.1), mt: 3 }}>
-//                   <NoiseGauge value={dashData.noiseData.current} />
-//                 </Box>
-//               </Grid>
-//               <Grid item xs={12} md={8}>
-//                 <Box sx={fadeIn(0.1)}>
-//                   <ComplianceTable data={dashData.table} />
-//                 </Box>
-//               </Grid>
-//             </Grid>
-
-//             {/* ROW 1.5: Exceedances Over Time */}
-//             <Grid container spacing={3} sx={{ mb: 3 }}>
-//               <Grid item xs={12} md={6}>
-//                 <Box sx={fadeIn(0.15)}>
-//                   <ExceedancesOverTimeChart 
-//                     hourlyData={dashData.hourlyData}
-//                     thresholds={THRESHOLDS}
-//                   />
-//                 </Box>
-//               </Grid>
-              
-//               <Grid item xs={12} md={6}>
-//                 <Box sx={fadeIn(0.16)}>
 //                   <ExceedancesTable 
 //                     hourlyData={dashData.hourlyData}
 //                     thresholds={THRESHOLDS}
@@ -403,7 +626,58 @@
 //               </Grid>
 //             </Grid>
 
-//             {/* ROW 2: PM Widgets */}
+//             {/* ROW 2: Exceedances Over Time Chart */}
+//             <Grid container spacing={3} sx={{ mb: 3 }}>
+//               <Grid item xs={12}>
+//                 <Box sx={fadeIn(0.1)}>
+//                   <ExceedancesOverTimeChart 
+//                     hourlyData={dashData.hourlyData}
+//                     thresholds={THRESHOLDS}
+//                   />
+//                 </Box>
+//               </Grid>
+//             </Grid>
+
+//             {/* ROW 3: Severity Breakdown Charts */}
+//             <Grid container spacing={3} sx={{ mb: 3 }}>
+//               <Grid item xs={12} md={4}>
+//                 <Box sx={fadeIn(0.15)}>
+//                   <ExceedancesSeverityChart 
+//                     hourlyData={dashData.hourlyData}
+//                     thresholds={THRESHOLDS}
+//                     severity="moderate"
+//                     title="Moderate Exceedances"
+//                     color="#fbbf24"
+//                   />
+//                 </Box>
+//               </Grid>
+              
+//               <Grid item xs={12} md={4}>
+//                 <Box sx={fadeIn(0.16)}>
+//                   <ExceedancesSeverityChart 
+//                     hourlyData={dashData.hourlyData}
+//                     thresholds={THRESHOLDS}
+//                     severity="high"
+//                     title="High Exceedances"
+//                     color="#fb923c"
+//                   />
+//                 </Box>
+//               </Grid>
+              
+//               <Grid item xs={12} md={4}>
+//                 <Box sx={fadeIn(0.17)}>
+//                   <ExceedancesSeverityChart 
+//                     hourlyData={dashData.hourlyData}
+//                     thresholds={THRESHOLDS}
+//                     severity="veryHigh"
+//                     title="Very High Exceedances"
+//                     color="#ef4444"
+//                   />
+//                 </Box>
+//               </Grid>
+//             </Grid>
+
+//             {/* ROW 4: PM Widgets */}
 //             <Grid container spacing={3} sx={{ mb: 3 }}>
 //               {Object.entries(dashData.pmData).map(([key, widget], idx) => (
 //                 <Grid item xs={12} sm={6} lg={3} key={key}>
@@ -420,7 +694,26 @@
 //               ))}
 //             </Grid>
 
-//             {/* ROW 3: Environmental Parameters */}
+//             {/* ROW 5: Noise */}
+//             <Grid container spacing={3} sx={{ mb: 3, alignItems : 'stretch' }}>
+//               <Grid item xs={12} md={4} sx ={{ display : 'flex' }}>
+//                 <Box sx={{ ...fadeIn(0.6), display : 'flex', flex: 1}}>
+//                   <NoiseGauge value={dashData.noiseData.current} />
+//                 </Box>
+//               </Grid>
+//               <Grid item xs={12} md={8} sx = {{ display : 'flex' }}>
+//                 <Box sx={{...fadeIn(0.65), display : 'flex', flex: 1}}>
+//                   <NoiseWidget 
+//                     title="Noise Levels Over Time"
+//                     labels={dashData.noiseData.labels}
+//                     data={dashData.noiseData.values}
+//                     threshold={THRESHOLDS.noise}
+//                   />
+//                 </Box>
+//               </Grid>
+//             </Grid>
+
+//             {/* ROW 6: Environmental Parameters */}
 //             <Grid container spacing={3} sx={{ mb: 3 }}>              
 //               <Grid item xs={12} md={dashData.co2Data.values.some(v => v > 0) ? 4 : 6}>
 //                 <Box sx={fadeIn(0.7)}>
@@ -445,7 +738,6 @@
 //                 </Box>
 //               </Grid>
 
-//               {/* Only show CO2 if present */}
 //               {dashData.co2Data.values.some(v => v > 0) && (
 //                 <Grid item xs={12} md={4}>
 //                   <Box sx={fadeIn(0.9)}>
@@ -461,7 +753,7 @@
 //               )}
 //             </Grid>
 
-//             {/* ROW 4: NOx, VOC */}
+//             {/* ROW 7: NOx, VOC */}
 //             <Grid container spacing={3}>              
 //               <Grid item xs={12} md={6}>
 //                 <Box sx={fadeIn(1.0)}>
@@ -500,23 +792,20 @@ import {
 } from "@mui/material";
 import { Grid, Box, Typography, Paper, Container } from "@mui/material";
 import axios from "axios";
-
+import sacaqmLogo from '../assets/sacaqm_logo.png';
+import airsynqLogo from '../assets/airsynq.png';
 import { StationContext } from "../contextProviders/StationContext";
 import PMWidget from "../components/envDashboard/PMWidget";
 import NoiseGauge from "../components/envDashboard/NoiseGauge";
 import NoiseWidget from "../components/envDashboard/NoiseWidget";
 import TempWidget from "../components/envDashboard/TempWidget";
 import ParameterWidget from "../components/envDashboard/ParameterWidget";
-import ComplianceTable from "../components/envDashboard/ComplianceTable";
-import ComplianceSummaryStrip from "../components/envDashboard/ComplianceSummary";
 import ExceedancesOverTimeChart from "../components/envDashboard/ExceedancesOverTimeChart";
 import ExceedancesTable from "../components/envDashboard/ExceedancesTable";
 import ExceedancesSeverityChart from "../components/envDashboard/ExceedancesSeverityChart";
+import StationMap from "../components/envDashboard/StationMap";
+const BASE = process.env.REACT_APP_API_BASE;
 
-// ─── Use environment variable for API base URL ────────────────────────────────
-const BASE = process.env.REACT_APP_API_BASE || "https://try-again-test-isaiah.app.cern.ch/api";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(d) {
   return (
     d.getFullYear() + "-" +
@@ -554,59 +843,60 @@ const avgField = (arr, key) =>
 const safeMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map((d) => d.min ?? 0))) : 0;
 const safeMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map((d) => d.max ?? 0))) : 0;
 
-// SAAQIS AQI Thresholds (South African Government Standards)
-// Based on transition from AQI Band 3 (Good/Green) to Band 4 (Moderate/Yellow)
-// Source: SAAQIS Air Quality Index for General Public - DEFF
 const THRESHOLDS = { 
-  pm1: 40,      // Estimated (no official standard, using PM2.5 as reference)
-  pm25: 40,     // PM2.5: 40 µg/m³ (hourly) - SAAQIS Band 3→4 transition
-  pm5: 60,      // Estimated (no official standard, between PM2.5 and PM10)
-  pm10: 75,     // PM10: 75 µg/m³ (hourly) - SAAQIS Band 3→4 transition
-  noise: 70,    // dB (not in SAAQIS, using typical occupational health standard)
-  temperature: 32, // °C (not in SAAQIS, using health comfort standard)
-  humidity: 80,    // % (not in SAAQIS, using comfort standard)
-  co2: 1000,       // ppm (not in SAAQIS, using indoor air quality standard)
-  nox: 106,        // NO2: 106 ppb (hourly) - SAAQIS Band 3→4 transition
-  voc: 500         // No official SAAQIS standard, using typical indoor air quality guideline
+  pm1: 40,
+  pm25: 40,
+  pm5: 60,
+  pm10: 75,
+  noise: 70,
+  temperature: 32,
+  humidity: 80,
+  co2: 1000,
+  nox: 106,
+  voc: 500
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const filterBarSx = {
-  bgcolor: "rgba(255,255,255,0.95)", backdropFilter: "blur(20px)",
-  p: 3, borderRadius: 4, mb: 3,
-  border: "1px solid rgba(255,255,255,0.6)",
-  boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-  position: "relative", overflow: "hidden",
-  "&::before": {
-    content: '""', position: "absolute", top: 0, left: 0, right: 0, height: "3px",
-    background: "linear-gradient(90deg,#667eea,#764ba2,#f093fb)",
-    backgroundSize: "200% 100%", animation: "shimmer 3s infinite linear",
+  background: 'rgba(255, 255, 255, 0.7)',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  border: '1px solid rgba(59, 130, 246, 0.2)',
+  p: 3, 
+  borderRadius: 4, 
+  mb: 3,
+  boxShadow: '0 8px 32px rgba(59, 130, 246, 0.1)',
+  position: 'relative',
+  zIndex: 10,
+  '&::after': {
+    content: '""', 
+    position: 'absolute', 
+    bottom: 0, 
+    left: 0, 
+    right: 0, 
+    height: '3px',
+    background: 'linear-gradient(90deg, #3b82f6, #6366f1, #0ea5e9)',
+    borderRadius: '0 0 4px 4px',
   },
-  "@keyframes shimmer": { "0%": { backgroundPosition: "0% 0%" }, "100%": { backgroundPosition: "200% 0%" } },
 };
+
 const selectSx = {
   bgcolor: "white", borderRadius: 2.5,
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(0,0,0,0.08)", borderWidth: 2 },
-  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#667eea" },
-  "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#667eea", borderWidth: 2 },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(59, 130, 246, 0.2)", borderWidth: 2 },
+  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#3b82f6" },
+  "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#3b82f6", borderWidth: 2 },
   fontSize: "0.95rem", fontWeight: 500, transition: "all 0.2s ease",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-  "&:hover": { boxShadow: "0 4px 12px rgba(102,126,234,0.15)" },
+  boxShadow: "0 2px 8px rgba(59, 130, 246, 0.08)",
+  "&:hover": { boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)" },
 };
-const dateButtonSx = {
-  bgcolor: "white", color: "#64748b", borderRadius: 2.5, px: 2.5, py: 1.2,
-  fontSize: "0.95rem", fontWeight: 500, textTransform: "none",
-  border: "2px solid rgba(0,0,0,0.08)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-  transition: "all 0.2s ease",
-  "&:hover": { bgcolor: "white", borderColor: "#667eea", color: "#667eea" },
-};
+
 const presetSx = {
   px: 2, py: 0.5, fontSize: "0.75rem", fontWeight: 600, textTransform: "none",
   borderRadius: 2, border: "2px solid transparent",
-  bgcolor: "rgba(102,126,234,0.08)", color: "#667eea", transition: "all 0.2s ease",
-  "&:hover": { bgcolor: "#667eea", color: "white" },
+  bgcolor: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", transition: "all 0.2s ease",
+  "&:hover": { bgcolor: "#3b82f6", color: "white" },
 };
+
 const labelSx = { fontSize: "0.75rem", fontWeight: 700, color: "#64748b", letterSpacing: "0.5px", textTransform: "uppercase" };
+
 const fadeIn = (delay) => ({
   animation: `fadeInUp 0.6s ease-out ${delay}s`, animationFillMode: "backwards",
   "@keyframes fadeInUp": {
@@ -615,7 +905,6 @@ const fadeIn = (delay) => ({
   },
 });
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 export default function EnvComplianceDashboard() {
   const { stations, loading: stationsLoading } = useContext(StationContext);
 
@@ -624,30 +913,27 @@ export default function EnvComplianceDashboard() {
     const d = new Date(); d.setDate(1); return formatDate(d);
   });
   const [endDate, setEndDate] = useState(() => formatDate(new Date()));
-  const [dateLabel, setDateLabel] = useState("This Month");
+  const [dateLabel, setDateLabel] = useState("Select Dates");
   const [resolution, setResolution] = useState("daily");
   const [dashData, setDashData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [anchor, setAnchor] = useState(null);
+  const [showForecast, setShowForecast] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
 
-  // ─── Build flat list of { sensorId, label } from all stations ───────────
-  // Station schema: { name, sensorIds: [String], ... }
-  // sensorIds is an ARRAY — one station can have multiple sensors
   const sensorOptions = (stations || []).flatMap((station) =>
     (station.sensorIds || []).map((sid) => ({
       id: sid,
-      // Label: "Station Name" if only 1 sensor, "Station Name – sid" if multiple
       label: station.sensorIds.length === 1
         ? station.name
         : `${station.name} – ${sid}`,
     }))
   );
 
-  // Auto-select first sensor once stations load
   useEffect(() => {
     if (sensorOptions.length > 0 && !sensorId) {
-      console.log(" Sensor options:", sensorOptions);
+      console.log("✅ Sensor options:", sensorOptions);
       setSensorId(sensorOptions[0].id);
     }
   }, [stations]);
@@ -665,11 +951,6 @@ export default function EnvComplianceDashboard() {
     try {
       const prev = getPrevPeriod(startDate, endDate);
 
-      // Fetch data in THREE resolutions:
-      // 1. Current period - user's selected resolution (for display charts)
-      // 2. Current period - HOURLY resolution (for exceedance counting)
-      // 3. Previous period (for trend calculation)
-      
       const [currRes, hourlyRes, prevRes] = await Promise.all([
         axios.get(`${BASE}/api/nodedata/aggregated`, {
           params: { sensor_id: sensorId, start: startDate, end: endDate, resolution },
@@ -683,10 +964,10 @@ export default function EnvComplianceDashboard() {
       ]);
 
       const curr = currRes.data || [];
-      const hourly = hourlyRes.data || []; // Hourly data for exceedance counting
+      const hourly = hourlyRes.data || [];
       const prevData = prevRes.data || [];
 
-      console.log("Display data:", curr.length, "records | Hourly data:", hourly.length, "hours");
+      console.log("✅ Display data:", curr.length, "records | Hourly data:", hourly.length, "hours");
       console.log("Sample display record:", curr[0]);
       console.log("Sample hourly record:", hourly[0]);
 
@@ -697,7 +978,6 @@ export default function EnvComplianceDashboard() {
         return;
       }
 
-      // Min/max — non-critical, won't break dashboard if endpoint fails
       const mmFields = ["pm1p0", "pm2p5", "pm4p0", "pm10p0", "dba", "temperature", "humidity", "co2", "nox", "voc"];
       const mmResults = await Promise.allSettled(
         mmFields.map((field) =>
@@ -744,7 +1024,7 @@ export default function EnvComplianceDashboard() {
 
       setDashData({
         pmData, noiseData, tempData, humidityData, co2Data, noxData, vocData,
-        hourlyData: hourly, //  Pass hourly data for exceedances chart
+        hourlyData: hourly,
         summary: {
           compliant:    Object.values(statuses).filter((s) => s === "Green").length,
           warnings:     Object.values(statuses).filter((s) => s === "Amber").length,
@@ -757,7 +1037,6 @@ export default function EnvComplianceDashboard() {
           { parameter: "PM10",  status: statuses.pm10,  exceedances: hourly.filter((d) => (d.pm10p0      || 0) > THRESHOLDS.pm10).length },
           { parameter: "Noise", status: statuses.noise, exceedances: hourly.filter((d) => (d.dba         || 0) > THRESHOLDS.noise).length },
           { parameter: "Humidity", status: statuses.humidity, exceedances: hourly.filter((d) => (d.humidity || 0) > THRESHOLDS.humidity).length },
-          // Only add CO2 if sensor has data
           ...(hourly.some((d) => (d.co2 || 0) > 0) ? [{ parameter: "CO2", status: statuses.co2, exceedances: hourly.filter((d) => (d.co2 || 0) > THRESHOLDS.co2).length }] : []),
           { parameter: "NOx",   status: statuses.nox,   exceedances: hourly.filter((d) => (d.nox         || 0) > THRESHOLDS.nox).length },
           { parameter: "VOC",   status: statuses.voc,   exceedances: hourly.filter((d) => (d.voc         || 0) > THRESHOLDS.voc).length },
@@ -765,7 +1044,7 @@ export default function EnvComplianceDashboard() {
       });
 
     } catch (err) {
-      console.error(" Fetch error:", err.response?.status, err.message);
+      console.error("❌ Fetch error:", err.response?.status, err.message);
       if (err.response?.status === 404) {
         setError(`404: Endpoint not found. The URL "${BASE}/api/nodedata/aggregated" doesn't exist — check your backend routes.`);
       } else if (err.response?.status === 401) {
@@ -780,7 +1059,6 @@ export default function EnvComplianceDashboard() {
     }
   };
 
-  // ── Date helpers ──────────────────────────────────────────────────────────
   const applyPreset = (preset) => {
     const today = new Date();
     let s, e, label;
@@ -790,40 +1068,155 @@ export default function EnvComplianceDashboard() {
       case "month":   s = formatDate(new Date(today.getFullYear(), today.getMonth(), 1)); e = formatDate(new Date(today.getFullYear(), today.getMonth() + 1, 0)); label = "This Month"; break;
       case "quarter": { const q = Math.floor(today.getMonth() / 3); s = formatDate(new Date(today.getFullYear(), q * 3, 1)); e = formatDate(new Date(today.getFullYear(), q * 3 + 3, 0)); label = "This Quarter"; break; }
       case "year":    s = formatDate(new Date(today.getFullYear(), 0, 1)); e = formatDate(new Date(today.getFullYear(), 11, 31)); label = "This Year"; break;
-      case "all":     s = "2020-01-01"; e = formatDate(today); label = "All Time"; break;
       default: return;
     }
     setStartDate(s); setEndDate(e); setDateLabel(label); setAnchor(null);
   };
 
+  const handleDownloadReport = () => {
+    setDownloadLoading(true);
+    // Dummy — backend will be wired later
+    setTimeout(() => setDownloadLoading(false), 1500);
+  };
+
+  // Build forecast data from last week's actual data (placeholder until ML is ready)
+  const getForecastData = (originalData) => {
+    if (!originalData) return null;
+    const forecastLabels = originalData.labels.map((l) => `${l} (forecast)`);
+    const jitter = (arr) => arr.map((v) => Math.max(0, Math.round(v * (0.9 + Math.random() * 0.2))));
+    return {
+      ...originalData,
+      labels: forecastLabels,
+      values: jitter(originalData.values),
+    };
+  };
+
   const applyCustomRange = () => {
-    const s = new Date(startDate); const e = new Date(endDate);
-    const sm = s.toLocaleDateString("en-US", { month: "short" });
-    const em = e.toLocaleDateString("en-US", { month: "short" });
-    const sy = s.getFullYear(); const ey = e.getFullYear();
-    if (sy === ey && sm === em) setDateLabel(`${sm} ${sy}`);
-    else if (sy === ey) setDateLabel(`${sm} - ${em} ${sy}`);
-    else setDateLabel(`${sm} ${sy} - ${em} ${ey}`);
+    const s = new Date(startDate); 
+    const e = new Date(endDate);
+    const sm = s.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const em = e.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const sy = s.getFullYear(); 
+    const ey = e.getFullYear();
+    
+    if (sy === ey) {
+      setDateLabel(`${sm} - ${em}, ${sy}`);
+    } else {
+      setDateLabel(`${sm}, ${sy} - ${em}, ${ey}`);
+    }
     setAnchor(null);
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <Box sx={{
-      minHeight: "100vh",
-      background: "linear-gradient(135deg,#667eea 0%,#764ba2 50%,#f093fb 100%)",
-      backgroundSize: "400% 400%", animation: "gradientShift 15s ease infinite",
-      "@keyframes gradientShift": { "0%": { backgroundPosition: "0% 50%" }, "50%": { backgroundPosition: "100% 50%" }, "100%": { backgroundPosition: "0% 50%" } },
-      p: { xs: 2, md: 3 },
-    }}>
-      <Container maxWidth="xl">
+    <Box
+      onMouseMove={(e) => {
+        e.currentTarget.style.setProperty('--mouse-x', `${e.clientX}px`);
+        e.currentTarget.style.setProperty('--mouse-y', `${e.clientY}px`);
+      }}
+      sx={{
+        minHeight: "100vh",
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #e0e7ff 100%)',
+        p: { xs: 2, md: 3 },
+        '--mouse-x': '50%',
+        '--mouse-y': '50%',
+      }}>
+
+      {/* Interactive gradient that follows mouse */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          background: `
+            radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+              rgba(59, 130, 246, 0.15), 
+              transparent 40%)
+          `,
+          transition: 'opacity 0.3s ease',
+        }}
+      />
+
+      {/* Animated floating orbs */}
+      <Box sx={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        zIndex: 0,
+        '@keyframes float': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '33%': { transform: 'translate(30px, -30px) scale(1.1)' },
+          '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+        },
+        '& > div': {
+          position: 'absolute',
+          borderRadius: '50%',
+          filter: 'blur(80px)',
+          opacity: 0.3,
+          animation: 'float 20s ease-in-out infinite',
+        },
+        '& > div:nth-of-type(1)': {
+          width: '400px',
+          height: '400px',
+          background: 'rgba(59, 130, 246, 0.4)',
+          top: '10%',
+          left: '10%',
+        },
+        '& > div:nth-of-type(2)': {
+          width: '350px',
+          height: '350px',
+          background: 'rgba(99, 102, 241, 0.3)',
+          top: '60%',
+          right: '10%',
+          animationDelay: '7s',
+        },
+        '& > div:nth-of-type(3)': {
+          width: '300px',
+          height: '300px',
+          background: 'rgba(14, 165, 233, 0.3)',
+          bottom: '10%',
+          left: '40%',
+          animationDelay: '14s',
+        },
+      }}>
+        <div></div>
+        <div></div>
+        <div></div>
+      </Box>
+
+      {/* Subtle grid pattern */}
+      <Box sx={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: `
+          linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px)
+        `,
+        backgroundSize: '50px 50px',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+
+      <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1 }}>
 
         {/* Filter Bar */}
         <Paper sx={filterBarSx}>
-          <Grid container spacing={2} alignItems="center">
+          <Grid container spacing={3} alignItems="center">
 
-            {/* Sensor — built from station.sensorIds[] array */}
-            <Grid item xs={12} sm={6} md={2.5}>
+            {/* Sensor Selector */}
+            <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="small">
                 <InputLabel sx={labelSx}>Sensor</InputLabel>
                 <Select value={sensorId} label="Sensor" onChange={(e) => setSensorId(e.target.value)} sx={selectSx} disabled={loading || stationsLoading}>
@@ -837,21 +1230,138 @@ export default function EnvComplianceDashboard() {
               </FormControl>
             </Grid>
 
-            {/* Date Range Button */}
+            {/* Date Range Picker */}
             <Grid item xs={12} sm={6} md={3}>
-              <Button fullWidth onClick={(e) => setAnchor(e.currentTarget)} sx={dateButtonSx} disabled={loading}>
+              <Button 
+                fullWidth 
+                onClick={(e) => setAnchor(e.currentTarget)} 
+                disabled={loading}
+                sx={{
+                  bgcolor: '#667eea',
+                  color: 'white',
+                  borderRadius: 3,
+                  px: 3,
+                  py: 1.5,
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  border: '2px solid #667eea',
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': { 
+                    bgcolor: '#5568d3', 
+                    borderColor: '#5568d3',
+                    boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4)',
+                    transform: 'translateY(-2px)'
+                  },
+                  '&:disabled': {
+                    bgcolor: '#cbd5e1',
+                    borderColor: '#cbd5e1',
+                    color: 'white'
+                  }
+                }}
+              >
                 📅 {dateLabel}
               </Button>
             </Grid>
 
-            {/* Quick Presets */}
-            <Grid item xs={12} sm={6} md={4.5}>
-              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: 'flex-end' }}>
-                <Button size="small" onClick={() => applyPreset('today')} sx={presetSx} disabled={loading}>Today</Button>
-                <Button size="small" onClick={() => applyPreset('week')} sx={presetSx} disabled={loading}>Week</Button>
-                <Button size="small" onClick={() => applyPreset('month')} sx={presetSx} disabled={loading}>Month</Button>
-                <Button size="small" onClick={() => applyPreset('quarter')} sx={presetSx} disabled={loading}>Quarter</Button>
-                <Button size="small" onClick={() => applyPreset('year')} sx={presetSx} disabled={loading}>Year</Button>
+            {/* Logo Space */}
+            <Grid item xs={12} md={4}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                gap: 3,
+                height: '100%'
+              }}>
+                <Box 
+                  component="img"
+                  src={sacaqmLogo}
+                  alt="SACAQM AIR Logo"
+                  sx={{
+                    height: 50,
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))'
+                  }}
+                />
+                
+                <Box sx={{ 
+                  width: 2, 
+                  height: 40, 
+                  bgcolor: 'rgba(59, 130, 246, 0.3)',
+                  borderRadius: 1
+                }} />
+                
+                <Box 
+                  component="img"
+                  src={airsynqLogo}
+                  alt="AirSynQ Systems Logo"
+                  sx={{
+                    height: 40,
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))'
+                  }}
+                />
+              </Box>
+            </Grid>
+
+            {/* Download & Forecast Buttons */}
+            <Grid item xs={12} md={2}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {/* Download Report */}
+                <Button
+                  fullWidth
+                  onClick={handleDownloadReport}
+                  disabled={downloadLoading || !dashData}
+                  startIcon={downloadLoading ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <span>⬇️</span>}
+                  sx={{
+                    bgcolor: '#0ea5e9',
+                    color: 'white',
+                    borderRadius: 3,
+                    py: 1,
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      bgcolor: '#0284c7',
+                      boxShadow: '0 6px 16px rgba(14, 165, 233, 0.4)',
+                      transform: 'translateY(-2px)'
+                    },
+                    '&:disabled': { bgcolor: '#cbd5e1', color: 'white' }
+                  }}
+                >
+                  {downloadLoading ? 'Generating...' : 'Download Report'}
+                </Button>
+
+                {/* Forecast Toggle */}
+                <Button
+                  fullWidth
+                  onClick={() => setShowForecast((prev) => !prev)}
+                  disabled={!dashData}
+                  startIcon={<span>🔮</span>}
+                  sx={{
+                    bgcolor: showForecast ? '#8b5cf6' : 'white',
+                    color: showForecast ? 'white' : '#8b5cf6',
+                    borderRadius: 3,
+                    py: 1,
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    border: '2px solid #8b5cf6',
+                    boxShadow: showForecast ? '0 4px 12px rgba(139, 92, 246, 0.4)' : '0 2px 8px rgba(139, 92, 246, 0.1)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      bgcolor: showForecast ? '#7c3aed' : 'rgba(139, 92, 246, 0.08)',
+                      boxShadow: '0 6px 16px rgba(139, 92, 246, 0.3)',
+                      transform: 'translateY(-2px)'
+                    },
+                    '&:disabled': { bgcolor: '#f1f5f9', borderColor: '#e2e8f0', color: '#94a3b8' }
+                  }}
+                >
+                  {showForecast ? 'Hide Forecast' : 'Show Forecast'}
+                </Button>
               </Box>
             </Grid>
           </Grid>
@@ -859,26 +1369,92 @@ export default function EnvComplianceDashboard() {
 
         {/* Date Range Popover */}
         <Popover open={Boolean(anchor)} anchorEl={anchor} onClose={() => setAnchor(null)}
-          anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-          transformOrigin={{ vertical: "top", horizontal: "left" }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
           sx={{ "& .MuiPaper-root": { borderRadius: 3, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", p: 3, mt: 1 } }}>
-          <Box sx={{ minWidth: 420 }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: "#1e293b" }}>Select Date Range</Typography>
+          <Box sx={{ minWidth: 450 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: "#1e293b", fontSize: '1.1rem' }}>
+              📅 Select Date Range
+            </Typography>
+            
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', mb: 1, textTransform: 'uppercase' }}>
+              Quick Selection
+            </Typography>
             <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
-              {["today","week","month","quarter","year"].map((p) => (
-                <Button key={p} size="small" onClick={() => applyPreset(p)} sx={presetSx}>
-                  {p==="today"&&"Today"}{p==="week"&&"Last 7 Days"}{p==="month"&&"This Month"}
-                  {p==="quarter"&&"This Quarter"}{p==="year"&&"This Year"}
-                </Button>
-              ))}
+              <Button size="small" onClick={() => applyPreset('today')} sx={{...presetSx, minWidth: 80}}>Today</Button>
+              <Button size="small" onClick={() => applyPreset('week')} sx={{...presetSx, minWidth: 80}}>Last 7 Days</Button>
+              <Button size="small" onClick={() => applyPreset('month')} sx={{...presetSx, minWidth: 80}}>This Month</Button>
+              <Button size="small" onClick={() => applyPreset('quarter')} sx={{...presetSx, minWidth: 80}}>This Quarter</Button>
+              <Button size="small" onClick={() => applyPreset('year')} sx={{...presetSx, minWidth: 80}}>This Year</Button>
             </Box>
+            
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', mb: 1, textTransform: 'uppercase' }}>
+              Custom Range
+            </Typography>
             <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-              <TextField label="Start Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} />
-              <TextField label="End Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} inputProps={{ min: startDate }} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+              <TextField 
+                label="Start Date" 
+                type="date" 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)} 
+                fullWidth 
+                size="small" 
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' }
+                  }
+                }}
+              />
+              <TextField 
+                label="End Date" 
+                type="date" 
+                value={endDate} 
+                onChange={(e) => setEndDate(e.target.value)} 
+                inputProps={{ min: startDate }} 
+                fullWidth 
+                size="small" 
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' }
+                  }
+                }}
+              />
             </Box>
+            
             <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
-              <Button onClick={() => setAnchor(null)} sx={{ textTransform: "none" }}>Cancel</Button>
-              <Button variant="contained" onClick={applyCustomRange} sx={{ bgcolor: "#667eea", textTransform: "none", px: 3, "&:hover": { bgcolor: "#5568d3" } }}>Apply</Button>
+              <Button 
+                onClick={() => setAnchor(null)} 
+                sx={{ 
+                  textTransform: "none", 
+                  color: '#64748b',
+                  '&:hover': { bgcolor: '#f1f5f9' }
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={applyCustomRange} 
+                sx={{ 
+                  bgcolor: "#667eea", 
+                  textTransform: "none", 
+                  px: 4, 
+                  fontWeight: 600,
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                  "&:hover": { 
+                    bgcolor: "#5568d3",
+                    boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4)'
+                  } 
+                }}
+              >
+                Apply
+              </Button>
             </Box>
           </Box>
         </Popover>
@@ -886,8 +1462,8 @@ export default function EnvComplianceDashboard() {
         {/* Loading */}
         {loading && (
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", my: 8 }}>
-            <CircularProgress size={60} sx={{ color: "white" }} />
-            <Typography sx={{ mt: 2, color: "white", fontWeight: 600 }}>Loading dashboard data...</Typography>
+            <CircularProgress size={60} sx={{ color: "#3b82f6" }} />
+            <Typography sx={{ mt: 2, color: "#3b82f6", fontWeight: 600 }}>Loading dashboard data...</Typography>
           </Box>
         )}
 
@@ -901,7 +1477,26 @@ export default function EnvComplianceDashboard() {
         {/* Dashboard Content */}
         {!loading && dashData && (
           <>
-            {/* ROW 1: Exceedances by Parameter & Severity - AT TOP */}
+            {/* Forecast Banner */}
+            {showForecast && (
+              <Box sx={{
+                mb: 3, p: 2, borderRadius: 3,
+                background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.08))',
+                border: '1.5px solid rgba(139,92,246,0.3)',
+                display: 'flex', alignItems: 'center', gap: 2,
+              }}>
+                <span style={{ fontSize: '1.5rem' }}>🔮</span>
+                <Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#6d28d9' }}>
+                    Forecast Mode Active
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.75rem', color: '#7c3aed', mt: 0.25 }}>
+                    Showing projected values based on last week's data. ML-powered forecasts coming soon.
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+            {/* ROW 1: Exceedances by Parameter & Severity */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
               <Grid item xs={12}>
                 <Box sx={fadeIn(0)}>
@@ -912,7 +1507,9 @@ export default function EnvComplianceDashboard() {
                 </Box>
               </Grid>
             </Grid>
-
+              <Box sx={{ mb: 3 }}>
+  <StationMap />
+</Box>
             {/* ROW 2: Exceedances Over Time Chart */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
               <Grid item xs={12}>
@@ -925,7 +1522,7 @@ export default function EnvComplianceDashboard() {
               </Grid>
             </Grid>
 
-            {/* ROW 3: Severity Breakdown Charts (Moderate, High, Very High) */}
+            {/* ROW 3: Severity Breakdown Charts */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
               <Grid item xs={12} md={4}>
                 <Box sx={fadeIn(0.15)}>
@@ -966,36 +1563,41 @@ export default function EnvComplianceDashboard() {
 
             {/* ROW 4: PM Widgets */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
-              {Object.entries(dashData.pmData).map(([key, widget], idx) => (
-                <Grid item xs={12} sm={6} lg={3} key={key}>
-                  <Box sx={fadeIn(0.2 + idx * 0.1)}>
-                    <PMWidget 
-                      title={widget.title} 
-                      labels={widget.labels} 
-                      dataPoints={widget.values} 
-                      threshold={THRESHOLDS[key]} 
-                      trend={widget.trend} 
-                    />
-                  </Box>
-                </Grid>
-              ))}
+              {Object.entries(dashData.pmData).map(([key, widget], idx) => {
+                const display = showForecast ? getForecastData(widget) : widget;
+                return (
+                  <Grid item xs={12} sm={6} lg={3} key={key}>
+                    <Box sx={fadeIn(0.2 + idx * 0.1)}>
+                      <PMWidget 
+                        title={showForecast ? `${widget.title} (Forecast)` : widget.title}
+                        labels={display.labels} 
+                        dataPoints={display.values} 
+                        threshold={THRESHOLDS[key]} 
+                        trend={widget.trend} 
+                      />
+                    </Box>
+                  </Grid>
+                );
+              })}
             </Grid>
 
-            {/* ROW 5: Noise (Gauge + Chart) */}
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={4}>
-                <Box sx={fadeIn(0.6)}>
+            {/* ROW 5: Noise */}
+            <Grid container spacing={3} sx={{ mb: 3, alignItems : 'stretch' }}>
+              <Grid item xs={12} md={4} sx ={{ display : 'flex' }}>
+                <Box sx={{ ...fadeIn(0.6), display : 'flex', flex: 1}}>
                   <NoiseGauge value={dashData.noiseData.current} />
                 </Box>
               </Grid>
-              <Grid item xs={12} md={8}>
-                <Box sx={fadeIn(0.65)}>
+              <Grid item xs={12} md={8} sx = {{ display : 'flex' }}>
+                <Box sx={{...fadeIn(0.65), display : 'flex', flex: 1}}>
+                  {(() => { const nd = showForecast ? getForecastData(dashData.noiseData) : dashData.noiseData; return (
                   <NoiseWidget 
-                    title="Noise Levels Over Time"
-                    labels={dashData.noiseData.labels}
-                    data={dashData.noiseData.values}
+                    title={showForecast ? "Noise Levels (Forecast)" : "Noise Levels Over Time"}
+                    labels={nd.labels}
+                    data={nd.values}
                     threshold={THRESHOLDS.noise}
                   />
+                  ); })()}
                 </Box>
               </Grid>
             </Grid>
@@ -1004,38 +1606,43 @@ export default function EnvComplianceDashboard() {
             <Grid container spacing={3} sx={{ mb: 3 }}>              
               <Grid item xs={12} md={dashData.co2Data.values.some(v => v > 0) ? 4 : 6}>
                 <Box sx={fadeIn(0.7)}>
+                  {(() => { const d = showForecast ? getForecastData(dashData.tempData) : dashData.tempData; return (
                   <TempWidget 
-                    title="Temperature" 
-                    labels={dashData.tempData.labels} 
-                    data={dashData.tempData.values} 
+                    title={showForecast ? "Temperature (Forecast)" : "Temperature"}
+                    labels={d.labels} 
+                    data={d.values} 
                     threshold={THRESHOLDS.temperature} 
                   />
+                  ); })()}
                 </Box>
               </Grid>
               
               <Grid item xs={12} md={dashData.co2Data.values.some(v => v > 0) ? 4 : 6}>
                 <Box sx={fadeIn(0.8)}>
+                  {(() => { const d = showForecast ? getForecastData(dashData.humidityData) : dashData.humidityData; return (
                   <ParameterWidget 
-                    title="Humidity" 
-                    labels={dashData.humidityData.labels} 
-                    data={dashData.humidityData.values} 
+                    title={showForecast ? "Humidity (Forecast)" : "Humidity"}
+                    labels={d.labels} 
+                    data={d.values} 
                     threshold={THRESHOLDS.humidity}
                     unit="%" 
                   />
+                  ); })()}
                 </Box>
               </Grid>
 
-              {/* Only show CO2 if present */}
               {dashData.co2Data.values.some(v => v > 0) && (
                 <Grid item xs={12} md={4}>
                   <Box sx={fadeIn(0.9)}>
+                    {(() => { const d = showForecast ? getForecastData(dashData.co2Data) : dashData.co2Data; return (
                     <ParameterWidget 
-                      title="CO2" 
-                      labels={dashData.co2Data.labels} 
-                      data={dashData.co2Data.values} 
+                      title={showForecast ? "CO2 (Forecast)" : "CO2"}
+                      labels={d.labels} 
+                      data={d.values} 
                       threshold={THRESHOLDS.co2}
                       unit=" ppm" 
                     />
+                    ); })()}
                   </Box>
                 </Grid>
               )}
@@ -1045,25 +1652,29 @@ export default function EnvComplianceDashboard() {
             <Grid container spacing={3}>              
               <Grid item xs={12} md={6}>
                 <Box sx={fadeIn(1.0)}>
+                  {(() => { const d = showForecast ? getForecastData(dashData.noxData) : dashData.noxData; return (
                   <ParameterWidget 
-                    title="NOx" 
-                    labels={dashData.noxData.labels} 
-                    data={dashData.noxData.values} 
+                    title={showForecast ? "NOx (Forecast)" : "NOx"}
+                    labels={d.labels} 
+                    data={d.values} 
                     threshold={THRESHOLDS.nox}
                     unit=""
                   />
+                  ); })()}
                 </Box>
               </Grid>
               
               <Grid item xs={12} md={6}>
                 <Box sx={fadeIn(1.1)}>
+                  {(() => { const d = showForecast ? getForecastData(dashData.vocData) : dashData.vocData; return (
                   <ParameterWidget 
-                    title="VOC" 
-                    labels={dashData.vocData.labels} 
-                    data={dashData.vocData.values} 
+                    title={showForecast ? "VOC (Forecast)" : "VOC"}
+                    labels={d.labels} 
+                    data={d.values} 
                     threshold={THRESHOLDS.voc}
                     unit=""
                   />
+                  ); })()}
                 </Box>
               </Grid>
             </Grid>

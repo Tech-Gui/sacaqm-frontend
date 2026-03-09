@@ -120,7 +120,7 @@ export default function NoiseGaugeWidget({ value = 0 }) {
   }, [value]);
 
   return (
-    <Paper sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)', bgcolor: 'white', p: 2.5, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 240, transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)', transform: 'translateY(-4px)' } }}>
+    <Paper sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)', bgcolor: 'white', p: 2.5, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width : '100%',  minHeight: 240, transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)', transform: 'translateY(-4px)' } }}>
       <Typography sx={{ fontWeight: 600, fontSize: '0.75rem', color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase', mb: 2 }}>📊 Noise Levels</Typography>
       <canvas ref={canvasRef} width={220} height={140} style={{ marginBottom: '12px' }} />
       <Typography sx={{ fontWeight: 700, fontSize: '2.5rem', color: '#1e293b', letterSpacing: '-0.5px', lineHeight: 1, mb: 1 }}>

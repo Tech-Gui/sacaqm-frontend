@@ -100,6 +100,13 @@ export default function ParameterWidget({
           color: 'rgba(0, 0, 0, 0.05)',
           drawBorder: false
         },
+        title: {
+          display: !!unit,
+          text: unit,
+          color: '#64748b',
+          font: { size: 13, weight: 600 },
+          padding: { bottom: 4 }
+        },
         ticks: {
           font: { size: 10 },
           color: '#94a3b8',

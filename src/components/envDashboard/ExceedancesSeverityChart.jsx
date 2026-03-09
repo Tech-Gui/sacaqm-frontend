@@ -83,10 +83,10 @@ export default function ExceedancesSeverityChart({
 
   // Define parameters with colors
   const parameterConfig = [
-    { key: 'pm1', label: 'PM1.0', color: '#f59e0b', borderWidth: 2 },
+    { key: 'pm1', label: 'PM1.0', color: '#b47f02', borderWidth: 2 },
     { key: 'pm25', label: 'PM2.5', color: '#ef4444', borderWidth: 3 },
     { key: 'pm5', label: 'PM4.0', color: '#ec4899', borderWidth: 2 },
-    { key: 'pm10', label: 'PM10', color: '#dc2626', borderWidth: 3 },
+    { key: 'pm10', label: 'PM10', color: '#ffcc00', borderWidth: 3 },
     { key: 'noise', label: 'Noise', color: '#8b5cf6', borderWidth: 3 },
     { key: 'co2', label: 'CO2', color: '#10b981', borderWidth: 2 },
     { key: 'nox', label: 'NOx', color: '#3b82f6', borderWidth: 3 },
