@@ -36,6 +36,7 @@ export default function ExceedancesSeverityChart({
 
   // Calculate which severity level to count
   const getExceedanceLevel = (value, threshold) => {
+    if (threshold == null) return null;
     if (value <= threshold) return null;
     if (value <= threshold * 1.2) return "moderate";
     if (value <= threshold * 1.5) return "high";
@@ -93,9 +94,14 @@ export default function ExceedancesSeverityChart({
     { key: 'voc', label: 'VOC', color: '#6366f1', borderWidth: 2 },
   ];
 
-  // Filter out CO2 if no data
+  // Filter out CO2 if no data, and filter out params with no threshold
   const hasCO2 = hourlyData.some(d => (d.co2 || 0) > 0);
-  const filteredParams = parameterConfig.filter(p => p.key !== 'co2' || hasCO2);
+  const thresholdKeyMap = { pm1: 'pm1', pm25: 'pm25', pm5: 'pm5', pm10: 'pm10', noise: 'noise', co2: 'co2', nox: 'nox', voc: 'voc' };
+  const filteredParams = parameterConfig.filter(p => {
+    if (p.key === 'co2' && !hasCO2) return false;
+    if (thresholds[thresholdKeyMap[p.key]] == null) return false;
+    return true;
+  });
 
   // Build datasets only for visible parameters
   const datasets = filteredParams

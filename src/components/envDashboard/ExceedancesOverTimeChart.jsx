@@ -47,14 +47,14 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
     }
     
     // Count total exceedances (how many hours exceeded per parameter per day)
-    if ((record.pm1p0 || 0) > thresholds.pm1) dailyExceedances[date].pm1++;
-    if ((record.pm2p5 || 0) > thresholds.pm25) dailyExceedances[date].pm25++;
-    if ((record.pm4p0 || 0) > thresholds.pm5) dailyExceedances[date].pm5++;
-    if ((record.pm10p0 || 0) > thresholds.pm10) dailyExceedances[date].pm10++;
-    if ((record.dba || 0) > thresholds.noise) dailyExceedances[date].noise++;
-    if ((record.co2 || 0) > thresholds.co2) dailyExceedances[date].co2++;
-    if ((record.nox || 0) > thresholds.nox) dailyExceedances[date].nox++;
-    if ((record.voc || 0) > thresholds.voc) dailyExceedances[date].voc++;
+    if (thresholds.pm1  != null && (record.pm1p0  || 0) > thresholds.pm1)  dailyExceedances[date].pm1++;
+    if (thresholds.pm25 != null && (record.pm2p5  || 0) > thresholds.pm25) dailyExceedances[date].pm25++;
+    if (thresholds.pm5  != null && (record.pm4p0  || 0) > thresholds.pm5)  dailyExceedances[date].pm5++;
+    if (thresholds.pm10 != null && (record.pm10p0 || 0) > thresholds.pm10) dailyExceedances[date].pm10++;
+    if (thresholds.noise != null && (record.dba   || 0) > thresholds.noise) dailyExceedances[date].noise++;
+    if (thresholds.co2  != null && (record.co2    || 0) > thresholds.co2)  dailyExceedances[date].co2++;
+    if (thresholds.nox  != null && (record.nox    || 0) > thresholds.nox)  dailyExceedances[date].nox++;
+    if (thresholds.voc  != null && (record.voc    || 0) > thresholds.voc)  dailyExceedances[date].voc++;
   });
 
   const labels = Object.keys(dailyExceedances);
@@ -71,9 +71,14 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
     { key: 'voc', label: 'VOC', color: '#6366f1', borderWidth: 2 },
   ];
 
-  // Filter out CO2 if no data
+  // Filter out CO2 if no data, and filter out params with no threshold
   const hasCO2 = hourlyData.some(d => (d.co2 || 0) > 0);
-  const filteredParams = parameterConfig.filter(p => p.key !== 'co2' || hasCO2);
+  const thresholdKeyMap = { pm1: 'pm1', pm25: 'pm25', pm5: 'pm5', pm10: 'pm10', noise: 'noise', co2: 'co2', nox: 'nox', voc: 'voc' };
+  const filteredParams = parameterConfig.filter(p => {
+    if (p.key === 'co2' && !hasCO2) return false;
+    if (thresholds[thresholdKeyMap[p.key]] == null) return false;
+    return true;
+  });
 
   // Build datasets only for visible parameters
   const datasets = filteredParams
