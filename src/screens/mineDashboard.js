@@ -58,6 +58,11 @@ function MineDashboard() {
   const [myStations, setMyStations] = useState([]);
   const [stationsLoading, setStationsLoading] = useState(false);
   const [stationsError, setStationsError] = useState(null);
+  const [offlineMessage, setOfflineMessage] = useState(null); 
+  const [customStartDate, setCustomStartDate] = useState(null);
+  const [customEndDate, setCustomEndDate] = useState(null);
+  const [isCustomRange, setIsCustomRange] = useState(false);
+
 
 
 
@@ -454,7 +459,7 @@ function MineDashboard() {
     labels: dates,
     datasets: [
       {
-        labels: "Decibel (dB)",
+        label: "Decibel (dB)",
         data : filteredData.map((data) => data.dba),
         fill: true, 
         spanGaps: true,
@@ -491,7 +496,7 @@ function MineDashboard() {
     setSelectedPeriod(period);
   };
 
-  const handleStationSelect = (stationId) => {
+  /*const handleStationSelect = (stationId) => {
     setSelectedPeriod("Today");
     setFilteredData([]);
     setSelectedSensor(stationId);
@@ -505,7 +510,71 @@ function MineDashboard() {
     }
 
     // setSensorName(station);
+  };*/
+
+  const handleStationSelect = (stationId) => {
+    setSelectedSensor(stationId);
+    setFilteredData([]);
+    setOfflineMessage(null);
+
+    const station = stations.find((s) => s._id === stationId);
+
+    if (!station) {
+      console.log("station not found");
+      return;
+    }
+
+    const now = new Date();
+    const lastSeen = new Date(station.lastSeen);
+
+    const diffHours = (now - lastSeen) / (1000 * 60 * 60);
+    const diffDays = diffHours / 24;
+
+    // last 24 hours
+    if (diffHours <= 24) {
+      setSelectedPeriod("Today");
+      fetchNodeData(station._id, 1);
+    }
+
+    // between 24h and 7 days
+    else if (diffDays <= 7) {
+      setSelectedPeriod("7 Days");
+      fetchNodeData(station._id, 7);
+    }
+
+    // between 7 and 30 days
+    else if (diffDays <= 30) {
+      setSelectedPeriod("30 Days");
+      fetchNodeData(station._id, 30);
+    }
+
+    // more than 30 days
+    else {
+      setFilteredData([]);
+      setOfflineMessage("Sensor offline for more than 30 days.");
+    }
   };
+
+  const getLastSeenText = () => {
+    const station = stations.find((s) => s._id === selectedSensor);
+
+    if (!station) return null;
+
+    const now = new Date();
+    const lastSeen = new Date(station.lastSeen);
+
+    const diffHours = (now - lastSeen) / (1000 * 60 * 60);
+    const diffDays = diffHours / 24;
+
+    if (diffHours <= 24) return null;
+
+    if (diffDays < 1) {
+      return `Sensor offline — last seen ${Math.floor(diffHours)} hours ago`;
+    }
+
+    return `Sensor offline — last seen ${Math.floor(diffDays)} days ago`;
+  };
+
 
   const handle30DaysSelect = () => {
     setSelectedPeriod("30 Days");
@@ -651,7 +720,6 @@ function MineDashboard() {
 
     setFilteredData(filtered);
   };
-
   return (
     <div
       className="d-flex flex-row"
@@ -669,32 +737,9 @@ function MineDashboard() {
           maxHeight: "100vh",
           overflowY: "scroll",
         }}>
-       
-         <div className="d-flex justify-content-between align-items-center mb-3">
         <TopNavBar />
-        <Button 
-          variant="outline-light" 
-          onClick={handleLogout}
-          style={{ 
-            display: 'flex',
-            alignItems: 'center',
-            fontWeight: '600',
-            background: "linear-gradient(45deg, #FF416C, #FF4B2B)",
-            border: 'none',
-            borderRadius: '30px',
-            padding: '10px 20px',
-            color: '#fff',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.2)',
-            transition: 'transform 0.2s ease',
-           }}
-            onMouseOver={(e) => { e.currentTarget.style.transform = "scale(1.05)" }}
-            onMouseOut={(e) => { e.currentTarget.style.transform = "scale(1)" }}
-        >
-          <FaSignOutAlt style={{ marginRight: "8px" }} />
-          Logout
-        </Button>
-      </div>
-        <div className="d-flex flex-row justify-content-between">
+
+        <div className="d-flex flex-row justify-content-between align-items-center">
           <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
@@ -716,17 +761,28 @@ function MineDashboard() {
               onMouseOut={(e) => {
                 e.target.style.background = "#4A90E2"; // Original blue
               }}>
-              {getStationNameByStationId(selectedSensor) || "Origin Center -1"}
+              {getStationNameByStationId(selectedSensor) || "Select Sensor"}
             </Dropdown.Toggle>
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
-              {myStations.map((station, index) => (
+              {stations.map((station, index) => (
                 <Dropdown.Item key={index} eventKey={station["_id"]}>
                   {station["name"]}
                 </Dropdown.Item>
               ))}
             </Dropdown.Menu>
           </Dropdown>
-
+          {getLastSeenText() && (
+            <span
+              style={{
+                marginLeft: "10px",
+                color: "#ff6b6b",
+                fontSize: "13px",
+                fontWeight: "500",
+              }}
+            >
+              {getLastSeenText()}
+            </span>
+          )}
           <Dropdown onSelect={(eventKey) => handlePeriodSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
@@ -757,8 +813,25 @@ function MineDashboard() {
               <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
+        <Button
+          onClick={handleLogout}
+          style={{
+            marginLeft: "10px",
+            background: "#ff4d4f",
+            border: "none",
+            borderRadius: "20px",
+            padding: "8px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "13px",
+            fontWeight: "500"
+          }}
+        >
+          <FaSignOutAlt />
+          Logout
+        </Button>
         </div>
-
         <Row>
           <Col lg={12} md={12}>
             {" "}
@@ -855,20 +928,6 @@ function MineDashboard() {
                       wrappedComponent={<> μg/m³</>}
                     />
                   </Col>
-                  <Col>
-                    {" "}
-                    <StatsCard
-                      title="Decibel"
-                      value={
-                        filteredData && filteredData.length > 0
-                          ? `${dbaValue}`
-                          : "...."
-                      }
-
-                      wrappedComponent={<> dB </>}
-
-                    />
-                  </Col>
                 </Row>
 
                 <div
@@ -879,7 +938,7 @@ function MineDashboard() {
                   }}>
                   <Row className="d-flex justify-content-center">
                     <Col className="col-height">
-                      <AppMap stations={myStations} selSensor={selectedSensor} />
+                      <AppMap selSensor={selectedSensor} />
                     </Col>
                   </Row>
                 </div>
@@ -898,22 +957,28 @@ function MineDashboard() {
                 paddingBottom: "0.2rem",
                 minHeight: "25vh",
               }}>
-              {filteredData && filteredData.length > 0 ? (
-                <ChartCard
-                  data={pm1p0chartData}
-                  options={chartOptions}
-                  title="PM1.0 (μg/m³)"
-                />
-              ) : (
+              {offlineMessage ? (
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
                     height: "25vh",
-                  }}>
-                  <Spinner animation="border" role="status"></Spinner>
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
                 </div>
+              ) : filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={pm1p0chartData}
+                  options={chartOptions}
+                  title="PM1.0 (μg/m³)"
+                />
+              ) : (
+                <Spinner animation="border" role="status" />
               )}
             </Card>
           </Col>
@@ -926,22 +991,28 @@ function MineDashboard() {
                 paddingBottom: "0.2rem",
                 minHeight: "25vh",
               }}>
-              {filteredData && filteredData.length > 0 ? (
-                <ChartCard
-                  data={pm2p5chartData}
-                  options={chartOptions}
-                  title="PM2.5 (μg/m³)"
-                />
-              ) : (
+              {offlineMessage ? (
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
                     height: "25vh",
-                  }}>
-                  <Spinner animation="border" role="status"></Spinner>
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
                 </div>
+              ) : filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={pm2p5chartData}
+                  options={chartOptions}
+                  title="PM2.5 (μg/m³)"
+                />
+              ) : (
+                <Spinner animation="border" role="status" />
               )}
             </Card>
           </Col>
@@ -964,22 +1035,28 @@ function MineDashboard() {
                   fontFamily: "Helvetica Neue",
                   textAlign: "left",
                 }}></h6>
-              {filteredData && filteredData.length > 0 ? (
+              {offlineMessage ? (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
+                </div>
+              ) : filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={pm4p0chartData}
                   options={chartOptions}
                   title="PM4.0 (μg/m³)"
                 />
               ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100%",
-                  }}>
-                  <Spinner animation="border" role="status"></Spinner>
-                </div>
+                <Spinner animation="border" role="status" />
               )}
             </Card>
           </Col>
@@ -993,22 +1070,28 @@ function MineDashboard() {
                 paddingBottom: "0.2rem",
                 minHeight: "26vh",
               }}>
-              {filteredData && filteredData.length > 0 ? (
+              {offlineMessage ? (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
+                </div>
+              ) : filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={pm10p0chartData}
                   options={chartOptions}
                   title="PM10.0 (μg/m³)"
                 />
               ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100%",
-                  }}>
-                  <Spinner animation="border" role="status"></Spinner>
-                </div>
+                <Spinner animation="border" role="status" />
               )}
             </Card>
           </Col>
@@ -1053,7 +1136,42 @@ function MineDashboard() {
           </Col>
         </Row>
 
-  <Row>
+        <Row>
+          <Col md={6}>
+            <Card
+              className="mt-2"
+              style={{
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                paddingBottom: "0.2rem",
+                minHeight: "25vh",
+              }}
+            >
+              {offlineMessage ? (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
+                </div>
+              ) : filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={VocchartData}
+                  options={chartOptions}
+                  title="voc (ppb)"
+                />
+              ) : (
+                <Spinner animation="border" role="status" />
+              )}
+            </Card>
+        </Col>
   <Col md={6}>
     <Card
       className="mt-2"
@@ -1064,89 +1182,72 @@ function MineDashboard() {
         minHeight: "25vh",
       }}
     >
-      {filteredData && filteredData.length > 0 ? (
-        <ChartCard
-          data={dbaChartData}
-          options={chartOptions}
-          title="Decibel (dB)"
-        />
-      ) : (
+      {offlineMessage ? (
         <div
           style={{
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             height: "25vh",
+            color: "#999",
+            fontSize: "14px",
+            fontWeight: "500",
           }}
         >
-          <Spinner animation="border" role="status"></Spinner>
+          {offlineMessage}
         </div>
+      ) : filteredData && filteredData.length > 0 ? (
+        <ChartCard
+          data={dbaChartData}
+          options={chartOptions}
+          title="Decibel (dB)"
+        />
+      ) : (
+        <Spinner animation="border" role="status" />
       )}
     </Card>
   </Col>
-  <Col md={6}>
+  </Row>
+      <Row>
+          <Col md={6}>
             <Card
-              className="mt-2 "
+              className="mt-2"
               style={{
                 border: "none",
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                 paddingBottom: "0.2rem",
                 minHeight: "25vh",
-              }}>
-              {filteredData && filteredData.length > 0 ? (
-                <ChartCard
-                  data={VocchartData}
-                  options={chartOptions}
-                  title="voc (ppb)"
-                />
-              ) : (
+              }}
+            >
+              {offlineMessage ? (
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
                     height: "25vh",
-                  }}>
-                  <Spinner animation="border" role="status"></Spinner>
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
                 </div>
-              )}
-            </Card>
-    </Col>
-  {/* Optionally, add another column or arrange placement as needed */}
-  </Row>
-  <Row>
-    <Col md={6}>
-            <Card
-              className="mt-2 "
-              style={{
-                border: "none",
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                paddingBottom: "0.2rem",
-                minHeight: "25vh",
-              }}>
-              {filteredData && filteredData.length > 0 ? (
+              ) : filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={NoxChartData}
                   options={chartOptions}
                   title="nox (ppb)"
                 />
               ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "25vh",
-                  }}>
-                  <Spinner animation="border" role="status"></Spinner>
-                </div>
+                <Spinner animation="border" role="status" />
               )}
             </Card>
-    </Col>
+        </Col>
   </Row>
       </Container>
 
-</div>
+    </div>
   );
 }
 

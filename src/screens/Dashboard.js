@@ -49,6 +49,7 @@ function Dashboard() {
   const [filteredData, setFilteredData] = useState([]);
   const [showModal, setShowModal] = useState(true);
   const [greeting, setGreeting] = useState("");
+  const [offlineMessage, setOfflineMessage] = useState(null);
 
 
   const handleCustomDateRange =  async () => {
@@ -110,6 +111,31 @@ function Dashboard() {
     maintainAspectRatio: true,
   };
 
+  const fetchOfflineSensorData = (station) => {
+    if (!station || !station.lastSeen) return;
+
+    const now = new Date();
+    const lastSeen = new Date(station.lastSeen);
+
+    const diffDays = Math.floor((now - lastSeen) / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 7) {
+      setOfflineMessage(null);
+      setSelectedPeriod("7 Days");
+      fetchNodeData(station._id, 7);
+    } 
+    else if (diffDays > 7 && diffDays <= 30) {
+      setOfflineMessage(null);
+      setSelectedPeriod("30 Days");
+      fetchNodeData(station._id, 30);
+    } 
+    else {
+      // more than 30 days offline
+      setFilteredData([]);
+      setOfflineMessage("Sensor offline for more than 30 days.");
+    }
+  };
+
   const dates = filteredData.map((data) => {
     const timestamp = new Date(data.timestamp);
     // Adding 2 hours to convert to SA time
@@ -153,7 +179,6 @@ function Dashboard() {
     datasets: [
       {
         label: "PM2.5",
-
         data: filteredData.map((data) => data.pm2p5),
         fill: true,
         backgroundColor: function (context) {
@@ -183,7 +208,6 @@ function Dashboard() {
     datasets: [
       {
         label: "PM4.0",
-
         data: filteredData.map((data) => data.pm4p0),
         fill: true,
         backgroundColor: function (context) {
@@ -328,7 +352,7 @@ function Dashboard() {
     labels: dates,
     datasets: [
       {
-        labels: "Decibel (dB)",
+        label: "Decibel (dB)",
         data : filteredData.map((data) => data.dba),
         fill: true, 
         spanGaps: true,
@@ -425,7 +449,7 @@ function Dashboard() {
     setSelectedPeriod(period);
   };
   
-  const handleStationSelect = (stationId) => {
+  /*const handleStationSelect = (stationId) => {
     setSelectedPeriod("Today");
     setFilteredData([]);
     setSelectedSensor(stationId);
@@ -439,6 +463,69 @@ function Dashboard() {
     }
 
     // setSensorName(station);
+  };*/
+
+  const handleStationSelect = (stationId) => {
+    setSelectedSensor(stationId);
+    setFilteredData([]);
+    setOfflineMessage(null);
+
+    const station = stations.find((s) => s._id === stationId);
+
+    if (!station) {
+      console.log("station not found");
+      return;
+    }
+
+    const now = new Date();
+    const lastSeen = new Date(station.lastSeen);
+
+    const diffHours = (now - lastSeen) / (1000 * 60 * 60);
+    const diffDays = diffHours / 24;
+
+    // last 24 hours
+    if (diffHours <= 24) {
+      setSelectedPeriod("Today");
+      fetchNodeData(station._id, 1);
+    }
+
+    // between 24h and 7 days
+    else if (diffDays <= 7) {
+      setSelectedPeriod("7 Days");
+      fetchNodeData(station._id, 7);
+    }
+
+    // between 7 and 30 days
+    else if (diffDays <= 30) {
+      setSelectedPeriod("30 Days");
+      fetchNodeData(station._id, 30);
+    }
+
+    // more than 30 days
+    else {
+      setFilteredData([]);
+      setOfflineMessage("Sensor offline for more than 30 days.");
+    }
+  };
+
+  const getLastSeenText = () => {
+    const station = stations.find((s) => s._id === selectedSensor);
+
+    if (!station) return null;
+
+    const now = new Date();
+    const lastSeen = new Date(station.lastSeen);
+
+    const diffHours = (now - lastSeen) / (1000 * 60 * 60);
+    const diffDays = diffHours / 24;
+
+    if (diffHours <= 24) return null;
+
+    if (diffDays < 1) {
+      return `Sensor offline — last seen ${Math.floor(diffHours)} hours ago`;
+    }
+
+    return `Sensor offline — last seen ${Math.floor(diffDays)} days ago`;
   };
 
   const handle30DaysSelect = () => {
@@ -605,7 +692,7 @@ function Dashboard() {
         }}>
         <TopNavBar />
 
-        <div className="d-flex flex-row justify-content-between">
+        <div className="d-flex flex-row justify-content-between align-items-center">
           <Dropdown onSelect={(eventKey) => handleStationSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
@@ -627,7 +714,7 @@ function Dashboard() {
               onMouseOut={(e) => {
                 e.target.style.background = "#4A90E2"; // Original blue
               }}>
-              {getStationNameByStationId(selectedSensor) || "Origin Center -1"}
+              {getStationNameByStationId(selectedSensor) || "Select Sensor"}
             </Dropdown.Toggle>
             <Dropdown.Menu style={{ maxHeight: "80vh", overflowY: "scroll" }}>
               {stations.map((station, index) => (
@@ -637,7 +724,18 @@ function Dashboard() {
               ))}
             </Dropdown.Menu>
           </Dropdown>
-
+          {getLastSeenText() && (
+            <span
+              style={{
+                marginLeft: "10px",
+                color: "#ff6b6b",
+                fontSize: "13px",
+                fontWeight: "500",
+              }}
+            >
+              {getLastSeenText()}
+            </span>
+          )}
           <Dropdown onSelect={(eventKey) => handlePeriodSelect(eventKey)}>
             <Dropdown.Toggle
               id="dropdown-basic"
@@ -666,68 +764,9 @@ function Dashboard() {
               <Dropdown.Item eventKey="Last Day">Last Day</Dropdown.Item>
               <Dropdown.Item eventKey="7 Days">7 Days</Dropdown.Item>
               <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
-              <Dropdown.Divider />
-              <Dropdown.Item onClick={(e) => {
-                e.preventDefault();
-                setIsCustomRange(true);
-              }} 
-              >
-                Custom Range
-              </Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
         </div>
-{isCustomRange && (
-  <Card className="mt-2 p-3" style={{ border: 'none', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }}>
-    <div className="d-flex align-items-center gap-3">
-      <DatePicker
-        selected={customStartDate}
-        onChange={(date) => setCustomStartDate(date)}
-        selectsStart
-        startDate={customStartDate}
-        endDate={customEndDate}
-        maxDate={new Date()}
-        placeholderText="Start Date"
-        className="form-control"
-      />
-      <DatePicker
-        selected={customEndDate}
-        onChange={(date) => setCustomEndDate(date)}
-        selectsEnd
-        startDate={customStartDate}
-        endDate={customEndDate}
-        minDate={customStartDate}
-        maxDate={new Date()}
-        placeholderText="End Date"
-        className="form-control"
-      />
-      <Button 
-        onClick={handleCustomDateRange}
-        disabled={!customStartDate || !customEndDate}
-        style={{
-          background: "#4A90E2",
-          border: "none",
-          borderRadius: "20px",
-        }}
-      >
-        Apply Range
-      </Button>
-      <Button 
-        variant="outline-secondary"
-        onClick={() => {
-          setIsCustomRange(false);
-          setCustomStartDate(null);
-          setCustomEndDate(null);
-        }}
-        style={{
-          borderRadius: "20px",
-        }}
-      >
-        Cancel
-      </Button>
-    </div>
-  </Card>
-)}
         <Row>
           <Col lg={12} md={12}>
             {" "}
@@ -853,22 +892,28 @@ function Dashboard() {
                 paddingBottom: "0.2rem",
                 minHeight: "25vh",
               }}>
-              {filteredData && filteredData.length > 0 ? (
-                <ChartCard
-                  data={pm1p0chartData}
-                  options={chartOptions}
-                  title="PM1.0 (μg/m³)"
-                />
-              ) : (
+              {offlineMessage ? (
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
                     height: "25vh",
-                  }}>
-                  <Spinner animation="border" role="status"></Spinner>
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
                 </div>
+              ) : filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={pm1p0chartData}
+                  options={chartOptions}
+                  title="PM1.0 (μg/m³)"
+                />
+              ) : (
+                <Spinner animation="border" role="status" />
               )}
             </Card>
           </Col>
@@ -881,22 +926,28 @@ function Dashboard() {
                 paddingBottom: "0.2rem",
                 minHeight: "25vh",
               }}>
-              {filteredData && filteredData.length > 0 ? (
-                <ChartCard
-                  data={pm2p5chartData}
-                  options={chartOptions}
-                  title="PM2.5 (μg/m³)"
-                />
-              ) : (
+              {offlineMessage ? (
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
                     height: "25vh",
-                  }}>
-                  <Spinner animation="border" role="status"></Spinner>
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
                 </div>
+              ) : filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={pm2p5chartData}
+                  options={chartOptions}
+                  title="PM2.5 (μg/m³)"
+                />
+              ) : (
+                <Spinner animation="border" role="status" />
               )}
             </Card>
           </Col>
@@ -919,22 +970,28 @@ function Dashboard() {
                   fontFamily: "Helvetica Neue",
                   textAlign: "left",
                 }}></h6>
-              {filteredData && filteredData.length > 0 ? (
+              {offlineMessage ? (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
+                </div>
+              ) : filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={pm4p0chartData}
                   options={chartOptions}
                   title="PM4.0 (μg/m³)"
                 />
               ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100%",
-                  }}>
-                  <Spinner animation="border" role="status"></Spinner>
-                </div>
+                <Spinner animation="border" role="status" />
               )}
             </Card>
           </Col>
@@ -948,22 +1005,28 @@ function Dashboard() {
                 paddingBottom: "0.2rem",
                 minHeight: "26vh",
               }}>
-              {filteredData && filteredData.length > 0 ? (
+              {offlineMessage ? (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
+                </div>
+              ) : filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={pm10p0chartData}
                   options={chartOptions}
                   title="PM10.0 (μg/m³)"
                 />
               ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100%",
-                  }}>
-                  <Spinner animation="border" role="status"></Spinner>
-                </div>
+                <Spinner animation="border" role="status" />
               )}
             </Card>
           </Col>
@@ -1019,23 +1082,28 @@ function Dashboard() {
       minHeight: "25vh",
     }}
   >
-    {filteredData && filteredData.length > 0 ? (
-      <ChartCard
-        data={co2ChartData} 
-        options={chartOptions}
-        title="CO₂ (ppm)"
-      />
-    ) : (
+    {offlineMessage ? (
       <div
         style={{
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           height: "25vh",
+          color: "#999",
+          fontSize: "14px",
+          fontWeight: "500",
         }}
       >
-        <Spinner animation="border" role="status" />
+        {offlineMessage}
       </div>
+    ) : filteredData && filteredData.length > 0 ? (
+      <ChartCard
+        data={co2ChartData} 
+        options={chartOptions}
+        title="CO₂ (ppm)"
+      />
+    ) : (
+      <Spinner animation="border" role="status" />
     )}
   </Card>
 </Col>
@@ -1049,23 +1117,28 @@ function Dashboard() {
         minHeight: "25vh",
       }}
     >
-      {filteredData && filteredData.length > 0 ? (
-        <ChartCard
-          data={dbaChartData}
-          options={chartOptions}
-          title="Decibel (dB)"
-        />
-      ) : (
+      {offlineMessage ? (
         <div
           style={{
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             height: "25vh",
+            color: "#999",
+            fontSize: "14px",
+            fontWeight: "500",
           }}
         >
-          <Spinner animation="border" role="status"></Spinner>
+          {offlineMessage}
         </div>
+      ) : filteredData && filteredData.length > 0 ? (
+        <ChartCard
+          data={dbaChartData}
+          options={chartOptions}
+          title="Decibel (dB)"
+        />
+      ) : (
+        <Spinner animation="border" role="status" />
       )}
     </Card>
   </Col>
