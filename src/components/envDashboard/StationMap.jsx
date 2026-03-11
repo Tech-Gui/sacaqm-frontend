@@ -213,51 +213,7 @@ export default function StationMap() {
       bgcolor: "white",
       position: "relative",
     }}>
-      {/* Header */}
-      <Box sx={{
-        px: 3, py: 2,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderBottom: "1px solid #f1f5f9",
-        flexWrap: "wrap", gap: 1.5,
-      }}>
-        <Box>
-          <Typography sx={{ fontWeight: 700, fontSize: "0.8rem", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.6px" }}>
-            Station Network
-          </Typography>
-          <Typography sx={{ fontWeight: 600, fontSize: "1rem", color: "#0f172a", mt: 0.25 }}>
-            {counts.All} Monitoring Sites
-          </Typography>
-        </Box>
 
-        {/* Filter chips */}
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          {filterOptions.map(({ label, color }) => (
-            <Box
-              key={label}
-              onClick={() => setFilter(label)}
-              sx={{
-                display: "flex", alignItems: "center", gap: 0.75,
-                px: 1.5, py: 0.5,
-                borderRadius: 2,
-                cursor: "pointer",
-                border: "1.5px solid",
-                borderColor: filter === label ? color : "#e2e8f0",
-                bgcolor: filter === label ? `${color}15` : "white",
-                transition: "all 0.15s ease",
-                "&:hover": { borderColor: color, bgcolor: `${color}10` },
-              }}
-            >
-              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: color }} />
-              <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: filter === label ? color : "#64748b" }}>
-                {label}
-              </Typography>
-              <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: filter === label ? color : "#94a3b8" }}>
-                {counts[label] ?? 0}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      </Box>
 
       {/* Map */}
       <Box ref={mapContainer} sx={{ height: 480, width: "100%" }} />

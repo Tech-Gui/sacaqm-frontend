@@ -141,6 +141,7 @@ export default function EnvComplianceDashboard() {
   const [anchor, setAnchor] = useState(null);
   const [showForecast, setShowForecast] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [realtimeNoise, setRealtimeNoise] = useState(null);
 
   const sensorOptions = (stations || []).flatMap((station) =>
     (station.sensorIds || []).map((sid) => ({
@@ -161,6 +162,34 @@ export default function EnvComplianceDashboard() {
   useEffect(() => {
     if (sensorId) fetchDashboard();
   }, [sensorId, startDate, endDate, resolution]);
+
+  // Fetch latest real-time noise reading (most recent hourly value today)
+  useEffect(() => {
+    if (!sensorId) return;
+    const fetchRealtime = async () => {
+      try {
+        const today = formatDate(new Date());
+        const res = await axios.get(`${BASE}/api/nodedata/aggregated`, {
+          params: { sensor_id: sensorId, start: today, end: today, resolution: 'hourly' },
+        });
+        const records = res.data || [];
+        // Walk backwards to find the most recent non-zero dba reading
+        for (let i = records.length - 1; i >= 0; i--) {
+          if ((records[i].dba || 0) > 0) {
+            setRealtimeNoise(Math.round(records[i].dba));
+            return;
+          }
+        }
+        setRealtimeNoise(null); // no reading today yet
+      } catch {
+        setRealtimeNoise(null);
+      }
+    };
+    fetchRealtime();
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchRealtime, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [sensorId]);
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -320,35 +349,32 @@ export default function EnvComplianceDashboard() {
     return `${fmt(tomorrow)} – ${fmt(end)}, ${end.getFullYear()}`;
   })();
 
-  // Build AI forecast data for next week using jittered last-period values
+  // Forecast = exact last 7 data points, just relabelled with next week's dates
   const getForecastData = (originalData) => {
     if (!originalData) return null;
-    // Use last 7 data points (or pad/repeat) as the baseline for next week
-    const base = originalData.values.slice(-7);
+    const base   = originalData.values.slice(-7);
     const padded = Array.from({ length: 7 }, (_, i) => base[i % base.length] ?? 0);
-    const jitter = padded.map((v) => Math.max(0, Math.round(v * (0.88 + Math.random() * 0.24))));
-    return {
-      ...originalData,
-      labels: forecastWeekLabels,
-      values: jitter,
-    };
+    return { ...originalData, labels: forecastWeekLabels, values: padded };
   };
+
+  // Forecast week average for the noise gauge
+  const forecastNoiseData = dashData ? getForecastData(dashData.noiseData) : null;
+  const forecastNoiseAvg  = forecastNoiseData
+    ? Math.round(forecastNoiseData.values.reduce((s, v) => s + v, 0) / forecastNoiseData.values.length)
+    : 0;
 
   // Build forecast exceedance data (projected next-week hourly-like rows)
   const getForecastExceedanceData = (hourlyData) => {
     if (!hourlyData || hourlyData.length === 0) return [];
     const sample = hourlyData.slice(-24);
     const fields = ["pm1p0","pm2p5","pm4p0","pm10p0","dba","humidity","co2"];
-    const nullThresholdFields = ["nox","voc"]; // always 0 so no exceedances shown
+    const nullThresholdFields = ["nox","voc"];
     return forecastWeekLabels.flatMap((dayLabel) =>
       Array.from({ length: 24 }, (_, h) => {
         const base = sample[h % sample.length] || {};
         const row = { timestamp: `Forecast ${dayLabel} ${String(h).padStart(2,'0')}:00` };
-        fields.forEach((f) => {
-          const v = base[f] || 0;
-          row[f] = Math.max(0, Math.round(v * (0.85 + Math.random() * 0.3)));
-        });
-        nullThresholdFields.forEach((f) => { row[f] = 0; }); // no threshold = no exceedances
+        fields.forEach((f) => { row[f] = Math.round(base[f] || 0); });
+        nullThresholdFields.forEach((f) => { row[f] = 0; });
         return row;
       })
     );
@@ -774,20 +800,21 @@ export default function EnvComplianceDashboard() {
                     <Box component="span" sx={{ fontWeight: 700, color: '#5b21b6' }}>
                       ({forecastWeekRange})
                     </Box>
-                    &nbsp;— projections are based on historical sensor trends and AI pattern analysis.
                   </Typography>
                 </Box>
               </Box>
             )}
+
               <Box sx={{ mb: 3 }}>
-  <StationMap />
-</Box>
+                <StationMap />
+              </Box>
+
             {/* ROW 1: Exceedances by Parameter & Severity */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
               <Grid item xs={12}>
                 <Box sx={fadeIn(0)}>
                   <ExceedancesTable 
-                    hourlyData={showForecast ? getForecastExceedanceData(dashData.hourlyData) : dashData.hourlyData}
+                    hourlyData={dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     isForecast={showForecast}
                   />
@@ -800,7 +827,7 @@ export default function EnvComplianceDashboard() {
               <Grid item xs={12}>
                 <Box sx={fadeIn(0.1)}>
                   <ExceedancesOverTimeChart 
-                    hourlyData={showForecast ? getForecastExceedanceData(dashData.hourlyData) : dashData.hourlyData}
+                    hourlyData={dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     isForecast={showForecast}
                     forecastWeekRange={showForecast ? forecastWeekRange : null}
@@ -814,7 +841,7 @@ export default function EnvComplianceDashboard() {
               <Grid item xs={12} md={4}>
                 <Box sx={fadeIn(0.15)}>
                   <ExceedancesSeverityChart 
-                    hourlyData={showForecast ? getForecastExceedanceData(dashData.hourlyData) : dashData.hourlyData}
+                    hourlyData={dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     severity="moderate"
                     title={showForecast ? "Moderate Exceedances (Forecast)" : "Moderate Exceedances"}
@@ -827,7 +854,7 @@ export default function EnvComplianceDashboard() {
               <Grid item xs={12} md={4}>
                 <Box sx={fadeIn(0.16)}>
                   <ExceedancesSeverityChart 
-                    hourlyData={showForecast ? getForecastExceedanceData(dashData.hourlyData) : dashData.hourlyData}
+                    hourlyData={dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     severity="high"
                     title={showForecast ? "High Exceedances (Forecast)" : "High Exceedances"}
@@ -840,7 +867,7 @@ export default function EnvComplianceDashboard() {
               <Grid item xs={12} md={4}>
                 <Box sx={fadeIn(0.17)}>
                   <ExceedancesSeverityChart 
-                    hourlyData={showForecast ? getForecastExceedanceData(dashData.hourlyData) : dashData.hourlyData}
+                    hourlyData={dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     severity="veryHigh"
                     title={showForecast ? "Very High Exceedances (Forecast)" : "Very High Exceedances"}
@@ -873,9 +900,12 @@ export default function EnvComplianceDashboard() {
 
             {/* ROW 5: Noise */}
             <Grid container spacing={3} sx={{ mb: 3, alignItems : 'stretch' }}>
-              <Grid item xs={12} md={4} sx ={{ display : 'flex' }}>
-                <Box sx={{ ...fadeIn(0.6), display : 'flex', flex: 1}}>
-                  <NoiseGauge value={dashData.noiseData.current} />
+              <Grid item xs={12} md={4} sx={{ display: 'flex' }}>
+                <Box sx={{ ...fadeIn(0.6), display: 'flex', flex: 1 }}>
+                  <NoiseGauge 
+                    value={showForecast ? forecastNoiseAvg : (realtimeNoise ?? dashData.noiseData.current)}
+                    subLabel={showForecast ? "Forecast Period Average" : "Daily Average"}
+                  />
                 </Box>
               </Grid>
               <Grid item xs={12} md={8} sx = {{ display : 'flex' }}>

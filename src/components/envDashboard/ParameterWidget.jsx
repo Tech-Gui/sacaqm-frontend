@@ -166,6 +166,21 @@ export default function ParameterWidget({
           {unit}
         </Box>
       </Typography>
+
+      {/* Daily Average Label */}
+      <Typography
+        align="center"
+        sx={{
+          fontSize: '0.65rem',
+          fontWeight: 700,
+          color: '#94a3b8',
+          letterSpacing: '0.8px',
+          textTransform: 'uppercase',
+          mt: 0.5,
+        }}
+      >
+        Daily Average
+      </Typography>
     </Paper>
   );
 }
