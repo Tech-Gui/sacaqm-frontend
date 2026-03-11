@@ -331,6 +331,7 @@ function Dashboard() {
         labels: "Decibel (dB)",
         data : filteredData.map((data) => data.dba),
         fill: true, 
+        spanGaps: true,
         backgroundColor: function (context){
           var ctx = context.chart.ctx;
           var gradient = ctx.createLinearGradient(0,0,0,200);
@@ -388,6 +389,7 @@ function Dashboard() {
         label: "Co2",
         data: filteredData.map((data) => data.co2),
         fill: true,
+        spanGaps: true,
         backgroundColor: function (context) {
           var ctx = context.chart.ctx;
           var gradient = ctx.createLinearGradient(0, 0, 0, 200);
