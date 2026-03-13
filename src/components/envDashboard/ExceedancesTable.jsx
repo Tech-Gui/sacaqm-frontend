@@ -24,10 +24,10 @@ const getSeverityLevel = (value, threshold, paramKey) => {
     if (value <= 340) return "high";
     return "veryHigh";
   }
-  // Noise (NIOSH): threshold=85dB, Moderate=86-110, High=111-130, VeryHigh=131+
+  // Noise (NIOSH): threshold=70dB, Moderate=71-90, High=91-120, VeryHigh=121+
   if (paramKey === "dba") {
-    if (value <= 110) return "moderate";
-    if (value <= 130) return "high";
+    if (value <= 90)  return "moderate";
+    if (value <= 120) return "high";
     return "veryHigh";
   }
   // Non-AQI params: keep simple multiplier bands
@@ -38,7 +38,7 @@ const getSeverityLevel = (value, threshold, paramKey) => {
 
 export default function ExceedancesTable({ hourlyData = [], thresholds = {}, isForecast = false, forecastWeekLabels = [] }) {
 
-  // In forecast mode we use the exact same hourlyData (last 7 days) — same as all other components
+  // Dashboard passes pre-filtered data — just use it directly
   const activeData = hourlyData;
   
   // Calculate exceedances for each parameter at 3 severity levels

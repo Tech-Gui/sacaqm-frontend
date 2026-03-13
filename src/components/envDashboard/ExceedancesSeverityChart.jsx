@@ -28,8 +28,8 @@ const getSeverityLevel = (value, threshold, paramKey) => {
     return "veryHigh";
   }
   if (paramKey === "dba") {
-    if (value <= 110) return "moderate";
-    if (value <= 130) return "high";
+    if (value <= 90)  return "moderate";
+    if (value <= 120) return "high";
     return "veryHigh";
   }
   if (value <= threshold * 1.2) return "moderate";
@@ -69,19 +69,12 @@ export default function ExceedancesSeverityChart({
   const dailyExceedances = {};
   
   hourlyData.forEach((record) => {
-    const date = new Date(record.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    
-    if (!dailyExceedances[date]) {
-      dailyExceedances[date] = {
-        pm1: 0,
-        pm25: 0,
-        pm5: 0,
-        pm10: 0,
-        noise: 0,
-        co2: 0,
-        nox: 0,
-        voc: 0,
-      };
+    const d = new Date(record.timestamp);
+    const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+    if (!dailyExceedances[dateKey]) {
+      dailyExceedances[dateKey] = { label, pm1: 0, pm25: 0, pm5: 0, pm10: 0, noise: 0, co2: 0, nox: 0, voc: 0 };
     }
     
     // Count exceedances per parameter at this severity level
@@ -89,7 +82,7 @@ export default function ExceedancesSeverityChart({
       const fieldKey = FIELD_MAP[param];
       const level = getSeverityLevel(value || 0, threshold, fieldKey);
       if (level === severity) {
-        dailyExceedances[date][param]++;
+        dailyExceedances[dateKey][param]++;
       }
     };
     
@@ -103,11 +96,11 @@ export default function ExceedancesSeverityChart({
     checkParam(record.voc, thresholds.voc, 'voc');
   });
 
-  // Both modes show identical data — forecast just relabels dates 1:1
-  const rawLabels = Object.keys(dailyExceedances);
-  const rawValues = Object.values(dailyExceedances);
-  const labels       = isForecast && forecastWeekLabels.length > 0
-    ? rawLabels.map((_, i) => forecastWeekLabels[i] ?? forecastWeekLabels[forecastWeekLabels.length - 1])
+  const buckets    = Object.values(dailyExceedances);
+  const rawLabels  = buckets.map(b => b.label);
+  const rawValues  = buckets;
+  const labels      = isForecast && forecastWeekLabels.length > 0
+    ? rawLabels.map((_, i) => forecastWeekLabels[i] || forecastWeekLabels[forecastWeekLabels.length - 1])
     : rawLabels;
   const mappedValues = rawValues;
 

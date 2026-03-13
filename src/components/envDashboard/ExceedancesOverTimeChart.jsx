@@ -31,10 +31,12 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
   const dailyExceedances = {};
   
   hourlyData.forEach((record) => {
-    const date = new Date(record.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    
+    const d = new Date(record.timestamp);
+    const date = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
     if (!dailyExceedances[date]) {
-      dailyExceedances[date] = { pm1: 0, pm25: 0, pm5: 0, pm10: 0, noise: 0, co2: 0, nox: 0, voc: 0 };
+      dailyExceedances[date] = { label, pm1: 0, pm25: 0, pm5: 0, pm10: 0, noise: 0, co2: 0, nox: 0, voc: 0 };
     }
     
     if (thresholds.pm1  != null && (record.pm1p0  || 0) > thresholds.pm1)  dailyExceedances[date].pm1++;
@@ -47,11 +49,12 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
     if (thresholds.voc  != null && (record.voc    || 0) > thresholds.voc)  dailyExceedances[date].voc++;
   });
 
-  // Both modes show identical data — forecast just relabels dates 1:1
-  const rawLabels = Object.keys(dailyExceedances);
-  const rawValues = Object.values(dailyExceedances);
-  const labels       = isForecast && forecastWeekLabels.length > 0
-    ? rawLabels.map((_, i) => forecastWeekLabels[i] ?? forecastWeekLabels[forecastWeekLabels.length - 1])
+  const buckets    = Object.values(dailyExceedances);
+  const rawLabels  = buckets.map(b => b.label);
+  const rawValues  = buckets;
+  // In forecast mode: relabel existing days 1:1 with forecast dates — data never changes
+  const labels      = isForecast && forecastWeekLabels.length > 0
+    ? rawLabels.map((_, i) => forecastWeekLabels[i] || forecastWeekLabels[forecastWeekLabels.length - 1])
     : rawLabels;
   const mappedValues = rawValues;
 

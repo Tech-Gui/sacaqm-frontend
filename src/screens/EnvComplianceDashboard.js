@@ -59,10 +59,10 @@ const AQI_BANDS = {
     { max: Infinity, status: "Red" },
   ],
   noise: [ // NIOSH / dB scale
-    { max: 70,  status: "Green"  },  // Safe
-    { max: 85,  status: "Yellow" },  // Loud — caution
-    { max: 110, status: "Orange" },  // Very loud — hearing protection
-    { max: Infinity, status: "Red" },// Dangerous
+    { max: 70,       status: "Green"  },  // Safe
+    { max: 90,       status: "Yellow" },  // Moderate
+    { max: 120,      status: "Orange" },  // Very Loud
+    { max: Infinity, status: "Red"    },  // Dangerous
   ],
 };
 
@@ -89,7 +89,7 @@ const THRESHOLDS = {
   pm25: 103,   // SA NAAQS PM2.5 = 103 µg/m³
   pm5:  103,   // SA NAAQS — using PM2.5 limit
   pm10: 190,   // SA NAAQS PM10 = 190 µg/m³
-  noise: 70,   // NIOSH hearing protection threshold
+  noise: 70,   // NIOSH safe hearing threshold
   temperature: 32,
   humidity: 80,
   co2: 1000,
@@ -227,7 +227,11 @@ export default function EnvComplianceDashboard() {
     try {
       const prev = getPrevPeriod(startDate, endDate);
 
-      const [currRes, hourlyRes, prevRes] = await Promise.all([
+      // Fixed last-7-days range — matches exactly the "Last 7 Days" preset (today-7 to today)
+      const fEnd   = formatDate(new Date());
+      const fStart = (() => { const d = new Date(); d.setDate(d.getDate() - 7); return formatDate(d); })();
+
+      const [currRes, hourlyRes, prevRes, fCurrRes, fHourlyRes] = await Promise.all([
         axios.get(`${BASE}/api/nodedata/aggregated`, {
           params: { sensor_id: sensorId, start: startDate, end: endDate, resolution },
         }),
@@ -237,11 +241,24 @@ export default function EnvComplianceDashboard() {
         axios.get(`${BASE}/api/nodedata/aggregated`, {
           params: { sensor_id: sensorId, start: prev.start, end: prev.end, resolution },
         }).catch(() => ({ data: [] })),
+        // Forecast: always fetch last 7 days daily aggregated — independent of selected period
+        axios.get(`${BASE}/api/nodedata/aggregated`, {
+          params: { sensor_id: sensorId, start: fStart, end: fEnd, resolution: 'daily' },
+        }).catch(() => ({ data: [] })),
+        // Forecast: always fetch last 7 days hourly — independent of selected period
+        axios.get(`${BASE}/api/nodedata/aggregated`, {
+          params: { sensor_id: sensorId, start: fStart, end: fEnd, resolution: 'hourly' },
+        }).catch(() => ({ data: [] })),
       ]);
 
       const curr = currRes.data || [];
       const hourly = hourlyRes.data || [];
       const prevData = prevRes.data || [];
+      const fCurr = fCurrRes.data || [];
+      const fHourly = fHourlyRes.data || [];
+
+      // Remove the slice-based last7 — use fHourly directly (it IS last 7 days)
+      const last7Hourly = fHourly;
 
       console.log("✅ Display data:", curr.length, "records | Hourly data:", hourly.length, "hours");
       console.log("Sample display record:", curr[0]);
@@ -298,9 +315,27 @@ export default function EnvComplianceDashboard() {
         voc:   statusFor(vocData.current,      THRESHOLDS.voc),
       };
 
+      const fLabels = fCurr.map((item) =>
+        new Date(item.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      );
+      const forecastPmData = {
+        pm1:  { title: "PM1.0", labels: fLabels, values: fCurr.map((d) => Math.round(d.pm1p0  || 0)), current: avgField(fCurr, "pm1p0") },
+        pm25: { title: "PM2.5", labels: fLabels, values: fCurr.map((d) => Math.round(d.pm2p5  || 0)), current: avgField(fCurr, "pm2p5") },
+        pm5:  { title: "PM4.0", labels: fLabels, values: fCurr.map((d) => Math.round(d.pm4p0  || 0)), current: avgField(fCurr, "pm4p0") },
+        pm10: { title: "PM10",  labels: fLabels, values: fCurr.map((d) => Math.round(d.pm10p0 || 0)), current: avgField(fCurr, "pm10p0") },
+      };
+      const forecastNoiseData  = { labels: fLabels, values: fCurr.map((d) => Math.round(d.dba         || 0)), current: avgField(fCurr, "dba") };
+      const forecastTempData   = { labels: fLabels, values: fCurr.map((d) => Math.round(d.temperature || 0)), current: avgField(fCurr, "temperature") };
+      const forecastHumData    = { labels: fLabels, values: fCurr.map((d) => Math.round(d.humidity    || 0)), current: avgField(fCurr, "humidity") };
+      const forecastCo2Data    = { labels: fLabels, values: fCurr.map((d) => Math.round(d.co2         || 0)), current: avgField(fCurr, "co2") };
+      const forecastNoxData    = { labels: fLabels, values: fCurr.map((d) => Math.round(d.nox         || 0)), current: avgField(fCurr, "nox") };
+      const forecastVocData    = { labels: fLabels, values: fCurr.map((d) => Math.round(d.voc         || 0)), current: avgField(fCurr, "voc") };
+
       setDashData({
         pmData, noiseData, tempData, humidityData, co2Data, noxData, vocData,
+        forecastPmData, forecastNoiseData, forecastTempData, forecastHumData, forecastCo2Data, forecastNoxData, forecastVocData,
         hourlyData: hourly,
+        last7HourlyData: last7Hourly,
         summary: {
           compliant:    Object.values(statuses).filter((s) => s === "Green").length,
           warnings:     Object.values(statuses).filter((s) => s === "Yellow" || s === "Orange").length,
@@ -376,18 +411,12 @@ export default function EnvComplianceDashboard() {
     return `${fmt(tomorrow)} – ${fmt(end)}, ${end.getFullYear()}`;
   })();
 
-  // Forecast = exact last 7 data points, just relabelled with next week's dates
-  const getForecastData = (originalData) => {
-    if (!originalData) return null;
-    const base   = originalData.values.slice(-7);
-    const padded = Array.from({ length: 7 }, (_, i) => base[i % base.length] ?? 0);
-    return { ...originalData, labels: forecastWeekLabels, values: padded };
-  };
+  // Forecast always uses the dedicated last-7-days fetch — never depends on selected period
+  const forecastHourlyData = dashData?.last7HourlyData || [];
 
-  // Forecast week average for the noise gauge
-  const forecastNoiseData = dashData ? getForecastData(dashData.noiseData) : null;
-  const forecastNoiseAvg  = forecastNoiseData
-    ? Math.round(forecastNoiseData.values.reduce((s, v) => s + v, 0) / forecastNoiseData.values.length)
+  // Forecast noise avg — from dedicated fCurr last-7-days fetch
+  const forecastNoiseAvg = dashData?.forecastNoiseData?.values?.length
+    ? Math.round(dashData.forecastNoiseData.values.reduce((s, v) => s + v, 0) / dashData.forecastNoiseData.values.length)
     : 0;
 
   // Build forecast exceedance data (projected next-week hourly-like rows)
@@ -841,7 +870,7 @@ export default function EnvComplianceDashboard() {
               <Grid item xs={12}>
                 <Box sx={fadeIn(0)}>
                   <ExceedancesTable 
-                    hourlyData={dashData.hourlyData}
+                    hourlyData={showForecast ? forecastHourlyData : dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     isForecast={showForecast}
                     forecastWeekLabels={forecastWeekLabels}
@@ -855,7 +884,7 @@ export default function EnvComplianceDashboard() {
               <Grid item xs={12}>
                 <Box sx={fadeIn(0.1)}>
                   <ExceedancesOverTimeChart 
-                    hourlyData={dashData.hourlyData}
+                    hourlyData={showForecast ? forecastHourlyData : dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     isForecast={showForecast}
                     forecastWeekLabels={forecastWeekLabels}
@@ -870,7 +899,7 @@ export default function EnvComplianceDashboard() {
               <Grid item xs={12} md={4}>
                 <Box sx={fadeIn(0.15)}>
                   <ExceedancesSeverityChart 
-                    hourlyData={dashData.hourlyData}
+                    hourlyData={showForecast ? forecastHourlyData : dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     severity="moderate"
                     title={showForecast ? "Moderate Exceedances (Forecast)" : "Moderate Exceedances"}
@@ -884,7 +913,7 @@ export default function EnvComplianceDashboard() {
               <Grid item xs={12} md={4}>
                 <Box sx={fadeIn(0.16)}>
                   <ExceedancesSeverityChart 
-                    hourlyData={dashData.hourlyData}
+                    hourlyData={showForecast ? forecastHourlyData : dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     severity="high"
                     title={showForecast ? "High Exceedances (Forecast)" : "High Exceedances"}
@@ -898,7 +927,7 @@ export default function EnvComplianceDashboard() {
               <Grid item xs={12} md={4}>
                 <Box sx={fadeIn(0.17)}>
                   <ExceedancesSeverityChart 
-                    hourlyData={dashData.hourlyData}
+                    hourlyData={showForecast ? forecastHourlyData : dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     severity="veryHigh"
                     title={showForecast ? "Very High Exceedances (Forecast)" : "Very High Exceedances"}
@@ -913,7 +942,10 @@ export default function EnvComplianceDashboard() {
             {/* ROW 4: PM Widgets */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
               {Object.entries(dashData.pmData).map(([key, widget], idx) => {
-                const display = showForecast ? getForecastData(widget) : widget;
+                const fWidget = dashData.forecastPmData?.[key];
+                const display = showForecast && fWidget
+                  ? { ...fWidget, labels: forecastWeekLabels.slice(0, fWidget.labels.length) }
+                  : widget;
                 return (
                   <Grid item xs={12} sm={6} lg={3} key={key}>
                     <Box sx={fadeIn(0.2 + idx * 0.1)}>
@@ -943,7 +975,7 @@ export default function EnvComplianceDashboard() {
               </Grid>
               <Grid item xs={12} md={8} sx={{ display: 'flex' }}>
                 <Box sx={{ ...fadeIn(0.65), display: 'flex', flex: 1, width: '100%' }}>
-                  {(() => { const nd = showForecast ? getForecastData(dashData.noiseData) : dashData.noiseData; return (
+                  {(() => { const nd = showForecast && dashData.forecastNoiseData ? {...dashData.forecastNoiseData, labels: forecastWeekLabels.slice(0, dashData.forecastNoiseData.labels.length)} : dashData.noiseData; return (
                   <NoiseWidget 
                     title={showForecast ? "Noise Levels (Forecast)" : "Noise Levels Over Time"}
                     labels={nd.labels}
@@ -959,7 +991,7 @@ export default function EnvComplianceDashboard() {
             <Grid container spacing={3} sx={{ mb: 3 }}>              
               <Grid item xs={12} md={dashData.co2Data.values.some(v => v > 0) ? 4 : 6}>
                 <Box sx={fadeIn(0.7)}>
-                  {(() => { const d = showForecast ? getForecastData(dashData.tempData) : dashData.tempData; return (
+                  {(() => { const d = showForecast && dashData.forecastTempData ? {...dashData.forecastTempData, labels: forecastWeekLabels.slice(0, dashData.forecastTempData.labels.length)} : dashData.tempData; return (
                   <TempWidget 
                     title={showForecast ? "Temperature (Forecast)" : "Temperature"}
                     labels={d.labels} 
@@ -972,7 +1004,7 @@ export default function EnvComplianceDashboard() {
               
               <Grid item xs={12} md={dashData.co2Data.values.some(v => v > 0) ? 4 : 6}>
                 <Box sx={fadeIn(0.8)}>
-                  {(() => { const d = showForecast ? getForecastData(dashData.humidityData) : dashData.humidityData; return (
+                  {(() => { const d = showForecast && dashData.forecastHumData ? {...dashData.forecastHumData, labels: forecastWeekLabels.slice(0, dashData.forecastHumData.labels.length)} : dashData.humidityData; return (
                   <ParameterWidget 
                     title={showForecast ? "Humidity (Forecast)" : "Humidity"}
                     labels={d.labels} 
@@ -987,7 +1019,7 @@ export default function EnvComplianceDashboard() {
               {dashData.co2Data.values.some(v => v > 0) && (
                 <Grid item xs={12} md={4}>
                   <Box sx={fadeIn(0.9)}>
-                    {(() => { const d = showForecast ? getForecastData(dashData.co2Data) : dashData.co2Data; return (
+                    {(() => { const d = showForecast && dashData.forecastCo2Data ? {...dashData.forecastCo2Data, labels: forecastWeekLabels.slice(0, dashData.forecastCo2Data.labels.length)} : dashData.co2Data; return (
                     <ParameterWidget 
                       title={showForecast ? "CO2 (Forecast)" : "CO2"}
                       labels={d.labels} 
@@ -1005,7 +1037,7 @@ export default function EnvComplianceDashboard() {
             <Grid container spacing={3}>              
               <Grid item xs={12} md={6}>
                 <Box sx={fadeIn(1.0)}>
-                  {(() => { const d = showForecast ? getForecastData(dashData.noxData) : dashData.noxData; return (
+                  {(() => { const d = showForecast && dashData.forecastNoxData ? {...dashData.forecastNoxData, labels: forecastWeekLabels.slice(0, dashData.forecastNoxData.labels.length)} : dashData.noxData; return (
                   <ParameterWidget 
                     title={showForecast ? "NOx (Forecast)" : "NOx"}
                     labels={d.labels} 
@@ -1019,7 +1051,7 @@ export default function EnvComplianceDashboard() {
               
               <Grid item xs={12} md={6}>
                 <Box sx={fadeIn(1.1)}>
-                  {(() => { const d = showForecast ? getForecastData(dashData.vocData) : dashData.vocData; return (
+                  {(() => { const d = showForecast && dashData.forecastVocData ? {...dashData.forecastVocData, labels: forecastWeekLabels.slice(0, dashData.forecastVocData.labels.length)} : dashData.vocData; return (
                   <ParameterWidget 
                     title={showForecast ? "VOC (Forecast)" : "VOC"}
                     labels={d.labels} 
