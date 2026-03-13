@@ -44,8 +44,31 @@ function getPrevPeriod(start, end) {
   return { start: formatDate(ps), end: formatDate(pe) };
 }
 
-function statusFor(val, threshold) {
+// South Africa AQI bands per parameter (µg/m³)
+const AQI_BANDS = {
+  pm25: [
+    { max: 103, status: "Green" },
+    { max: 178, status: "Amber" },
+    { max: Infinity, status: "Red" },
+  ],
+  pm10: [
+    { max: 190, status: "Green" },
+    { max: 290, status: "Amber" },
+    { max: Infinity, status: "Red" },
+  ],
+  noise: [
+    { max: 70,  status: "Green" },   // Moderate / safe
+    { max: 85,  status: "Amber" },   // Loud — NIOSH hearing protection threshold
+    { max: Infinity, status: "Red" }, // Very Loud / Dangerous (85+ dB)
+  ],
+};
+
+function statusFor(val, threshold, paramKey) {
   if (threshold === null || threshold === undefined) return "—";
+  const bands = AQI_BANDS[paramKey];
+  if (bands) {
+    for (const band of bands) { if (val <= band.max) return band.status; }
+  }
   if (val <= threshold) return "Green";
   if (val <= threshold * 1.2) return "Amber";
   return "Red";
@@ -57,12 +80,12 @@ const avgField = (arr, key) =>
 const safeMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map((d) => d.min ?? 0))) : 0;
 const safeMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map((d) => d.max ?? 0))) : 0;
 
-const THRESHOLDS = { 
-  pm1: 40,
-  pm25: 40,
-  pm5: 60,
-  pm10: 75,
-  noise: 70,
+const THRESHOLDS = {
+  pm1:  103,   // No dedicated NAAQS — using PM2.5 limit (103 µg/m³)
+  pm25: 103,   // SA NAAQS PM2.5 = 103 µg/m³ (1hr)
+  pm5:  103,   // No dedicated NAAQS — using PM2.5 limit
+  pm10: 190,   // SA NAAQS PM10  = 190 µg/m³ (1hr)
+  noise: 85,   // NIOSH hearing protection threshold
   temperature: 32,
   humidity: 80,
   co2: 1000,
@@ -259,11 +282,11 @@ export default function EnvComplianceDashboard() {
       const vocData = { labels, values: curr.map((d) => Math.round(d.voc || 0)), current: avgField(curr, "voc"), trend: calcTrend(curr.map((d) => d.voc || 0), prevData.map((d) => d.voc || 0)) };
 
       const statuses = {
-        pm1:   statusFor(pmData.pm1.current,   THRESHOLDS.pm1),
-        pm25:  statusFor(pmData.pm25.current,  THRESHOLDS.pm25),
-        pm5:   statusFor(pmData.pm5.current,   THRESHOLDS.pm5),
-        pm10:  statusFor(pmData.pm10.current,  THRESHOLDS.pm10),
-        noise: statusFor(noiseData.current,    THRESHOLDS.noise),
+        pm1:   statusFor(pmData.pm1.current,   THRESHOLDS.pm1,  "pm25"),
+        pm25:  statusFor(pmData.pm25.current,  THRESHOLDS.pm25, "pm25"),
+        pm5:   statusFor(pmData.pm5.current,   THRESHOLDS.pm5,  "pm25"),
+        pm10:  statusFor(pmData.pm10.current,  THRESHOLDS.pm10, "pm10"),
+        noise: statusFor(noiseData.current,    THRESHOLDS.noise, "noise"),
         temp:  statusFor(tempData.current,     THRESHOLDS.temperature),
         humidity: statusFor(humidityData.current, THRESHOLDS.humidity),
         co2:   statusFor(co2Data.current,      THRESHOLDS.co2),
@@ -781,7 +804,7 @@ export default function EnvComplianceDashboard() {
                 <span style={{ fontSize: '1.8rem' }}>🤖</span>
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                    <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#5b21b6', letterSpacing: '0.2px' }}>
+                    <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#5b21b6', letterSpacing: '0.2px' }}>
                       AI Forecast Mode Active
                     </Typography>
                     <Box sx={{
@@ -789,13 +812,13 @@ export default function EnvComplianceDashboard() {
                       background: 'linear-gradient(90deg, #7c3aed, #6366f1)',
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
                     }}>
-                      <span style={{ fontSize: '0.6rem' }}>✦</span>
-                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                      <span style={{ fontSize: '0.7rem' }}>✦</span>
+                      <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                         Powered by AI
                       </Typography>
                     </Box>
                   </Box>
-                  <Typography sx={{ fontSize: '0.8rem', color: '#6d28d9', mt: 0.4 }}>
+                  <Typography sx={{ fontSize: '0.95rem', color: '#6d28d9', mt: 0.4 }}>
                     Showing AI-generated forecasts for next week&nbsp;
                     <Box component="span" sx={{ fontWeight: 700, color: '#5b21b6' }}>
                       ({forecastWeekRange})

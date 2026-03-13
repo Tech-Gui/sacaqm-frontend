@@ -194,7 +194,7 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
           color: '#94a3b8',
           fontWeight: 500
         }}>
-          Number of hours each parameter exceeded threshold per day
+          Number of hours each parameter exceeded SA NAAQS threshold per day
         </Typography>
       </Box>
 
