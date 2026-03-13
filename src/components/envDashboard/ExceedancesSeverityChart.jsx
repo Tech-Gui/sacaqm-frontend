@@ -48,7 +48,9 @@ export default function ExceedancesSeverityChart({
   thresholds = {}, 
   severity = "moderate",
   title = "Exceedances",
-  color = "#fbbf24"
+  color = "#fbbf24",
+  isForecast = false,
+  forecastWeekLabels = [],
 }) {
   
   const [visibleParams, setVisibleParams] = React.useState({
@@ -101,7 +103,13 @@ export default function ExceedancesSeverityChart({
     checkParam(record.voc, thresholds.voc, 'voc');
   });
 
-  const labels = Object.keys(dailyExceedances);
+  // Both modes show identical data — forecast just relabels dates 1:1
+  const rawLabels = Object.keys(dailyExceedances);
+  const rawValues = Object.values(dailyExceedances);
+  const labels       = isForecast && forecastWeekLabels.length > 0
+    ? rawLabels.map((_, i) => forecastWeekLabels[i] ?? forecastWeekLabels[forecastWeekLabels.length - 1])
+    : rawLabels;
+  const mappedValues = rawValues;
 
   // Define parameters with colors
   const parameterConfig = [
@@ -129,7 +137,7 @@ export default function ExceedancesSeverityChart({
     .filter(param => visibleParams[param.key])
     .map(param => ({
       label: param.label,
-      data: labels.map(date => dailyExceedances[date][param.key]),
+      data: labels.map((_, i) => mappedValues[i]?.[param.key] ?? 0),
       borderColor: param.color,
       backgroundColor: param.color + '30',
       borderWidth: param.borderWidth,

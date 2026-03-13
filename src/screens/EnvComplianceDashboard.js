@@ -44,22 +44,25 @@ function getPrevPeriod(start, end) {
   return { start: formatDate(ps), end: formatDate(pe) };
 }
 
-// South Africa AQI bands per parameter (µg/m³)
+// SA AQI 4-colour bands: Green / Yellow / Orange / Red
 const AQI_BANDS = {
-  pm25: [
-    { max: 103, status: "Green" },
-    { max: 178, status: "Amber" },
+  pm25: [ // PM1, PM2.5, PM4 — NAAQS = 103 µg/m³
+    { max: 103, status: "Green"  },
+    { max: 128, status: "Yellow" },  // Moderate AQI
+    { max: 178, status: "Orange" },  // High AQI
+    { max: Infinity, status: "Red" },// Very High / Hazardous
+  ],
+  pm10: [ // NAAQS = 190 µg/m³
+    { max: 190, status: "Green"  },
+    { max: 240, status: "Yellow" },
+    { max: 290, status: "Orange" },
     { max: Infinity, status: "Red" },
   ],
-  pm10: [
-    { max: 190, status: "Green" },
-    { max: 290, status: "Amber" },
-    { max: Infinity, status: "Red" },
-  ],
-  noise: [
-    { max: 70,  status: "Green" },   // Moderate / safe
-    { max: 85,  status: "Amber" },   // Loud — NIOSH hearing protection threshold
-    { max: Infinity, status: "Red" }, // Very Loud / Dangerous (85+ dB)
+  noise: [ // NIOSH / dB scale
+    { max: 70,  status: "Green"  },  // Safe
+    { max: 85,  status: "Yellow" },  // Loud — caution
+    { max: 110, status: "Orange" },  // Very loud — hearing protection
+    { max: Infinity, status: "Red" },// Dangerous
   ],
 };
 
@@ -70,7 +73,8 @@ function statusFor(val, threshold, paramKey) {
     for (const band of bands) { if (val <= band.max) return band.status; }
   }
   if (val <= threshold) return "Green";
-  if (val <= threshold * 1.2) return "Amber";
+  if (val <= threshold * 1.2) return "Yellow";
+  if (val <= threshold * 1.5) return "Orange";
   return "Red";
 }
 
@@ -81,11 +85,11 @@ const safeMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map((d) => d.m
 const safeMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map((d) => d.max ?? 0))) : 0;
 
 const THRESHOLDS = {
-  pm1:  103,   // No dedicated NAAQS — using PM2.5 limit (103 µg/m³)
-  pm25: 103,   // SA NAAQS PM2.5 = 103 µg/m³ (1hr)
-  pm5:  103,   // No dedicated NAAQS — using PM2.5 limit
-  pm10: 190,   // SA NAAQS PM10  = 190 µg/m³ (1hr)
-  noise: 85,   // NIOSH hearing protection threshold
+  pm1:  103,   // SA NAAQS — using PM2.5 limit
+  pm25: 103,   // SA NAAQS PM2.5 = 103 µg/m³
+  pm5:  103,   // SA NAAQS — using PM2.5 limit
+  pm10: 190,   // SA NAAQS PM10 = 190 µg/m³
+  noise: 70,   // NIOSH hearing protection threshold
   temperature: 32,
   humidity: 80,
   co2: 1000,
@@ -299,7 +303,7 @@ export default function EnvComplianceDashboard() {
         hourlyData: hourly,
         summary: {
           compliant:    Object.values(statuses).filter((s) => s === "Green").length,
-          warnings:     Object.values(statuses).filter((s) => s === "Amber").length,
+          warnings:     Object.values(statuses).filter((s) => s === "Yellow" || s === "Orange").length,
           nonCompliant: Object.values(statuses).filter((s) => s === "Red").length,
         },
         table: [
@@ -840,6 +844,7 @@ export default function EnvComplianceDashboard() {
                     hourlyData={dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     isForecast={showForecast}
+                    forecastWeekLabels={forecastWeekLabels}
                   />
                 </Box>
               </Grid>
@@ -853,6 +858,7 @@ export default function EnvComplianceDashboard() {
                     hourlyData={dashData.hourlyData}
                     thresholds={THRESHOLDS}
                     isForecast={showForecast}
+                    forecastWeekLabels={forecastWeekLabels}
                     forecastWeekRange={showForecast ? forecastWeekRange : null}
                   />
                 </Box>
@@ -870,6 +876,7 @@ export default function EnvComplianceDashboard() {
                     title={showForecast ? "Moderate Exceedances (Forecast)" : "Moderate Exceedances"}
                     color="#fbbf24"
                     isForecast={showForecast}
+                    forecastWeekLabels={forecastWeekLabels}
                   />
                 </Box>
               </Grid>
@@ -883,6 +890,7 @@ export default function EnvComplianceDashboard() {
                     title={showForecast ? "High Exceedances (Forecast)" : "High Exceedances"}
                     color="#fb923c"
                     isForecast={showForecast}
+                    forecastWeekLabels={forecastWeekLabels}
                   />
                 </Box>
               </Grid>
@@ -896,6 +904,7 @@ export default function EnvComplianceDashboard() {
                     title={showForecast ? "Very High Exceedances (Forecast)" : "Very High Exceedances"}
                     color="#ef4444"
                     isForecast={showForecast}
+                    forecastWeekLabels={forecastWeekLabels}
                   />
                 </Box>
               </Grid>
@@ -912,7 +921,8 @@ export default function EnvComplianceDashboard() {
                         title={showForecast ? `${widget.title} (Forecast)` : widget.title}
                         labels={display.labels} 
                         dataPoints={display.values} 
-                        threshold={THRESHOLDS[key]} 
+                        threshold={THRESHOLDS[key]}
+                        paramKey={key === 'pm10' ? 'pm10' : 'pm25'}
                         trend={widget.trend} 
                       />
                     </Box>
@@ -922,17 +932,17 @@ export default function EnvComplianceDashboard() {
             </Grid>
 
             {/* ROW 5: Noise */}
-            <Grid container spacing={3} sx={{ mb: 3, alignItems : 'stretch' }}>
+            <Grid container spacing={3} sx={{ mb: 3, alignItems: 'stretch' }}>
               <Grid item xs={12} md={4} sx={{ display: 'flex' }}>
-                <Box sx={{ ...fadeIn(0.6), display: 'flex', flex: 1 }}>
+                <Box sx={{ ...fadeIn(0.6), display: 'flex', flex: 1, width: '100%' }}>
                   <NoiseGauge 
                     value={showForecast ? forecastNoiseAvg : (realtimeNoise ?? dashData.noiseData.current)}
                     subLabel={showForecast ? "Forecast Period Average" : "Daily Average"}
                   />
                 </Box>
               </Grid>
-              <Grid item xs={12} md={8} sx = {{ display : 'flex' }}>
-                <Box sx={{...fadeIn(0.65), display : 'flex', flex: 1}}>
+              <Grid item xs={12} md={8} sx={{ display: 'flex' }}>
+                <Box sx={{ ...fadeIn(0.65), display: 'flex', flex: 1, width: '100%' }}>
                   {(() => { const nd = showForecast ? getForecastData(dashData.noiseData) : dashData.noiseData; return (
                   <NoiseWidget 
                     title={showForecast ? "Noise Levels (Forecast)" : "Noise Levels Over Time"}

@@ -36,7 +36,10 @@ const getSeverityLevel = (value, threshold, paramKey) => {
   return "veryHigh";
 };
 
-export default function ExceedancesTable({ hourlyData = [], thresholds = {} }) {
+export default function ExceedancesTable({ hourlyData = [], thresholds = {}, isForecast = false, forecastWeekLabels = [] }) {
+
+  // In forecast mode we use the exact same hourlyData (last 7 days) — same as all other components
+  const activeData = hourlyData;
   
   // Calculate exceedances for each parameter at 3 severity levels
   const calculateExceedances = (field, threshold) => {
@@ -48,7 +51,7 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {} }) {
     let high = 0;
     let veryHigh = 0;
     
-    hourlyData.forEach((record) => {
+    activeData.forEach((record) => {
       const level = getSeverityLevel(record[field] || 0, threshold, field);
       if (level === "moderate") moderate++;
       else if (level === "high") high++;
@@ -79,7 +82,7 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {} }) {
   // Filter out CO2 if no data
   const filteredRows = rows.filter(row => {
     if (row.field === 'co2') {
-      return hourlyData.some(d => (d.co2 || 0) > 0);
+      return activeData.some(d => (d.co2 || 0) > 0);
     }
     return true;
   });
@@ -134,14 +137,16 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {} }) {
           color: '#1e293b',
           mb: 0.5
         }}>
-          Exceedances by Parameter & Severity
+          Exceedances by Parameter & Severity{isForecast ? ' (Forecast)' : ''}
         </Typography>
         <Typography sx={{ 
           fontSize: '0.75rem',
           color: '#94a3b8',
           fontWeight: 500
         }}>
-          Hourly threshold violations over selected period ({hourlyData.length} hours analyzed)
+          {isForecast
+            ? `Projected threshold violations for next week (${activeData.length} hours analyzed)`
+            : `Hourly threshold violations over selected period (${activeData.length} hours analyzed)`}
         </Typography>
       </Box>
 
@@ -157,16 +162,13 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {} }) {
                 Threshold
               </TableCell>
               <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#92400e', borderBottom: '2px solid #e2e8f0', bgcolor: '#fef3c7' }}>
-                Moderate<br/>
-                <Box component="span" sx={{ fontSize: '0.65rem', fontWeight: 500 }}>Moderate</Box>
+                Moderate
               </TableCell>
               <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#7c2d12', borderBottom: '2px solid #e2e8f0', bgcolor: '#fed7aa' }}>
-                High<br/>
-                <Box component="span" sx={{ fontSize: '0.65rem', fontWeight: 500 }}>Unhealthy</Box>
+                High
               </TableCell>
               <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#7f1d1d', borderBottom: '2px solid #e2e8f0', bgcolor: '#fee2e2' }}>
-                Very High<br/>
-                <Box component="span" sx={{ fontSize: '0.65rem', fontWeight: 500 }}>Hazardous</Box>
+                Very High
               </TableCell>
               <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#475569', borderBottom: '2px solid #e2e8f0', bgcolor: '#f1f5f9' }}>
                 Total

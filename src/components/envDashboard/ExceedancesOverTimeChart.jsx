@@ -14,7 +14,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds = {} }) {
+export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds = {}, isForecast = false, forecastWeekLabels = [], forecastWeekRange = null }) {
   const [visibleParams, setVisibleParams] = React.useState({
     pm25: true,
     pm10: true,
@@ -34,19 +34,9 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
     const date = new Date(record.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" });
     
     if (!dailyExceedances[date]) {
-      dailyExceedances[date] = {
-        pm1: 0,
-        pm25: 0,
-        pm5: 0,
-        pm10: 0,
-        noise: 0,
-        co2: 0,
-        nox: 0,
-        voc: 0,
-      };
+      dailyExceedances[date] = { pm1: 0, pm25: 0, pm5: 0, pm10: 0, noise: 0, co2: 0, nox: 0, voc: 0 };
     }
     
-    // Count total exceedances (how many hours exceeded per parameter per day)
     if (thresholds.pm1  != null && (record.pm1p0  || 0) > thresholds.pm1)  dailyExceedances[date].pm1++;
     if (thresholds.pm25 != null && (record.pm2p5  || 0) > thresholds.pm25) dailyExceedances[date].pm25++;
     if (thresholds.pm5  != null && (record.pm4p0  || 0) > thresholds.pm5)  dailyExceedances[date].pm5++;
@@ -57,7 +47,13 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
     if (thresholds.voc  != null && (record.voc    || 0) > thresholds.voc)  dailyExceedances[date].voc++;
   });
 
-  const labels = Object.keys(dailyExceedances);
+  // Both modes show identical data — forecast just relabels dates 1:1
+  const rawLabels = Object.keys(dailyExceedances);
+  const rawValues = Object.values(dailyExceedances);
+  const labels       = isForecast && forecastWeekLabels.length > 0
+    ? rawLabels.map((_, i) => forecastWeekLabels[i] ?? forecastWeekLabels[forecastWeekLabels.length - 1])
+    : rawLabels;
+  const mappedValues = rawValues;
 
   // Define parameters with colors
   const parameterConfig = [
@@ -85,7 +81,7 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
     .filter(param => visibleParams[param.key])
     .map(param => ({
       label: param.label,
-      data: labels.map(date => dailyExceedances[date][param.key]),
+      data: labels.map((_, i) => mappedValues[i]?.[param.key] ?? 0),
       borderColor: param.color,
       backgroundColor: param.color,
       borderWidth: param.borderWidth,
@@ -187,14 +183,16 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
           color: '#1e293b',
           mb: 0.5
         }}>
-          Total Exceedances
+          Total Exceedances{isForecast ? ' (Forecast)' : ''}
         </Typography>
         <Typography sx={{ 
           fontSize: '0.75rem',
           color: '#94a3b8',
           fontWeight: 500
         }}>
-          Number of hours each parameter exceeded SA NAAQS threshold per day
+          {isForecast
+            ? `Projected hourly exceedances per day for next week`
+            : `Number of hours each parameter exceeded SA NAAQS threshold per day`}
         </Typography>
       </Box>
 
