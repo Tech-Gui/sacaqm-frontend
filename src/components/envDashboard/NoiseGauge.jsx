@@ -4,15 +4,28 @@ import { Paper, Typography, Box, Chip } from "@mui/material";
 export default function NoiseGaugeWidget({ value = 0, subLabel = "Daily Average" }) {
   const canvasRef = useRef(null);
 
-  const thresholds = { green: 55, amber: 70, red: 100 };
+  // 4-color bands: Green ≤70, Yellow 71-90, Orange 91-120, Red 121+
+  const MAX_DB = 130;
+  const bands = [
+    { max: 70,  color: '#22c55e', label: "Safe"            },
+    { max: 90,  color: '#eab308', label: "Moderate"        },
+    { max: 120, color: '#f97316', label: "Very Loud"       },
+    { max: MAX_DB, color: '#ef4444', label: "Dangerous"    },
+  ];
 
   const getStatus = () => {
-    if (value <= thresholds.green) return { label: "Compliant", bgcolor: "#dcfce7", color: "#16a34a" };
-    if (value <= thresholds.amber) return { label: "Warning", bgcolor: "#fef3c7", color: "#d97706" };
-    return { label: "Non-Compliant", bgcolor: "#fee2e2", color: "#dc2626" };
+    for (const b of bands) { if (value <= b.max) return b; }
+    return bands[bands.length - 1];
   };
-
   const status = getStatus();
+
+  const statusChipColors = {
+    "Safe":       { bgcolor: "#dcfce7", color: "#16a34a" },
+    "Moderate":   { bgcolor: "#fef9c3", color: "#854d0e" },
+    "Very Loud":  { bgcolor: "#ffedd5", color: "#c2410c" },
+    "Dangerous":  { bgcolor: "#fee2e2", color: "#dc2626" },
+  };
+  const chipStyle = statusChipColors[status.label] || statusChipColors["Safe"];
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -22,43 +35,26 @@ export default function NoiseGaugeWidget({ value = 0, subLabel = "Daily Average"
     const width = canvas.width;
     const height = canvas.height;
     const centerX = width / 2;
-    const centerY = height - 20;
-    const radius = 80;
+    const centerY = height - 25;
+    const radius = 105;
 
     ctx.clearRect(0, 0, width, height);
 
-    // ✅ FIXED: Use -Math.PI to 0 (top semicircle going clockwise)
-    // This makes 0% = left side, 50% = top, 100% = right side
-    const startAngle = -Math.PI;  // Left side (-180°)
-    const endAngle = 0;            // Right side (0°)
-    const totalAngle = Math.PI;    // 180° span
+    const startAngle = -Math.PI;
+    const totalAngle = Math.PI;
 
-    const greenPercent = thresholds.green / thresholds.red;
-    const amberPercent = thresholds.amber / thresholds.red;
-
-    const greenAngle = startAngle + (totalAngle * greenPercent);
-    const amberAngle = startAngle + (totalAngle * amberPercent);
-
-    // GREEN zone (0-55)
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, startAngle, greenAngle, false);
-    ctx.lineWidth = 20;
-    ctx.strokeStyle = '#22c55e';
-    ctx.stroke();
-
-    // AMBER zone (56-70)
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, greenAngle, amberAngle, false);
-    ctx.lineWidth = 20;
-    ctx.strokeStyle = '#f59e0b';
-    ctx.stroke();
-
-    // RED zone (71-100)
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, amberAngle, endAngle, false);
-    ctx.lineWidth = 20;
-    ctx.strokeStyle = '#ef4444';
-    ctx.stroke();
+    // Draw 4 color zones
+    let prevAngle = startAngle;
+    bands.forEach((band) => {
+      const pct = band.max / MAX_DB;
+      const nextAngle = startAngle + totalAngle * pct;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, prevAngle, nextAngle, false);
+      ctx.lineWidth = 24;
+      ctx.strokeStyle = band.color;
+      ctx.stroke();
+      prevAngle = nextAngle;
+    });
 
     // Tick marks
     ctx.strokeStyle = '#cbd5e1';
@@ -66,31 +62,29 @@ export default function NoiseGaugeWidget({ value = 0, subLabel = "Daily Average"
     for (let i = 0; i <= 10; i++) {
       const angle = startAngle + (totalAngle * i / 10);
       ctx.beginPath();
-      ctx.moveTo(centerX + (radius - 15) * Math.cos(angle), centerY + (radius - 15) * Math.sin(angle));
-      ctx.lineTo(centerX + (radius + 5) * Math.cos(angle), centerY + (radius + 5) * Math.sin(angle));
+      ctx.moveTo(centerX + (radius - 18) * Math.cos(angle), centerY + (radius - 18) * Math.sin(angle));
+      ctx.lineTo(centerX + (radius + 6) * Math.cos(angle), centerY + (radius + 6) * Math.sin(angle));
       ctx.stroke();
     }
 
     // Labels
     ctx.fillStyle = '#64748b';
-    ctx.font = 'bold 11px sans-serif';
+    ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('0', centerX - radius - 10, centerY + 5);
-    ctx.fillText('50', centerX, centerY - radius + 15);
-    ctx.fillText('100', centerX + radius + 10, centerY + 5);
+    ctx.fillText('0',   centerX - radius - 14, centerY + 6);
+    ctx.fillText('65',  centerX,               centerY - radius + 18);
+    ctx.fillText('130', centerX + radius + 16, centerY + 6);
 
-    // NEEDLE - Fixed calculation
-    const safeValue = Math.min(Math.max(value, 0), thresholds.red);
-    const valuePercent = safeValue / thresholds.red;
+    // Needle
+    const safeValue = Math.min(Math.max(value, 0), MAX_DB);
+    const valuePercent = safeValue / MAX_DB;
     const needleAngle = startAngle + (totalAngle * valuePercent);
-    const needleLength = radius - 25;
-
-    console.log(`Needle: ${value}dB = ${(valuePercent*100).toFixed(1)}% = ${needleAngle.toFixed(2)} radians`);
+    const needleLength = radius - 30;
 
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(needleAngle + Math.PI / 2);
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.shadowBlur = 6;
     ctx.shadowOffsetY = 3;
     ctx.beginPath();
@@ -103,11 +97,11 @@ export default function NoiseGaugeWidget({ value = 0, subLabel = "Daily Average"
     ctx.fill();
     ctx.restore();
 
-    // Center
+    // Center dot
     ctx.beginPath();
     ctx.arc(centerX, centerY, 10, 0, 2 * Math.PI);
     ctx.fillStyle = '#1e293b';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
     ctx.shadowBlur = 4;
     ctx.fill();
     ctx.beginPath();
@@ -119,16 +113,16 @@ export default function NoiseGaugeWidget({ value = 0, subLabel = "Daily Average"
   }, [value]);
 
   return (
-    <Paper sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)', bgcolor: 'white', p: 2.5, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width : '100%',  minHeight: 240, transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)', transform: 'translateY(-4px)' } }}>
+    <Paper sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)', bgcolor: 'white', p: 2.5, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)', transform: 'translateY(-4px)' } }}>
       <Typography sx={{ fontWeight: 600, fontSize: '0.75rem', color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase', mb: 2 }}>📊 Noise Levels</Typography>
-      <canvas ref={canvasRef} width={220} height={140} style={{ marginBottom: '12px' }} />
+      <canvas ref={canvasRef} width={280} height={175} style={{ marginBottom: '12px' }} />
       <Typography sx={{ fontWeight: 700, fontSize: '2.5rem', color: '#1e293b', letterSpacing: '-0.5px', lineHeight: 1, mb: 0.5 }}>
         {value}<Box component="span" sx={{ fontSize: '1.25rem', color: '#94a3b8', fontWeight: 400, ml: 0.5 }}>dB</Box>
       </Typography>
       <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', mb: 1 }}>
         {subLabel}
       </Typography>
-      <Chip label={status.label} sx={{ bgcolor: status.bgcolor, color: status.color, fontWeight: 600, fontSize: '0.7rem', height: 24, borderRadius: 1.5, minWidth: 90, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }} />
+      <Chip label={status.label} sx={{ bgcolor: chipStyle.bgcolor, color: chipStyle.color, fontWeight: 600, fontSize: '0.7rem', height: 24, borderRadius: 1.5, minWidth: 90, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }} />
     </Paper>
   );
 }

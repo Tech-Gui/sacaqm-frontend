@@ -14,12 +14,43 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
+// SA AQI severity bands
+const getSeverityLevel = (value, threshold, paramKey) => {
+  if (threshold == null || value <= threshold) return null;
+  if (["pm1p0","pm2p5","pm4p0"].includes(paramKey)) {
+    if (value <= 178) return "moderate";
+    if (value <= 253) return "high";
+    return "veryHigh";
+  }
+  if (paramKey === "pm10p0") {
+    if (value <= 290) return "moderate";
+    if (value <= 340) return "high";
+    return "veryHigh";
+  }
+  if (paramKey === "dba") {
+    if (value <= 90)  return "moderate";
+    if (value <= 120) return "high";
+    return "veryHigh";
+  }
+  if (value <= threshold * 1.2) return "moderate";
+  if (value <= threshold * 1.5) return "high";
+  return "veryHigh";
+};
+
+// Field key map for AQI band lookup
+const FIELD_MAP = {
+  pm1: 'pm1p0', pm25: 'pm2p5', pm5: 'pm4p0', pm10: 'pm10p0',
+  noise: 'dba', co2: 'co2', nox: 'nox', voc: 'voc'
+};
+
 export default function ExceedancesSeverityChart({ 
   hourlyData = [], 
   thresholds = {}, 
-  severity = "moderate", // "moderate", "high", "veryHigh"
+  severity = "moderate",
   title = "Exceedances",
-  color = "#fbbf24"
+  color = "#fbbf24",
+  isForecast = false,
+  forecastWeekLabels = [],
 }) {
   
   const [visibleParams, setVisibleParams] = React.useState({
@@ -34,39 +65,24 @@ export default function ExceedancesSeverityChart({
     voc: false,
   });
 
-  // Calculate which severity level to count
-  const getExceedanceLevel = (value, threshold) => {
-    if (threshold == null) return null;
-    if (value <= threshold) return null;
-    if (value <= threshold * 1.2) return "moderate";
-    if (value <= threshold * 1.5) return "high";
-    return "veryHigh";
-  };
-
   // Group hourly data by date and count exceedances per parameter at this severity
   const dailyExceedances = {};
   
   hourlyData.forEach((record) => {
-    const date = new Date(record.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    
-    if (!dailyExceedances[date]) {
-      dailyExceedances[date] = {
-        pm1: 0,
-        pm25: 0,
-        pm5: 0,
-        pm10: 0,
-        noise: 0,
-        co2: 0,
-        nox: 0,
-        voc: 0,
-      };
+    const d = new Date(record.timestamp);
+    const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+    if (!dailyExceedances[dateKey]) {
+      dailyExceedances[dateKey] = { label, pm1: 0, pm25: 0, pm5: 0, pm10: 0, noise: 0, co2: 0, nox: 0, voc: 0 };
     }
     
     // Count exceedances per parameter at this severity level
     const checkParam = (value, threshold, param) => {
-      const level = getExceedanceLevel(value || 0, threshold);
+      const fieldKey = FIELD_MAP[param];
+      const level = getSeverityLevel(value || 0, threshold, fieldKey);
       if (level === severity) {
-        dailyExceedances[date][param]++;
+        dailyExceedances[dateKey][param]++;
       }
     };
     
@@ -80,7 +96,13 @@ export default function ExceedancesSeverityChart({
     checkParam(record.voc, thresholds.voc, 'voc');
   });
 
-  const labels = Object.keys(dailyExceedances);
+  const buckets    = Object.values(dailyExceedances);
+  const rawLabels  = buckets.map(b => b.label);
+  const rawValues  = buckets;
+  const labels      = isForecast && forecastWeekLabels.length > 0
+    ? rawLabels.map((_, i) => forecastWeekLabels[i] || forecastWeekLabels[forecastWeekLabels.length - 1])
+    : rawLabels;
+  const mappedValues = rawValues;
 
   // Define parameters with colors
   const parameterConfig = [
@@ -108,7 +130,7 @@ export default function ExceedancesSeverityChart({
     .filter(param => visibleParams[param.key])
     .map(param => ({
       label: param.label,
-      data: labels.map(date => dailyExceedances[date][param.key]),
+      data: labels.map((_, i) => mappedValues[i]?.[param.key] ?? 0),
       borderColor: param.color,
       backgroundColor: param.color + '30',
       borderWidth: param.borderWidth,
@@ -127,9 +149,9 @@ export default function ExceedancesSeverityChart({
   };
 
   const rangeLabels = {
-    moderate: "1.0x - 1.2x",
-    high: "1.2x - 1.5x",
-    veryHigh: "1.5x+"
+    moderate: "Above NAAQS to Low AQI",
+    high: "Moderate to Very High AQI",
+    veryHigh: "Hazardous AQI"
   };
 
   const options = {

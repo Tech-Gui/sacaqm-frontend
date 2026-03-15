@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Paper, Typography, Box, Chip } from "@mui/material";
 import { 
@@ -10,7 +9,37 @@ import {
   TableRow 
 } from "@mui/material";
 
-export default function ExceedancesTable({ hourlyData = [], thresholds = {} }) {
+// SA AQI severity bands — returns "moderate" | "high" | "veryHigh" | null
+const getSeverityLevel = (value, threshold, paramKey) => {
+  if (threshold == null || value <= threshold) return null;
+  // PM2.5-based params (PM1, PM2.5, PM4): NAAQS=103, Moderate=104-178, High=179-253, VeryHigh=254+
+  if (["pm1p0","pm2p5","pm4p0"].includes(paramKey)) {
+    if (value <= 178) return "moderate";
+    if (value <= 253) return "high";
+    return "veryHigh";
+  }
+  // PM10: NAAQS=190, Moderate=191-290, High=291-340, VeryHigh=341+
+  if (paramKey === "pm10p0") {
+    if (value <= 290) return "moderate";
+    if (value <= 340) return "high";
+    return "veryHigh";
+  }
+  // Noise (NIOSH): threshold=70dB, Moderate=71-90, High=91-120, VeryHigh=121+
+  if (paramKey === "dba") {
+    if (value <= 90)  return "moderate";
+    if (value <= 120) return "high";
+    return "veryHigh";
+  }
+  // Non-AQI params: keep simple multiplier bands
+  if (value <= threshold * 1.2) return "moderate";
+  if (value <= threshold * 1.5) return "high";
+  return "veryHigh";
+};
+
+export default function ExceedancesTable({ hourlyData = [], thresholds = {}, isForecast = false, forecastWeekLabels = [] }) {
+
+  // Dashboard passes pre-filtered data — just use it directly
+  const activeData = hourlyData;
   
   // Calculate exceedances for each parameter at 3 severity levels
   const calculateExceedances = (field, threshold) => {
@@ -18,20 +47,15 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {} }) {
       return { moderate: "—", high: "—", veryHigh: "—", total: "—" };
     }
 
-    let moderate = 0;  // 1.0x - 1.2x
-    let high = 0;      // 1.2x - 1.5x
-    let veryHigh = 0;  // 1.5x+
+    let moderate = 0;
+    let high = 0;
+    let veryHigh = 0;
     
-    hourlyData.forEach((record) => {
-      const value = record[field] || 0;
-      
-      if (value > threshold && value <= threshold * 1.2) {
-        moderate++;
-      } else if (value > threshold * 1.2 && value <= threshold * 1.5) {
-        high++;
-      } else if (value > threshold * 1.5) {
-        veryHigh++;
-      }
+    activeData.forEach((record) => {
+      const level = getSeverityLevel(record[field] || 0, threshold, field);
+      if (level === "moderate") moderate++;
+      else if (level === "high") high++;
+      else if (level === "veryHigh") veryHigh++;
     });
     
     return { moderate, high, veryHigh, total: moderate + high + veryHigh };
@@ -58,7 +82,7 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {} }) {
   // Filter out CO2 if no data
   const filteredRows = rows.filter(row => {
     if (row.field === 'co2') {
-      return hourlyData.some(d => (d.co2 || 0) > 0);
+      return activeData.some(d => (d.co2 || 0) > 0);
     }
     return true;
   });
@@ -113,14 +137,16 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {} }) {
           color: '#1e293b',
           mb: 0.5
         }}>
-          Exceedances by Parameter & Severity
+          Exceedances by Parameter & Severity{isForecast ? ' (Forecast)' : ''}
         </Typography>
         <Typography sx={{ 
           fontSize: '0.75rem',
           color: '#94a3b8',
           fontWeight: 500
         }}>
-          Hourly threshold violations over selected period ({hourlyData.length} hours analyzed)
+          {isForecast
+            ? `Projected threshold violations for next week (${activeData.length} hours analyzed)`
+            : `Hourly threshold violations over selected period (${activeData.length} hours analyzed)`}
         </Typography>
       </Box>
 
@@ -136,16 +162,13 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {} }) {
                 Threshold
               </TableCell>
               <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#92400e', borderBottom: '2px solid #e2e8f0', bgcolor: '#fef3c7' }}>
-                Moderate<br/>
-                <Box component="span" sx={{ fontSize: '0.65rem', fontWeight: 500 }}>1.0x - 1.2x</Box>
+                Moderate
               </TableCell>
               <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#7c2d12', borderBottom: '2px solid #e2e8f0', bgcolor: '#fed7aa' }}>
-                High<br/>
-                <Box component="span" sx={{ fontSize: '0.65rem', fontWeight: 500 }}>1.2x - 1.5x</Box>
+                High
               </TableCell>
               <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#7f1d1d', borderBottom: '2px solid #e2e8f0', bgcolor: '#fee2e2' }}>
-                Very High<br/>
-                <Box component="span" sx={{ fontSize: '0.65rem', fontWeight: 500 }}>1.5x+</Box>
+                Very High
               </TableCell>
               <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#475569', borderBottom: '2px solid #e2e8f0', bgcolor: '#f1f5f9' }}>
                 Total
