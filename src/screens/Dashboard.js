@@ -446,6 +446,41 @@ function Dashboard() {
   var co2Value = co2ChartData.datasets[0].data.slice(-1)[0];
 
   const handlePeriodSelect = (period) => {
+    const station = stations.find((s) => s._id === selectedSensor);
+
+    if (!station) return;
+
+    const now = new Date();
+    const lastSeen = new Date(station.lastSeen);
+
+    const diffHours = (now - lastSeen) / (1000 * 60 * 60);
+    const diffDays = diffHours / 24;
+
+    // LAST DAY (needs data in last 48h in your logic)
+    if (period === "Last Day" && diffHours > 48) {
+      setOfflineMessage("No data available for the last day.");
+      return;
+    }
+
+    // user selected TODAY but sensor hasn't sent data for > 24h
+    if (period === "Today" && diffHours > 24) {
+      setOfflineMessage("No data available for Today. Sensor is offline.");
+      return;
+    }
+
+    // user selected 7 DAYS but sensor hasn't sent data for > 7 days
+    if (period === "7 Days" && diffDays > 7) {
+      setOfflineMessage("No data available for the last 7 days.");
+      return;
+    }
+
+    // user selected 30 DAYS but sensor hasn't sent data for > 30 days
+    if (period === "30 Days" && diffDays > 30) {
+      setOfflineMessage("No data available for the last 30 days.");
+      return;
+    }
+
+    setOfflineMessage(null);
     setSelectedPeriod(period);
   };
   
@@ -1041,14 +1076,29 @@ function Dashboard() {
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                 paddingBottom: "0.2rem",
               }}>
-              {filteredData ? (
+              {offlineMessage ? (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
+                </div>
+              ) : filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={TemperatureChartData}
                   options={chartOptions}
                   title="Temperature (°C)"
-                  //disableAnnotation={true} // Disable annotations for Temperature
                 />
-              ) : null}
+              ) : (
+                <Spinner animation="border" role="status" />
+              )}
             </Card>
           </Col>
           <Col md={6}>
@@ -1059,14 +1109,29 @@ function Dashboard() {
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                 paddingBottom: "0.2rem",
               }}>
-              {filteredData ? (
+              {offlineMessage ? (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
+                </div>
+              ) : filteredData && filteredData.length > 0 ? (
                 <ChartCard
                   data={HumiditychartData}
                   options={chartOptions}
                   title="Humidity (%)"
-                  // disableAnnotation={true} // Disable annotations for Humidity
                 />
-              ) : null}
+              ) : (
+                <Spinner animation="border" role="status" />
+              )}
             </Card>
           </Col>
         </Row>
