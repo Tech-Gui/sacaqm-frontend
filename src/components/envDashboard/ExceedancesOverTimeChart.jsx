@@ -14,7 +14,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds = {}, isForecast = false, forecastWeekLabels = [], forecastWeekRange = null }) {
+export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds = {}, isForecast = false, forecastWeekLabels = [], forecastWeekRange = null, hasNoise = true }) {
   const [visibleParams, setVisibleParams] = React.useState({
     pm25: true,
     pm10: true,
@@ -29,7 +29,7 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
 
   // Group hourly data by date and count total exceedances per parameter
   const dailyExceedances = {};
-  
+
   hourlyData.forEach((record) => {
     const d = new Date(record.timestamp);
     const date = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
@@ -38,18 +38,18 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
     if (!dailyExceedances[date]) {
       dailyExceedances[date] = { label, pm1: 0, pm25: 0, pm5: 0, pm10: 0, noise: 0, co2: 0, nox: 0, voc: 0 };
     }
-    
-    if (thresholds.pm1  != null && (record.pm1p0  || 0) > thresholds.pm1)  dailyExceedances[date].pm1++;
-    if (thresholds.pm25 != null && (record.pm2p5  || 0) > thresholds.pm25) dailyExceedances[date].pm25++;
-    if (thresholds.pm5  != null && (record.pm4p0  || 0) > thresholds.pm5)  dailyExceedances[date].pm5++;
+
+    if (thresholds.pm1 != null && (record.pm1p0 || 0) > thresholds.pm1) dailyExceedances[date].pm1++;
+    if (thresholds.pm25 != null && (record.pm2p5 || 0) > thresholds.pm25) dailyExceedances[date].pm25++;
+    if (thresholds.pm5 != null && (record.pm4p0 || 0) > thresholds.pm5) dailyExceedances[date].pm5++;
     if (thresholds.pm10 != null && (record.pm10p0 || 0) > thresholds.pm10) dailyExceedances[date].pm10++;
-    if (thresholds.noise != null && (record.dba   || 0) > thresholds.noise) dailyExceedances[date].noise++;
-    if (thresholds.co2  != null && (record.co2    || 0) > thresholds.co2)  dailyExceedances[date].co2++;
-    if (thresholds.nox  != null && (record.nox    || 0) > thresholds.nox)  dailyExceedances[date].nox++;
-    if (thresholds.voc  != null && (record.voc    || 0) > thresholds.voc)  dailyExceedances[date].voc++;
+    if (thresholds.noise != null && (record.dba || 0) > thresholds.noise) dailyExceedances[date].noise++;
+    if (thresholds.co2 != null && (record.co2 || 0) > thresholds.co2) dailyExceedances[date].co2++;
+    if (thresholds.nox != null && (record.nox || 0) > thresholds.nox) dailyExceedances[date].nox++;
+    if (thresholds.voc != null && (record.voc || 0) > thresholds.voc) dailyExceedances[date].voc++;
   });
 
-  const allBuckets  = Object.values(dailyExceedances);
+  const allBuckets = Object.values(dailyExceedances);
   // In forecast mode: remap X-axis labels to next-week dates (same order, just relabelled)
   // Values/counts are untouched — same data, different date labels shown
   const labels = isForecast && forecastWeekLabels.length > 0
@@ -73,6 +73,7 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
   const hasCO2 = hourlyData.some(d => (d.co2 || 0) > 0);
   const thresholdKeyMap = { pm1: 'pm1', pm25: 'pm25', pm5: 'pm5', pm10: 'pm10', noise: 'noise', co2: 'co2', nox: 'nox', voc: 'voc' };
   const filteredParams = parameterConfig.filter(p => {
+    if (p.key === 'noise' && !hasNoise) return false;
     if (p.key === 'co2' && !hasCO2) return false;
     if (thresholds[thresholdKeyMap[p.key]] == null) return false;
     return true;
@@ -169,8 +170,8 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
   };
 
   return (
-    <Paper sx={{ 
-      borderRadius: 3, 
+    <Paper sx={{
+      borderRadius: 3,
       boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
       bgcolor: 'white',
       p: 3,
@@ -179,15 +180,15 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
     }}>
       {/* Header */}
       <Box sx={{ mb: 2 }}>
-        <Typography sx={{ 
-          fontWeight: 700, 
+        <Typography sx={{
+          fontWeight: 700,
           fontSize: '0.95rem',
           color: '#1e293b',
           mb: 0.5
         }}>
           Total Hourly Exceedances{isForecast ? ' (Forecast)' : ''}
         </Typography>
-        <Typography sx={{ 
+        <Typography sx={{
           fontSize: '0.75rem',
           color: '#94a3b8',
           fontWeight: 500
@@ -199,9 +200,9 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
       </Box>
 
       {/* Parameter Toggles */}
-      <Box sx={{ 
-        mb: 2, 
-        pb: 2, 
+      <Box sx={{
+        mb: 2,
+        pb: 2,
         borderBottom: '1px solid #e2e8f0',
         display: 'flex',
         flexWrap: 'wrap',
@@ -224,15 +225,15 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
             }
             label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ 
-                  width: 12, 
-                  height: 3, 
-                  bgcolor: param.color, 
-                  borderRadius: 1 
+                <Box sx={{
+                  width: 12,
+                  height: 3,
+                  bgcolor: param.color,
+                  borderRadius: 1
                 }} />
-                <Typography sx={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: 600, 
+                <Typography sx={{
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
                   color: visibleParams[param.key] ? '#1e293b' : '#94a3b8'
                 }}>
                   {param.label}
@@ -249,10 +250,10 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
         {datasets.length > 0 ? (
           <Line data={data} options={options} />
         ) : (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             height: '100%',
             color: '#94a3b8'
           }}>

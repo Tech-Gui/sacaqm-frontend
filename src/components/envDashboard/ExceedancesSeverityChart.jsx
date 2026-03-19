@@ -17,7 +17,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 // SA AQI severity bands
 const getSeverityLevel = (value, threshold, paramKey) => {
   if (threshold == null || value <= threshold) return null;
-  if (["pm1p0","pm2p5","pm4p0"].includes(paramKey)) {
+  if (["pm1p0", "pm2p5", "pm4p0"].includes(paramKey)) {
     if (value <= 178) return "moderate";
     if (value <= 253) return "high";
     return "veryHigh";
@@ -28,7 +28,7 @@ const getSeverityLevel = (value, threshold, paramKey) => {
     return "veryHigh";
   }
   if (paramKey === "dba") {
-    if (value <= 90)  return "moderate";
+    if (value <= 90) return "moderate";
     if (value <= 120) return "high";
     return "veryHigh";
   }
@@ -43,16 +43,17 @@ const FIELD_MAP = {
   noise: 'dba', co2: 'co2', nox: 'nox', voc: 'voc'
 };
 
-export default function ExceedancesSeverityChart({ 
-  hourlyData = [], 
-  thresholds = {}, 
+export default function ExceedancesSeverityChart({
+  hourlyData = [],
+  thresholds = {},
   severity = "moderate",
   title = "Exceedances",
   color = "#fbbf24",
   isForecast = false,
   forecastWeekLabels = [],
+  hasNoise = true,
 }) {
-  
+
   const [visibleParams, setVisibleParams] = React.useState({
     pm25: true,
     pm10: true,
@@ -67,7 +68,7 @@ export default function ExceedancesSeverityChart({
 
   // Group hourly data by date and count exceedances per parameter at this severity
   const dailyExceedances = {};
-  
+
   hourlyData.forEach((record) => {
     const d = new Date(record.timestamp);
     const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
@@ -76,7 +77,7 @@ export default function ExceedancesSeverityChart({
     if (!dailyExceedances[dateKey]) {
       dailyExceedances[dateKey] = { label, pm1: 0, pm25: 0, pm5: 0, pm10: 0, noise: 0, co2: 0, nox: 0, voc: 0 };
     }
-    
+
     // Count exceedances per parameter at this severity level
     const checkParam = (value, threshold, param) => {
       const fieldKey = FIELD_MAP[param];
@@ -85,7 +86,7 @@ export default function ExceedancesSeverityChart({
         dailyExceedances[dateKey][param]++;
       }
     };
-    
+
     checkParam(record.pm1p0, thresholds.pm1, 'pm1');
     checkParam(record.pm2p5, thresholds.pm25, 'pm25');
     checkParam(record.pm4p0, thresholds.pm5, 'pm5');
@@ -96,7 +97,7 @@ export default function ExceedancesSeverityChart({
     checkParam(record.voc, thresholds.voc, 'voc');
   });
 
-  const allBuckets  = Object.values(dailyExceedances);
+  const allBuckets = Object.values(dailyExceedances);
   // In forecast mode: remap X-axis labels to next-week dates (same order, just relabelled)
   // Values/counts are untouched — same data, different date labels shown
   const labels = isForecast && forecastWeekLabels.length > 0
@@ -120,6 +121,7 @@ export default function ExceedancesSeverityChart({
   const hasCO2 = hourlyData.some(d => (d.co2 || 0) > 0);
   const thresholdKeyMap = { pm1: 'pm1', pm25: 'pm25', pm5: 'pm5', pm10: 'pm10', noise: 'noise', co2: 'co2', nox: 'nox', voc: 'voc' };
   const filteredParams = parameterConfig.filter(p => {
+    if (p.key === 'noise' && !hasNoise) return false;
     if (p.key === 'co2' && !hasCO2) return false;
     if (thresholds[thresholdKeyMap[p.key]] == null) return false;
     return true;
@@ -215,8 +217,8 @@ export default function ExceedancesSeverityChart({
   }, 0);
 
   return (
-    <Paper sx={{ 
-      borderRadius: 3, 
+    <Paper sx={{
+      borderRadius: 3,
       boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
       bgcolor: 'white',
       p: 2.5,
@@ -225,27 +227,27 @@ export default function ExceedancesSeverityChart({
     }}>
       {/* Header */}
       <Box sx={{ mb: 1.5 }}>
-        <Typography sx={{ 
-          fontWeight: 700, 
+        <Typography sx={{
+          fontWeight: 700,
           fontSize: '0.85rem',
           color: '#1e293b',
           mb: 0.3
         }}>
           {title}
         </Typography>
-        <Typography sx={{ 
+        <Typography sx={{
           fontSize: '0.65rem',
           color: '#94a3b8',
           fontWeight: 500
         }}>
-          {rangeLabels[severity]} 
+          {rangeLabels[severity]}
         </Typography>
       </Box>
 
       {/* Parameter Toggles */}
-      <Box sx={{ 
-        mb: 1.5, 
-        pb: 1.5, 
+      <Box sx={{
+        mb: 1.5,
+        pb: 1.5,
         borderBottom: '1px solid #e2e8f0',
         display: 'flex',
         flexWrap: 'wrap',
@@ -269,15 +271,15 @@ export default function ExceedancesSeverityChart({
             }
             label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-                <Box sx={{ 
-                  width: 10, 
-                  height: 2.5, 
-                  bgcolor: param.color, 
-                  borderRadius: 1 
+                <Box sx={{
+                  width: 10,
+                  height: 2.5,
+                  bgcolor: param.color,
+                  borderRadius: 1
                 }} />
-                <Typography sx={{ 
-                  fontSize: '0.65rem', 
-                  fontWeight: 600, 
+                <Typography sx={{
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
                   color: visibleParams[param.key] ? '#1e293b' : '#94a3b8'
                 }}>
                   {param.label}
@@ -294,10 +296,10 @@ export default function ExceedancesSeverityChart({
         {datasets.length > 0 ? (
           <Line data={chartData} options={options} />
         ) : (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             height: '100%',
             color: '#94a3b8'
           }}>
@@ -309,25 +311,25 @@ export default function ExceedancesSeverityChart({
       </Box>
 
       {/* Total */}
-      <Box sx={{ 
+      <Box sx={{
         textAlign: 'center',
         pt: 1.5,
         borderTop: '2px solid #f1f5f9'
       }}>
-        <Typography sx={{ 
-          fontSize: '0.6rem', 
-          color: '#94a3b8', 
-          fontWeight: 700, 
-          mb: 0.3, 
-          textTransform: 'uppercase' 
+        <Typography sx={{
+          fontSize: '0.6rem',
+          color: '#94a3b8',
+          fontWeight: 700,
+          mb: 0.3,
+          textTransform: 'uppercase'
         }}>
           Total Exceedances
         </Typography>
-        <Typography sx={{ 
-          fontSize: '1.5rem', 
-          fontWeight: 800, 
-          color: color, 
-          lineHeight: 1 
+        <Typography sx={{
+          fontSize: '1.5rem',
+          fontWeight: 800,
+          color: color,
+          lineHeight: 1
         }}>
           {total}
         </Typography>
