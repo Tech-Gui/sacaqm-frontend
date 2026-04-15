@@ -48,11 +48,25 @@ const AppMap = ({ mapRef }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSensor]);
 
-  const getBackgroundColor = (lastSeen) => {
+  /*const getBackgroundColor = (lastSeen) => {
     if (!lastSeen) return "#ccc8c8";
     try {
       const dt = new Date(lastSeen);
       return isToday(dt) ? "#00FF00" : "#ccc8c8";
+    } catch {
+      return "#ccc8c8";
+    }
+  };*/
+
+  const getBackgroundColor = (lastSeen) => {
+    if (!lastSeen) return "#ccc8c8";
+
+    try {
+      const now = new Date();
+      const dt = new Date(lastSeen);
+      const diffMinutes = (now - dt) / (1000 * 60);
+
+      return diffMinutes <= 60 ? "#00FF00" : "#ccc8c8";
     } catch {
       return "#ccc8c8";
     }
