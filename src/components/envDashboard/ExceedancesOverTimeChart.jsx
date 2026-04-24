@@ -14,7 +14,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds = {}, isForecast = false, forecastWeekLabels = [], forecastWeekRange = null, hasNoise = true }) {
+export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds = {}, isForecast = false, forecastHourLabels = [], forecastDayLabel = null, hasNoise = true, isSingleDay = false }) {
   const [visibleParams, setVisibleParams] = React.useState({
     pm25: true,
     pm10: true,
@@ -27,35 +27,60 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
     voc: false,
   });
 
-  // Group hourly data by date and count total exceedances per parameter
+  // Group hourly data by date (or by hour if single day view) and count total exceedances per parameter
   const dailyExceedances = {};
 
   hourlyData.forEach((record) => {
     const d = new Date(record.timestamp);
-    const date = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-
-    if (!dailyExceedances[date]) {
-      dailyExceedances[date] = { label, pm1: 0, pm25: 0, pm5: 0, pm10: 0, noise: 0, co2: 0, nox: 0, voc: 0 };
+    let key, label;
+    if (isSingleDay && !isForecast) {
+      key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
+      const h = d.getHours() % 12 || 12;
+      const ampm = d.getHours() < 12 ? 'AM' : 'PM';
+      const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      label = `${dateStr}, ${h} ${ampm}`;
+    } else {
+      key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     }
 
-    if (thresholds.pm1 != null && (record.pm1p0 || 0) > thresholds.pm1) dailyExceedances[date].pm1++;
-    if (thresholds.pm25 != null && (record.pm2p5 || 0) > thresholds.pm25) dailyExceedances[date].pm25++;
-    if (thresholds.pm5 != null && (record.pm4p0 || 0) > thresholds.pm5) dailyExceedances[date].pm5++;
-    if (thresholds.pm10 != null && (record.pm10p0 || 0) > thresholds.pm10) dailyExceedances[date].pm10++;
-    if (thresholds.noise != null && (record.dba || 0) > thresholds.noise) dailyExceedances[date].noise++;
-    if (thresholds.co2 != null && (record.co2 || 0) > thresholds.co2) dailyExceedances[date].co2++;
-    if (thresholds.nox != null && (record.nox || 0) > thresholds.nox) dailyExceedances[date].nox++;
-    if (thresholds.voc != null && (record.voc || 0) > thresholds.voc) dailyExceedances[date].voc++;
+    if (!dailyExceedances[key]) {
+      dailyExceedances[key] = { label, pm1: 0, pm25: 0, pm5: 0, pm10: 0, noise: 0, co2: 0, nox: 0, voc: 0 };
+    }
+
+    if (thresholds.pm1 != null && (record.pm1p0 || 0) > thresholds.pm1) dailyExceedances[key].pm1++;
+    if (thresholds.pm25 != null && (record.pm2p5 || 0) > thresholds.pm25) dailyExceedances[key].pm25++;
+    if (thresholds.pm5 != null && (record.pm4p0 || 0) > thresholds.pm5) dailyExceedances[key].pm5++;
+    if (thresholds.pm10 != null && (record.pm10p0 || 0) > thresholds.pm10) dailyExceedances[key].pm10++;
+    if (thresholds.noise != null && (record.dba || 0) > thresholds.noise) dailyExceedances[key].noise++;
+    if (thresholds.co2 != null && (record.co2 || 0) > thresholds.co2) dailyExceedances[key].co2++;
+    if (thresholds.nox != null && (record.nox || 0) > thresholds.nox) dailyExceedances[key].nox++;
+    if (thresholds.voc != null && (record.voc || 0) > thresholds.voc) dailyExceedances[key].voc++;
   });
 
+
+
   const allBuckets = Object.values(dailyExceedances);
-  // In forecast mode: remap X-axis labels to next-week dates (same order, just relabelled)
-  // Values/counts are untouched — same data, different date labels shown
-  const labels = isForecast && forecastWeekLabels.length > 0
-    ? allBuckets.map((_, i) => forecastWeekLabels[i] ?? forecastWeekLabels[forecastWeekLabels.length - 1])
-    : allBuckets.map(b => b.label);
-  const mappedValues = allBuckets;
+  // In forecast mode with hourly data: use hour labels directly
+  // Otherwise group by day as before
+  let labels, mappedValues;
+  if (isForecast && forecastHourLabels.length > 0) {
+    // For 24-hour forecast, show per-hour data points
+    // Each data point is already one hour, so use individual hour labels
+    labels = allBuckets.map((b, i) => {
+      const d = new Date(hourlyData[i]?.timestamp || '');
+      if (!isNaN(d.getTime())) {
+        const h = d.getHours() % 12 || 12;
+        const ampm = d.getHours() < 12 ? 'AM' : 'PM';
+        return `${h} ${ampm}`;
+      }
+      return forecastHourLabels[i] ?? b.label;
+    });
+    mappedValues = allBuckets;
+  } else {
+    labels = allBuckets.map(b => b.label);
+    mappedValues = allBuckets;
+  }
 
   // Define parameters with colors
   const parameterConfig = [
@@ -194,7 +219,9 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
           fontWeight: 500
         }}>
           {isForecast
-            ? `Projected hourly exceedances per day for next week`
+            ? `Projected hourly exceedances for next 24 hours`
+            : isSingleDay
+            ? 'Number of times each parameter exceeded threshold per hour today'
             : `Number of hours each parameter exceeded SAAQIS threshold per day`}
         </Typography>
       </Box>

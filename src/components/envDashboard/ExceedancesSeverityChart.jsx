@@ -14,24 +14,8 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-// SA AQI severity bands
 const getSeverityLevel = (value, threshold, paramKey) => {
   if (threshold == null || value <= threshold) return null;
-  if (["pm1p0", "pm2p5", "pm4p0"].includes(paramKey)) {
-    if (value <= 178) return "moderate";
-    if (value <= 253) return "high";
-    return "veryHigh";
-  }
-  if (paramKey === "pm10p0") {
-    if (value <= 290) return "moderate";
-    if (value <= 340) return "high";
-    return "veryHigh";
-  }
-  if (paramKey === "dba") {
-    if (value <= 90) return "moderate";
-    if (value <= 120) return "high";
-    return "veryHigh";
-  }
   if (value <= threshold * 1.2) return "moderate";
   if (value <= threshold * 1.5) return "high";
   return "veryHigh";
@@ -50,7 +34,7 @@ export default function ExceedancesSeverityChart({
   title = "Exceedances",
   color = "#fbbf24",
   isForecast = false,
-  forecastWeekLabels = [],
+  forecastHourLabels = [],
   hasNoise = true,
 }) {
 
@@ -98,12 +82,23 @@ export default function ExceedancesSeverityChart({
   });
 
   const allBuckets = Object.values(dailyExceedances);
-  // In forecast mode: remap X-axis labels to next-week dates (same order, just relabelled)
-  // Values/counts are untouched — same data, different date labels shown
-  const labels = isForecast && forecastWeekLabels.length > 0
-    ? allBuckets.map((_, i) => forecastWeekLabels[i] ?? forecastWeekLabels[forecastWeekLabels.length - 1])
-    : allBuckets.map(b => b.label);
-  const mappedValues = allBuckets;
+  // In forecast mode: use hourly labels
+  let labels, mappedValues;
+  if (isForecast && forecastHourLabels.length > 0) {
+    labels = allBuckets.map((b, i) => {
+      const d = new Date(hourlyData[i]?.timestamp || '');
+      if (!isNaN(d.getTime())) {
+        const h = d.getHours() % 12 || 12;
+        const ampm = d.getHours() < 12 ? 'AM' : 'PM';
+        return `${h} ${ampm}`;
+      }
+      return forecastHourLabels[i] ?? b.label;
+    });
+    mappedValues = allBuckets;
+  } else {
+    labels = allBuckets.map(b => b.label);
+    mappedValues = allBuckets;
+  }
 
   // Define parameters with colors
   const parameterConfig = [

@@ -468,7 +468,7 @@ import {
 import { Grid, Box, Typography, Paper, Container } from "@mui/material";
 import axios from "axios";
 import sacaqmLogo from '../assets/sacaqm_logo.png';
-import airsynqLogo from '../assets/airsynq.png';
+
 import { StationContext } from "../contextProviders/StationContext";
 import PMWidget from "../components/envDashboard/PMWidget";
 import NoiseGauge from "../components/envDashboard/NoiseGauge";
@@ -479,16 +479,20 @@ import ExceedancesOverTimeChart from "../components/envDashboard/ExceedancesOver
 import ExceedancesTable from "../components/envDashboard/ExceedancesTable";
 import ExceedancesSeverityChart from "../components/envDashboard/ExceedancesSeverityChart";
 import StationMap from "../components/envDashboard/StationMap";
+import generateReport from "../utils/generateReport";
 
 const BASE = process.env.REACT_APP_API_BASE;
 
-// Forecast week labels
-const _tom = (() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(0, 0, 0, 0); return d; })();
-const FORECAST_LABELS = Array.from({ length: 7 }, (_, i) => {
-  const d = new Date(_tom); d.setDate(_tom.getDate() + i);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+// Forecast 24-hour labels — hourly format
+const FORECAST_HOUR_LABELS = Array.from({ length: 24 }, (_, i) => {
+  const h = i % 12 || 12;
+  const ampm = i < 12 ? 'AM' : 'PM';
+  return `${h} ${ampm}`;
 });
-const FORECAST_WEEK_RANGE = `${FORECAST_LABELS[0]} – ${FORECAST_LABELS[6]}`;
+const FORECAST_DAY_LABEL = (() => {
+  const d = new Date(); d.setDate(d.getDate() + 1);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+})();
 
 function formatDate(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -528,8 +532,8 @@ const DAILY_THRESHOLDS = { pm1: 40, pm25: 40, pm5: 40, pm10: 75 };
 
 function toForecastWidget(w) {
   if (!w) return null;
-  const v = w.values.length >= 7 ? w.values.slice(-7) : [...Array(7 - w.values.length).fill(w.values[0] ?? 0), ...w.values];
-  return { ...w, labels: FORECAST_LABELS, values: v };
+  const v = w.values.length >= 24 ? w.values.slice(-24) : [...Array(24 - w.values.length).fill(w.values[0] ?? 0), ...w.values];
+  return { ...w, labels: FORECAST_HOUR_LABELS, values: v };
 }
 
 const filterBarSx = {
@@ -595,6 +599,8 @@ export default function EnvComplianceDashboard() {
   const [realtimeNoise, setRealtimeNoise] = useState(null);
 
   const [forecastData, setForecastData] = useState(null);
+  const [forecastLoading, setForecastLoading] = useState(false);
+  const [forecastError, setForecastError] = useState(null);
 
   const sensorOptions = (stations || []).flatMap(st =>
     (st.sensorIds || []).map(sid => ({ id: sid, label: st.sensorIds.length === 1 ? st.name : `${st.name} – ${sid}` }))
@@ -609,8 +615,16 @@ export default function EnvComplianceDashboard() {
   useEffect(() => {
     if (!sensorId) return;
     setForecastData(null);
-    loadForecast(sensorId);
+    setForecastError(null);
+    setShowForecast(false); // Default back to live data on sensor change
   }, [sensorId]);
+
+  // Trigger forecast calculation only when the user explicitly requests it
+  useEffect(() => {
+    if (showForecast && !forecastData && !forecastLoading && !forecastError && sensorId) {
+      loadForecast(sensorId);
+    }
+  }, [showForecast, forecastData, forecastLoading, forecastError, sensorId]);
 
   useEffect(() => {
     if (!sensorId) return;
@@ -626,46 +640,142 @@ export default function EnvComplianceDashboard() {
   }, [sensorId]);
 
   async function loadForecast(sid) {
+    setForecastLoading(true);
+    setForecastError(null);
+
+    // Helper to process ML predictions into forecast widgets
+    function applyMLPredictions(preds, modelName) {
+      // Predictions are already hourly — use hour labels
+      const labels = preds.map(p => {
+        const d = new Date(p.timestamp);
+        const h = d.getHours() % 12 || 12;
+        const ampm = d.getHours() < 12 ? 'AM' : 'PM';
+        return `${h} ${ampm}`;
+      });
+
+      const avg = (arr) => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
+
+      const mkWidget = (field, title) => ({
+        title,
+        labels,
+        values: preds.map(p => Math.round(p[field] || 0)),
+        current: avg(preds.map(p => p[field] || 0)),
+        trend: 0,
+      });
+
+      // Predictions are already hourly — use directly as hourlyData
+      const hourlyData = preds.map(p => ({
+        timestamp: p.timestamp,
+        pm1p0: p.pm1p0 || 0, pm2p5: p.pm2p5 || 0, pm4p0: p.pm4p0 || 0, pm10p0: p.pm10p0 || 0,
+        temperature: p.temperature || 0, humidity: p.humidity || 0,
+        dba: p.dba || 0, co2: p.co2 || 0, nox: p.nox || 0, voc: p.voc || 0,
+      }));
+
+      setForecastData({
+        pmData: { pm1: mkWidget("pm1p0", "PM1.0"), pm25: mkWidget("pm2p5", "PM2.5"), pm5: mkWidget("pm4p0", "PM4.0"), pm10: mkWidget("pm10p0", "PM10") },
+        noiseData: mkWidget("dba", "Noise"), tempData: mkWidget("temperature", "Temperature"),
+        humidityData: mkWidget("humidity", "Humidity"), co2Data: mkWidget("co2", "CO2"),
+        noxData: mkWidget("nox", "NOx"), vocData: mkWidget("voc", "VOC"),
+        hourlyData,
+        hasNoise: preds.some(p => (p.dba || 0) > 0),
+        modelName: modelName || "AI Forecast"
+      });
+      setForecastLoading(false);
+    }
+
+    // 1. Try the remote backend proxy first
+    try {
+      const res = await axios.get(`${BASE}/api/nodedata/forecast`, {
+        params: { sensor_id: sid, hours: 24 },
+        timeout: 120000,
+      });
+
+      const forecast = res.data;
+      if (forecast && forecast.predictions && forecast.predictions.length) {
+        applyMLPredictions(forecast.predictions, forecast.model);
+        return; // ML forecast via backend succeeded — done
+      }
+    } catch (mlErr) {
+      if (mlErr.response?.data?.error_code === "SensorOffline" || mlErr.response?.data?.detail?.error_code === "SensorOffline") {
+        setForecastError(mlErr.response.data.message || mlErr.response.data.detail?.message || "Sensor offline");
+        setForecastLoading(false);
+        setShowForecast(false); // Toggle off forecast mode on failure
+        return; // Stop entirely
+      }
+      console.warn("ML forecast via backend unavailable:", mlErr.message);
+    }
+
+    // 2. Fallback: try local ML service directly (localhost:8001)
+    try {
+      const res = await axios.post("http://localhost:8001/predict", {
+        sensor_id: sid, hours: 24,
+      }, { timeout: 120000 });
+
+      const forecast = res.data;
+      if (forecast && forecast.predictions && forecast.predictions.length) {
+        console.info("ML forecast loaded from local service (localhost:8001)");
+        applyMLPredictions(forecast.predictions, forecast.model);
+        return;
+      }
+    } catch (localErr) {
+      if (localErr.response?.data?.error_code === "SensorOffline" || localErr.response?.data?.detail?.error_code === "SensorOffline") {
+        setForecastError(localErr.response.data.message || localErr.response.data.detail?.message || "Sensor offline");
+        setForecastLoading(false);
+        setShowForecast(false); // Toggle off forecast mode on failure
+        return; // Stop entirely
+      }
+      console.warn("Local ML service also unavailable, falling back to historical data:", localErr.message);
+    }
+
+    // ── Fallback: use last 24 hours of historical data ──
     try {
       const today = new Date();
       const fEnd = formatDate(today);
-      const fStart = formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7));
-      const prev = getPrevPeriod(fStart, fEnd);
+      const fStart = formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1));
 
-      const [cR, hR, pR, mm1R, mm25R, mm4R, mm10R] = await Promise.all([
-        axios.get(`${BASE}/api/nodedata/aggregated`, { params: { sensor_id: sid, start: fStart, end: fEnd, resolution: 'daily' } }).catch(() => ({ data: [] })),
+      const [hR] = await Promise.all([
         axios.get(`${BASE}/api/nodedata/aggregated`, { params: { sensor_id: sid, start: fStart, end: fEnd, resolution: 'hourly' } }).catch(() => ({ data: [] })),
-        axios.get(`${BASE}/api/nodedata/aggregated`, { params: { sensor_id: sid, start: prev.start, end: prev.end, resolution: 'daily' } }).catch(() => ({ data: [] })),
-        axios.get(`${BASE}/api/nodedata/daily-trend-minmax`, { params: { sensor_id: sid, start: fStart, end: fEnd, field: 'pm1p0' } }).catch(() => ({ data: [] })),
-        axios.get(`${BASE}/api/nodedata/daily-trend-minmax`, { params: { sensor_id: sid, start: fStart, end: fEnd, field: 'pm2p5' } }).catch(() => ({ data: [] })),
-        axios.get(`${BASE}/api/nodedata/daily-trend-minmax`, { params: { sensor_id: sid, start: fStart, end: fEnd, field: 'pm4p0' } }).catch(() => ({ data: [] })),
-        axios.get(`${BASE}/api/nodedata/daily-trend-minmax`, { params: { sensor_id: sid, start: fStart, end: fEnd, field: 'pm10p0' } }).catch(() => ({ data: [] })),
       ]);
 
-      const curr = cR.data || [], hourly = hR.data || [], prevData = pR.data || [];
-      if (!curr.length) return;
+      const hourly = hR.data || [];
+      if (!hourly.length) return;
 
-      const labels = curr.map(item => new Date(item.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }));
-      const widgets = buildWidgets(curr, prevData, labels, mm1R.data || [], mm25R.data || [], mm4R.data || [], mm10R.data || []);
+      // Take last 24 hours, build hourly labels
+      // Take last 24 hours and map timestamps 24h into future
+      const last24 = hourly.slice(-24).map(item => ({
+        ...item,
+        timestamp: new Date(new Date(item.timestamp).getTime() + 24 * 3600 * 1000).toISOString()
+      }));
+
+      const labels = last24.map(item => {
+        const d = new Date(item.timestamp);
+        const h = d.getHours() % 12 || 12;
+        const ampm = d.getHours() < 12 ? 'AM' : 'PM';
+        return `${h} ${ampm}`;
+      });
+
+      const avg = (arr, key) => arr.length ? Math.round(arr.reduce((s, d) => s + (d[key] || 0), 0) / arr.length) : 0;
+      const mkWidget = (field, title) => ({
+        title,
+        labels,
+        values: last24.map(d => Math.round(d[field] || 0)),
+        current: avg(last24, field),
+        trend: 0,
+      });
 
       setForecastData({
-        pmData: {
-          pm1: toForecastWidget(widgets.pmData.pm1),
-          pm25: toForecastWidget(widgets.pmData.pm25),
-          pm5: toForecastWidget(widgets.pmData.pm5),
-          pm10: toForecastWidget(widgets.pmData.pm10),
-        },
-        noiseData: toForecastWidget(widgets.noiseData),
-        tempData: toForecastWidget(widgets.tempData),
-        humidityData: toForecastWidget(widgets.humidityData),
-        co2Data: toForecastWidget(widgets.co2Data),
-        noxData: toForecastWidget(widgets.noxData),
-        vocData: toForecastWidget(widgets.vocData),
-        hourlyData: hourly,
-        hasNoise: hourly.some(d => (d.dba || 0) > 0),
+        pmData: { pm1: mkWidget("pm1p0", "PM1.0"), pm25: mkWidget("pm2p5", "PM2.5"), pm5: mkWidget("pm4p0", "PM4.0"), pm10: mkWidget("pm10p0", "PM10") },
+        noiseData: mkWidget("dba", "Noise"), tempData: mkWidget("temperature", "Temperature"),
+        humidityData: mkWidget("humidity", "Humidity"), co2Data: mkWidget("co2", "CO2"),
+        noxData: mkWidget("nox", "NOx"), vocData: mkWidget("voc", "VOC"),
+        hourlyData: last24,
+        hasNoise: last24.some(d => (d.dba || 0) > 0),
+        modelName: "Historical Fallback (24h shifted)"
       });
     } catch (e) {
-      console.error("Forecast load failed:", e.message);
+      console.error("Forecast fallback also failed:", e.message);
+    } finally {
+      setForecastLoading(false);
     }
   }
 
@@ -685,7 +795,17 @@ export default function EnvComplianceDashboard() {
       const mmRes = await Promise.allSettled(mmF.map(f => axios.get(`${BASE}/api/nodedata/daily-trend-minmax`, { params: { sensor_id: sensorId, start: startDate, end: endDate, field: f } })));
       const [mm1, mm25, mm4, mm10] = mmRes.map(r => r.status === "fulfilled" ? r.value.data || [] : []);
 
-      const labels = curr.map(item => new Date(item.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+      const isSingleDay = startDate === endDate;
+      const labels = curr.map(item => {
+        const d = new Date(item.timestamp);
+        if (isSingleDay) {
+          const h = d.getHours() % 12 || 12;
+          const ampm = d.getHours() < 12 ? 'AM' : 'PM';
+          const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          return `${dateStr}, ${h} ${ampm}`;
+        }
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      });
       const widgets = buildWidgets(curr, prevData, labels, mm1, mm25, mm4, mm10);
       const { pmData, noiseData, tempData, humidityData, co2Data, noxData, vocData } = widgets;
 
@@ -698,10 +818,21 @@ export default function EnvComplianceDashboard() {
       };
 
       const hasNoise = hourly.some(d => (d.dba || 0) > 0);
+      let mod = 0, high = 0, vHigh = 0;
+      hourly.forEach(r => {
+        const pvals = { pm1: r.pm1p0, pm25: r.pm2p5, pm5: r.pm4p0, pm10: r.pm10p0, noise: r.dba, temperature: r.temperature, humidity: r.humidity, co2: r.co2, nox: r.nox, voc: r.voc };
+        Object.entries(THRESHOLDS).forEach(([k, t]) => {
+          if (t == null) return;
+          const val = pvals[k] || 0;
+          if (val > t * 1.5) vHigh++;
+          else if (val > t * 1.2) high++;
+          else if (val > t) mod++;
+        });
+      });
 
       setDashData({
-        pmData, noiseData, tempData, humidityData, co2Data, noxData, vocData, hourlyData: hourly, hasNoise,
-        summary: { compliant: Object.values(st).filter(s => s === "Green").length, warnings: Object.values(st).filter(s => s === "Yellow" || s === "Orange").length, nonCompliant: Object.values(st).filter(s => s === "Red").length },
+        pmData, noiseData, tempData, humidityData, co2Data, noxData, vocData, hourlyData: hourly, hasNoise, isSingleDay,
+        summary: { moderate: mod, high: high, veryHigh: vHigh },
         table: [
           { parameter: "PM1.0", status: st.pm1, exceedances: hourly.filter(d => (d.pm1p0 || 0) > THRESHOLDS.pm1).length },
           { parameter: "PM2.5", status: st.pm25, exceedances: hourly.filter(d => (d.pm2p5 || 0) > THRESHOLDS.pm25).length },
@@ -715,24 +846,8 @@ export default function EnvComplianceDashboard() {
         ],
       });
 
-      const _today = new Date();
-      const _last7start = formatDate(new Date(_today.getFullYear(), _today.getMonth(), _today.getDate() - 7));
-      if (!forecastData && startDate === _last7start) {
-        setForecastData({
-          pmData: {
-            pm1: toForecastWidget(pmData.pm1), pm25: toForecastWidget(pmData.pm25),
-            pm5: toForecastWidget(pmData.pm5), pm10: toForecastWidget(pmData.pm10),
-          },
-          noiseData: toForecastWidget(noiseData),
-          tempData: toForecastWidget(tempData),
-          humidityData: toForecastWidget(humidityData),
-          co2Data: toForecastWidget(co2Data),
-          noxData: toForecastWidget(noxData),
-          vocData: toForecastWidget(vocData),
-          hourlyData: hourly,
-          hasNoise,
-        });
-      }
+      // Forecast data is now loaded separately via loadForecast() using ML service
+      // No need to seed from dashboard data
     } catch (err) {
       if (err.response?.status === 404) setError("404: Endpoint not found.");
       else if (err.response?.status === 401) setError("401: Unauthorized.");
@@ -804,18 +919,38 @@ export default function EnvComplianceDashboard() {
             </Grid>
             <Grid item xs={12} md={4}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-                <Box component="img" src={sacaqmLogo} alt="SACAQM" sx={{ height: 50, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))' }} />
-                <Box sx={{ width: 2, height: 40, bgcolor: 'rgba(59,130,246,0.3)', borderRadius: 1 }} />
-                <Box component="img" src={airsynqLogo} alt="AirSynQ" sx={{ height: 40, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))' }} />
+                <Box component="img" src={sacaqmLogo} alt="SACAQM" sx={{ height: 75, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))' }} />
               </Box>
             </Grid>
             <Grid item xs={12} md={2}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <Button fullWidth onClick={() => { setDownloadLoading(true); setTimeout(() => setDownloadLoading(false), 1500); }} disabled={downloadLoading || !D} startIcon={downloadLoading ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <span>⬇️</span>} sx={{ bgcolor: '#0ea5e9', color: 'white', borderRadius: 3, py: 1, fontSize: '0.8rem', fontWeight: 600, textTransform: 'none', '&:hover': { bgcolor: '#0284c7', transform: 'translateY(-2px)' }, '&:disabled': { bgcolor: '#cbd5e1', color: 'white' } }}>
-                  {downloadLoading ? 'Generating...' : 'Download Report'}
+                <Button fullWidth onClick={async () => { 
+                  setDownloadLoading(true); 
+                  try { 
+                    const selSensor = sensorOptions.find(o => o.id === sensorId); 
+                    
+                    let botpressReasoning = "";
+                    try {
+                      const llmRes = await axios.post(`${BASE}/api/nodedata/llm-summary`, {
+                        pmData: D.pmData, noiseData: D.noiseData, tempData: D.tempData,
+                        humidityData: D.humidityData, co2Data: D.co2Data, summary: D.summary
+                      });
+                      botpressReasoning = llmRes.data?.botpressText || "";
+                    } catch (llmErr) {
+                      console.warn("LLM summary failed:", llmErr);
+                    }
+
+                    await generateReport({ dashData: D, sensorId, sensorLabel: selSensor?.label || sensorId, dateLabel, startDate, endDate, thresholds: THRESHOLDS, dailyThresholds: DAILY_THRESHOLDS, dailyExcData, forecastData: F, showForecast, botpressAnalysis: botpressReasoning }); 
+                  } catch(e) { 
+                    console.error('Report generation failed:', e); 
+                  } finally { 
+                    setDownloadLoading(false); 
+                  } 
+                }} disabled={downloadLoading || !D} startIcon={downloadLoading ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <span>⬇️</span>} sx={{ bgcolor: '#0ea5e9', color: 'white', borderRadius: 3, py: 1, fontSize: '0.8rem', fontWeight: 600, textTransform: 'none', '&:hover': { bgcolor: '#0284c7', transform: 'translateY(-2px)' }, '&:disabled': { bgcolor: '#cbd5e1', color: 'white' } }}>
+                  {downloadLoading ? 'Analyzing & Generating...' : 'Download Report'}
                 </Button>
-                <Button fullWidth onClick={() => setShowForecast(p => !p)} disabled={!D || !F} startIcon={<span>🔮</span>} sx={{ bgcolor: showForecast ? '#8b5cf6' : 'white', color: showForecast ? 'white' : '#8b5cf6', borderRadius: 3, py: 1, fontSize: '0.8rem', fontWeight: 600, textTransform: 'none', border: '2px solid #8b5cf6', '&:hover': { bgcolor: showForecast ? '#7c3aed' : 'rgba(139,92,246,0.08)', transform: 'translateY(-2px)' }, '&:disabled': { bgcolor: '#f1f5f9', borderColor: '#e2e8f0', color: '#94a3b8' } }}>
-                  {showForecast ? 'Hide Forecast' : 'Show Forecast'}
+                <Button fullWidth onClick={() => setShowForecast(p => !p)} disabled={!D || forecastLoading || !!forecastError} startIcon={forecastLoading ? <CircularProgress size={14} sx={{ color: '#8b5cf6' }} /> : <span>🔮</span>} sx={{ bgcolor: showForecast ? '#8b5cf6' : 'white', color: showForecast ? 'white' : '#8b5cf6', borderRadius: 3, py: 1, fontSize: '0.8rem', fontWeight: 600, textTransform: 'none', border: '2px solid #8b5cf6', '&:hover': { bgcolor: showForecast ? '#7c3aed' : 'rgba(139,92,246,0.08)', transform: 'translateY(-2px)' }, '&:disabled': { bgcolor: '#f1f5f9', borderColor: '#e2e8f0', color: '#94a3b8' } }}>
+                  {forecastLoading ? 'AI Thinking...' : showForecast ? 'Hide Forecast' : 'Show Forecast'}
                 </Button>
               </Box>
             </Grid>
@@ -843,8 +978,17 @@ export default function EnvComplianceDashboard() {
           </Box>
         </Popover>
 
+        {forecastLoading && (
+          <Box sx={{ position: 'fixed', inset: 0, zIndex: 9999, bgcolor: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <CircularProgress size={60} sx={{ color: '#8b5cf6', mb: 3 }} />
+            <Typography sx={{ fontWeight: 800, color: '#5b21b6', fontSize: '1.4rem', letterSpacing: '0.5px' }}>Analyzing Sensor Data</Typography>
+            <Typography sx={{ color: '#6d28d9', fontSize: '0.95rem', mt: 1, fontWeight: 500 }}>Generating 24-hour forecast using AI...</Typography>
+          </Box>
+        )}
+
         {loading && <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", my: 8 }}><CircularProgress size={60} sx={{ color: "#3b82f6" }} /><Typography sx={{ mt: 2, color: "#3b82f6", fontWeight: 600 }}>Loading dashboard data...</Typography></Box>}
         {error && !loading && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+        {forecastError && !loading && <Alert severity="warning" sx={{ mb: 3, borderRadius: 2, border: '1px solid #fcd34d' }}><strong>Forecast Disabled:</strong> {forecastError}</Alert>}
 
         {!loading && D && (
           <>
@@ -856,12 +1000,12 @@ export default function EnvComplianceDashboard() {
                     <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#5b21b6' }}>AI Forecast Mode Active</Typography>
                     <Box sx={{ px: 1.5, py: 0.25, borderRadius: 10, background: 'linear-gradient(90deg,#7c3aed,#6366f1)', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                       <span style={{ fontSize: '0.7rem' }}>✦</span>
-                      <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Powered by AI</Typography>
+                      <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>AI-Powered</Typography>
                     </Box>
                   </Box>
                   <Typography sx={{ fontSize: '0.95rem', color: '#6d28d9', mt: 0.4 }}>
-                    Showing AI-generated forecasts for next week&nbsp;
-                    <Box component="span" sx={{ fontWeight: 700, color: '#5b21b6' }}>({FORECAST_WEEK_RANGE})</Box>
+                    Showing AI-generated hourly forecasts for next 24 hours&nbsp;
+                    <Box component="span" sx={{ fontWeight: 700, color: '#5b21b6' }}>({FORECAST_DAY_LABEL})</Box>
                   </Typography>
                 </Box>
               </Box>
@@ -870,63 +1014,65 @@ export default function EnvComplianceDashboard() {
             <Box sx={{ mb: 3 }}><StationMap /></Box>
 
             <Grid container spacing={3} sx={{ mb: 3 }}><Grid item xs={12}><Box sx={fadeIn(0)}>
-              <ExceedancesTable hourlyData={FC ? F.hourlyData : D.hourlyData} thresholds={THRESHOLDS} isForecast={showForecast} forecastWeekLabels={FORECAST_LABELS} hasNoise={FC ? F.hasNoise : D.hasNoise} />
+              <ExceedancesTable hourlyData={FC ? F.hourlyData : D.hourlyData} thresholds={THRESHOLDS} isForecast={showForecast} forecastHourLabels={FORECAST_HOUR_LABELS} hasNoise={FC ? F.hasNoise : D.hasNoise} />
             </Box></Grid></Grid>
 
             <Grid container spacing={3} sx={{ mb: 3 }}><Grid item xs={12}><Box sx={fadeIn(0.1)}>
-              <ExceedancesOverTimeChart hourlyData={FC ? F.hourlyData : D.hourlyData} thresholds={THRESHOLDS} isForecast={showForecast} forecastWeekLabels={FORECAST_LABELS} forecastWeekRange={showForecast ? FORECAST_WEEK_RANGE : null} hasNoise={FC ? F.hasNoise : D.hasNoise} />
+              <ExceedancesOverTimeChart hourlyData={FC ? F.hourlyData : D.hourlyData} thresholds={THRESHOLDS} isForecast={showForecast} forecastHourLabels={FORECAST_HOUR_LABELS} forecastDayLabel={showForecast ? FORECAST_DAY_LABEL : null} hasNoise={FC ? F.hasNoise : D.hasNoise} isSingleDay={D.isSingleDay} />
             </Box></Grid></Grid>
 
             <Grid container spacing={3} sx={{ mb: 3 }}>
               {[{ severity: "moderate", title: "Moderate Exceedances", color: "#fbbf24", delay: 0.15 }, { severity: "high", title: "High Exceedances", color: "#fb923c", delay: 0.16 }, { severity: "veryHigh", title: "Very High Exceedances", color: "#ef4444", delay: 0.17 }].map(({ severity, title, color, delay }) => (
                 <Grid item xs={12} md={4} key={severity}><Box sx={fadeIn(delay)}>
-                  <ExceedancesSeverityChart hourlyData={FC ? F.hourlyData : D.hourlyData} thresholds={THRESHOLDS} severity={severity} title={showForecast ? `${title} (Forecast)` : title} color={color} isForecast={showForecast} forecastWeekLabels={FORECAST_LABELS} hasNoise={FC ? F.hasNoise : D.hasNoise} />
+                  <ExceedancesSeverityChart hourlyData={FC ? F.hourlyData : D.hourlyData} thresholds={THRESHOLDS} severity={severity} title={showForecast ? `${title} (Forecast)` : title} color={color} isForecast={showForecast} forecastHourLabels={FORECAST_HOUR_LABELS} hasNoise={FC ? F.hasNoise : D.hasNoise} />
                 </Box></Grid>
               ))}
             </Grid>
 
-            {/* NEW DAILY EXCEEDANCES TABLE */}
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={12}>
-                <Box sx={fadeIn(0.18)}>
-                  <Paper sx={{ p: 3, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', bgcolor: 'white' }}>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: '#1e293b' }}>
-                      {showForecast ? "Daily PM Exceedances (Forecast)" : "Daily PM Exceedances"}
-                    </Typography>
-                    <TableContainer>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow sx={{ bgcolor: '#f8fafc' }}>
-                            <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Parameter</TableCell>
-                            <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Daily Limit</TableCell>
-                            <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Exceedance Days</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {dailyExcData.map(row => (
-                            <TableRow key={row.key}>
-                              <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
-                              <TableCell>{row.limit} µg/m³</TableCell>
-                              <TableCell>
-                                <Chip
-                                  label={`${row.exceedances} / ${row.total} Days`}
-                                  size="small"
-                                  sx={{
-                                    bgcolor: row.exceedances > 0 ? '#fee2e2' : '#dcfce7',
-                                    color: row.exceedances > 0 ? '#dc2626' : '#16a34a',
-                                    fontWeight: 700
-                                  }}
-                                />
-                              </TableCell>
+            {/* DAILY PM EXCEEDANCES TABLE — hidden in forecast mode */}
+            {!showForecast && (
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12}>
+                  <Box sx={fadeIn(0.18)}>
+                    <Paper sx={{ p: 3, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', bgcolor: 'white' }}>
+                      <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: '#1e293b' }}>
+                        Daily PM Exceedances
+                      </Typography>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                              <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Parameter</TableCell>
+                              <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Daily Limit</TableCell>
+                              <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Exceedance Days</TableCell>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Paper>
-                </Box>
+                          </TableHead>
+                          <TableBody>
+                            {dailyExcData.map(row => (
+                              <TableRow key={row.key}>
+                                <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
+                                <TableCell>{row.limit} µg/m³</TableCell>
+                                <TableCell>
+                                  <Chip
+                                    label={`${row.exceedances} / ${row.total} Days`}
+                                    size="small"
+                                    sx={{
+                                      bgcolor: row.exceedances > 0 ? '#fee2e2' : '#dcfce7',
+                                      color: row.exceedances > 0 ? '#dc2626' : '#16a34a',
+                                      fontWeight: 700
+                                    }}
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Paper>
+                  </Box>
+                </Grid>
               </Grid>
-            </Grid>
+            )}
 
             <Grid container spacing={3} sx={{ mb: 3 }}>
               {Object.entries(D.pmData).map(([key, widget], idx) => {

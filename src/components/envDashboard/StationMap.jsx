@@ -7,11 +7,10 @@ import { StationContext } from "../../contextProviders/StationContext";
 mapboxgl.accessToken = (process.env.REACT_APP_MAPBOX_TOKEN || "").replace(/"/g, "");
 
 const getStationStatus = (lastSeen) => {
-  if (!lastSeen) return { label: "Unknown", color: "#94a3b8", bg: "#f1f5f9", dot: "#94a3b8" };
+  if (!lastSeen) return { label: "Offline", color: "#64748b", bg: "#f1f5f9", dot: "#94a3b8" };
   const diff = (Date.now() - new Date(lastSeen).getTime()) / 1000 / 60; // minutes
   if (diff <= 60)   return { label: "Online",  color: "#16a34a", bg: "#dcfce7", dot: "#22c55e" };
-  if (diff <= 1440) return { label: "Warning", color: "#d97706", bg: "#fef3c7", dot: "#f59e0b" };
-  return               { label: "Offline", color: "#dc2626", bg: "#fee2e2", dot: "#ef4444" };
+  return               { label: "Offline", color: "#64748b", bg: "#f1f5f9", dot: "#94a3b8" };
 };
 
 const formatLastSeen = (lastSeen) => {
@@ -25,9 +24,7 @@ const formatLastSeen = (lastSeen) => {
 
 const STATUS_COLORS = {
   Online:  { marker: "#22c55e", ring: "#bbf7d0" },
-  Warning: { marker: "#f59e0b", ring: "#fde68a" },
-  Offline: { marker: "#ef4444", ring: "#fecaca" },
-  Unknown: { marker: "#94a3b8", ring: "#e2e8f0" },
+  Offline: { marker: "#94a3b8", ring: "#e2e8f0" },
 };
 
 export default function StationMap() {
@@ -39,7 +36,7 @@ export default function StationMap() {
   const { stations, loading } = useContext(StationContext);
   const [selectedStation, setSelectedStation] = useState(null);
   const [filter, setFilter] = useState("All");
-  const [counts, setCounts] = useState({ All: 0, Online: 0, Warning: 0, Offline: 0 });
+  const [counts, setCounts] = useState({ All: 0, Online: 0, Offline: 0 });
 
   // Init map
   useEffect(() => {
@@ -71,7 +68,7 @@ export default function StationMap() {
     markersRef.current = [];
     if (popupRef.current) { popupRef.current.remove(); popupRef.current = null; }
 
-    const statusCounts = { All: 0, Online: 0, Warning: 0, Offline: 0 };
+    const statusCounts = { All: 0, Online: 0, Offline: 0 };
 
     stations.forEach((station) => {
       const lat = parseFloat(station.latitude);
@@ -82,7 +79,7 @@ export default function StationMap() {
       statusCounts.All++;
       statusCounts[status.label] = (statusCounts[status.label] || 0) + 1;
 
-      const colors = STATUS_COLORS[status.label] || STATUS_COLORS.Unknown;
+      const colors = STATUS_COLORS[status.label] || STATUS_COLORS.Offline;
 
       // Custom marker element
       const el = document.createElement("div");
@@ -201,8 +198,7 @@ export default function StationMap() {
   const filterOptions = [
     { label: "All", color: "#3b82f6" },
     { label: "Online", color: "#22c55e" },
-    { label: "Warning", color: "#f59e0b" },
-    { label: "Offline", color: "#ef4444" },
+    { label: "Offline", color: "#94a3b8" },
   ];
 
   return (

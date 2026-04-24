@@ -26,15 +26,9 @@ export const StationProvider = ({ children }) => {
 
       let stationsData = []; 
       if(path.includes("/env-dashboard")){
-            const [publicRes, privateRes] = await Promise.all([
-        axios.get(publicUrl),
-        axios.get(privateUrl).catch(() => ({ data: [] })) // prevents crash if unauthorized
-      ]);
-           stationsData = [
-        ...(publicRes.data || []),
-        ...(privateRes.data || [])
-      ];
-    } else if (path.includes("/minedashboard")) {
+        const res = await axios.get(publicUrl);
+        stationsData = res.data;
+      } else if (path.includes("/minedashboard")) {
       const token = localStorage.getItem("authToken");
 
       const res = await axios.get(`${API_BASE}/api/users_sensors/me/stations`, {

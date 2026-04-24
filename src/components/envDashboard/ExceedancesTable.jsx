@@ -9,34 +9,14 @@ import {
   TableRow
 } from "@mui/material";
 
-// SA AQI severity bands — returns "moderate" | "high" | "veryHigh" | null
 const getSeverityLevel = (value, threshold, paramKey) => {
   if (threshold == null || value <= threshold) return null;
-  // PM2.5-based params (PM1, PM2.5, PM4): NAAQS=103, Moderate=104-178, High=179-253, VeryHigh=254+
-  if (["pm1p0", "pm2p5", "pm4p0"].includes(paramKey)) {
-    if (value <= 178) return "moderate";
-    if (value <= 253) return "high";
-    return "veryHigh";
-  }
-  // PM10: NAAQS=190, Moderate=191-290, High=291-340, VeryHigh=341+
-  if (paramKey === "pm10p0") {
-    if (value <= 290) return "moderate";
-    if (value <= 340) return "high";
-    return "veryHigh";
-  }
-  // Noise (NIOSH): threshold=70dB, Moderate=71-90, High=91-120, VeryHigh=121+
-  if (paramKey === "dba") {
-    if (value <= 90) return "moderate";
-    if (value <= 120) return "high";
-    return "veryHigh";
-  }
-  // Non-AQI params: keep simple multiplier bands
   if (value <= threshold * 1.2) return "moderate";
   if (value <= threshold * 1.5) return "high";
   return "veryHigh";
 };
 
-export default function ExceedancesTable({ hourlyData = [], thresholds = {}, isForecast = false, forecastWeekLabels = [], hasNoise = true }) {
+export default function ExceedancesTable({ hourlyData = [], thresholds = {}, isForecast = false, forecastHourLabels = [], hasNoise = true }) {
 
   // Dashboard passes pre-filtered data — just use it directly
   const activeData = hourlyData;
@@ -146,7 +126,7 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {}, isF
           fontWeight: 500
         }}>
           {isForecast
-            ? `Projected threshold violations for next week (${activeData.length} hours analyzed)`
+            ? `Projected threshold violations for next 24 hours (${activeData.length} hours analyzed)`
             : `Hourly threshold violations over selected period (${activeData.length} hours analyzed)`}
         </Typography>
       </Box>
