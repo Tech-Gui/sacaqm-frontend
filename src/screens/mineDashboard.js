@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Col from "react-bootstrap/Col";
 import Sidebar from "../components/SideBar.js";
 import TopNavBar from "../components/topNavBar.js";
+import tzlookup from "tz-lookup";
 import {
   Button,
   Card,
@@ -62,6 +63,25 @@ function MineDashboard() {
   const [customStartDate, setCustomStartDate] = useState(null);
   const [customEndDate, setCustomEndDate] = useState(null);
   const [isCustomRange, setIsCustomRange] = useState(false);
+  const selectedStation = stations.find((s) => s._id === selectedSensor);
+  const lat = Number(
+      selectedStation?.latitude ?? selectedStation?.lat
+  );
+  
+  const lng = Number(
+      selectedStation?.longitude ?? selectedStation?.lng
+  );
+  
+  let stationTimezone = "UTC";
+  
+  try {
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        stationTimezone = tzlookup(lat, lng);
+      }
+  } catch (e) {
+      stationTimezone = "UTC";
+  }
+  
 
 
 
@@ -194,6 +214,21 @@ function MineDashboard() {
     scales: {
       x: {
         display: false,
+        ticks: {
+          callback: function (value) {
+            const label = this.getLabelForValue(value);
+            return new Intl.DateTimeFormat("en-GB", {
+              timeZone: stationTimezone,
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              hour12: false,
+            }).format(new Date(label));
+          },
+        },
       },
       y: {
         display: false,
@@ -202,6 +237,23 @@ function MineDashboard() {
     plugins: {
       legend: {
         display: false,
+      },
+      tooltip: {
+        callbacks: {
+          title: function (tooltipItems) {
+            const raw = tooltipItems[0]?.label;
+            return new Intl.DateTimeFormat("en-GB", {
+              timeZone: stationTimezone,
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              hour12: false,
+            }).format(new Date(raw));
+          },
+        },
       },
     },
     elements: {
@@ -212,12 +264,13 @@ function MineDashboard() {
     maintainAspectRatio: true,
   };
 
-  const dates = filteredData.map((data) => {
+  /*const dates = filteredData.map((data) => {
     const timestamp = new Date(data.timestamp);
     // Adding 2 hours to convert to SA time
     timestamp.setHours(timestamp.getHours());
     return timestamp;
-  });
+  });*/
+  const dates = filteredData.map((data) => new Date(data.timestamp));
 
   const TemperatureChartData = {
     labels: dates,
