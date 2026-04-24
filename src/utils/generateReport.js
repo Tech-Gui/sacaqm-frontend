@@ -640,9 +640,11 @@ export default async function generateReport({
     { name: "PM2.5", field: "pm2p5", thr: thresholds.pm25 },
     { name: "PM4.0", field: "pm4p0", thr: thresholds.pm5 },
     { name: "PM10", field: "pm10p0", thr: thresholds.pm10 },
-    { name: "Humidity", field: "humidity", thr: thresholds.humidity },
-    { name: "CO2", field: "co2", thr: thresholds.co2 },
   ].filter(p => p.thr != null);
+
+  if ((D.hourlyData || []).some(d => (d.co2 || 0) > 0)) {
+    paramFields.push({ name: "CO2", field: "co2", thr: thresholds.co2 });
+  }
 
   if (D.hasNoise) paramFields.push({ name: "Noise", field: "dba", thr: thresholds.noise });
 

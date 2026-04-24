@@ -820,7 +820,7 @@ export default function EnvComplianceDashboard() {
       const hasNoise = hourly.some(d => (d.dba || 0) > 0);
       let mod = 0, high = 0, vHigh = 0;
       hourly.forEach(r => {
-        const pvals = { pm1: r.pm1p0, pm25: r.pm2p5, pm5: r.pm4p0, pm10: r.pm10p0, noise: r.dba, temperature: r.temperature, humidity: r.humidity, co2: r.co2, nox: r.nox, voc: r.voc };
+        const pvals = { pm1: r.pm1p0, pm25: r.pm2p5, pm5: r.pm4p0, pm10: r.pm10p0, noise: r.dba, co2: r.co2 };
         Object.entries(THRESHOLDS).forEach(([k, t]) => {
           if (t == null) return;
           const val = pvals[k] || 0;
