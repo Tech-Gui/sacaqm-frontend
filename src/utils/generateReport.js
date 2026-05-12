@@ -229,7 +229,10 @@ export default async function generateReport({
              !lower.includes('ai_r makes air quality data') &&
              !lower.includes('public health, risk management, and governance') &&
              !lower.includes('the ai_r system, developed by') &&
-             !lower.includes('south african consortium of air quality monitoring');
+             !lower.includes('south african consortium of air quality monitoring') &&
+             !lower.includes('hello! welcome to sacaqm air') &&
+             !lower.includes('select one of the following options') &&
+             !lower.includes('i am here to generate your air quality reports');
     });
 
     // Join remaining paragraphs
