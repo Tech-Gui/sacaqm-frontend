@@ -206,9 +206,9 @@ export default async function generateReport({
   y += 8;
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // AI ENVIRONMENTAL REASONING (BOTPRESS)
+  // AI ENVIRONMENTAL REASONING
   // ═══════════════════════════════════════════════════════════════════════════
-  if (botpressAnalysis) {
+  {
     y = checkPageBreak(doc, y, 40);
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
@@ -216,52 +216,98 @@ export default async function generateReport({
     doc.text("AI Environmental Reasoning", margin, y);
     y += 4;
 
-    // Clean up Botpress payload to extract ONLY the analysis paragraph
-    let paragraphs = botpressAnalysis.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+    // Try to extract valid analysis from Botpress response
+    let cleanedText = "";
+    if (botpressAnalysis) {
+      let paragraphs = botpressAnalysis.split('\n').map(p => p.trim()).filter(p => p.length > 0);
 
-    // 1. Remove conversational footers and generic system introductions
-    paragraphs = paragraphs.filter(p => {
-      const lower = p.toLowerCase();
-      return !lower.includes('choose an option below') &&
-             !lower.includes('please let me know') &&
-             !lower.includes('if you need further details') &&
-             !lower.includes('strengths of the ai_r system') &&
-             !lower.includes('ai_r makes air quality data') &&
-             !lower.includes('public health, risk management, and governance') &&
-             !lower.includes('the ai_r system, developed by') &&
-             !lower.includes('south african consortium of air quality monitoring') &&
-             !lower.includes('hello! welcome to sacaqm air') &&
-             !lower.includes('select one of the following options') &&
-             !lower.includes('i am here to generate your air quality reports');
-    });
+      // Remove conversational footers and generic system introductions
+      paragraphs = paragraphs.filter(p => {
+        const lower = p.toLowerCase();
+        return !lower.includes('choose an option below') &&
+               !lower.includes('please let me know') &&
+               !lower.includes('if you need further details') &&
+               !lower.includes('strengths of the ai_r system') &&
+               !lower.includes('ai_r makes air quality data') &&
+               !lower.includes('public health, risk management, and governance') &&
+               !lower.includes('the ai_r system, developed by') &&
+               !lower.includes('south african consortium of air quality monitoring') &&
+               !lower.includes('hello! welcome to sacaqm air') &&
+               !lower.includes('select one of the following options') &&
+               !lower.includes('i am here to generate your air quality reports') &&
+               !lower.includes('what would you like to do') &&
+               !lower.includes('answer any general questions');
+      });
 
-    // Join remaining paragraphs
-    let cleanedText = paragraphs.join('\n\n');
+      cleanedText = paragraphs.join('\n\n');
+      cleanedText = cleanedText.replace(/&/g, '');
+      cleanedText = cleanedText.replace(/A v e r a g e/ig, 'Average');
+      cleanedText = cleanedText.replace(/T emp e r a t u r e/ig, 'Temperature');
+      cleanedText = cleanedText.replace(/H um i d i t y/ig, 'Humidity');
+      cleanedText = cleanedText.replace(/C O ‚ ?/ig, 'CO2');
+      cleanedText = cleanedText.replace(/CO\s?[‚,]\s?:?/g, 'CO2:');
+      cleanedText = cleanedText.replace(/\/\s?°\s?C/g, '°C');
+      cleanedText = cleanedText.replace(/\/\s?%/g, '%');
+      cleanedText = cleanedText.replace(/--/g, '-');
+      cleanedText = cleanedText.replace(/  +/g, ' ');
+      cleanedText = cleanedText.replace(/\*/g, '').trim();
+    }
 
-    // Fix Botpress garbled text: the bot inserts & or spaces between every letter for certain lines
-    // Step 1: Strip all & characters (bot uses them as letter separators)
-    cleanedText = cleanedText.replace(/&/g, '');
-    
-    // Step 2: Fix spaced-out words (bot sometimes uses spaces instead of &)
-    cleanedText = cleanedText.replace(/A v e r a g e/ig, 'Average');
-    cleanedText = cleanedText.replace(/T emp e r a t u r e/ig, 'Temperature');
-    cleanedText = cleanedText.replace(/H um i d i t y/ig, 'Humidity');
-    cleanedText = cleanedText.replace(/C O ‚ ?/ig, 'CO2');
-    
-    // Step 3: Fix CO2 after & stripping (bot uses ‚ low quote instead of 2)
-    cleanedText = cleanedText.replace(/CO\s?[‚,]\s?:?/g, 'CO2:');
-    
-    // Step 4: Clean up formatting artifacts
-    cleanedText = cleanedText.replace(/\/\s?°\s?C/g, '°C');    // Fix "/°C" or "/ ° C" → "°C" 
-    cleanedText = cleanedText.replace(/\/\s?%/g, '%');           // Fix "/%" → "%"
-    cleanedText = cleanedText.replace(/--/g, '-');               // Fix "--" → "-"
-    cleanedText = cleanedText.replace(/  +/g, ' ');              // Collapse double spaces
-    
-    // Strip markdown asterisks but keep everything else intact
-    cleanedText = cleanedText.replace(/\*/g, '').trim();
+    // Fallback: generate data-driven reasoning from actual dashboard metrics
+    if (!cleanedText) {
+      const hourlyArr = D.hourlyData || [];
+      const summary = D.summary || { moderate: 0, high: 0, veryHigh: 0 };
+      const totalExc = summary.moderate + summary.high + summary.veryHigh;
 
-    if (cleanedText === '') {
-      cleanedText = "No valid analysis could be extracted from Botpress.";
+      const pmAvg = (field) => {
+        const vals = hourlyArr.map(d => d[field] || 0).filter(v => v > 0);
+        return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+      };
+
+      const pm25Avg = pmAvg("pm2p5");
+      const pm10Avg = pmAvg("pm10p0");
+      const tempAvg = pmAvg("temperature");
+      const humAvg = pmAvg("humidity");
+      const co2Avg = pmAvg("co2");
+      const noiseAvg = pmAvg("dba");
+
+      // Determine overall risk level
+      let riskLevel = "low";
+      let riskWord = "minimal";
+      if (summary.veryHigh > 0) { riskLevel = "high"; riskWord = "significant"; }
+      else if (summary.high > 0) { riskLevel = "moderate"; riskWord = "moderate"; }
+      else if (summary.moderate > 0) { riskLevel = "low-moderate"; riskWord = "minor"; }
+
+      // Build the reasoning text
+      const parts = [];
+      parts.push(`During the reporting period (${startDate} to ${endDate}), the monitored environment recorded ${totalExc} total exceedance events across all parameters, indicating ${riskWord} environmental risk.`);
+
+      // PM analysis
+      if (pm25Avg != null || pm10Avg != null) {
+        const pmParts = [];
+        if (pm25Avg != null) pmParts.push(`PM2.5 averaged ${pm25Avg} ug/m3 (threshold: ${thresholds.pm25} ug/m3)`);
+        if (pm10Avg != null) pmParts.push(`PM10 averaged ${pm10Avg} ug/m3 (threshold: ${thresholds.pm10} ug/m3)`);
+        parts.push(`Particulate matter levels: ${pmParts.join("; ")}.`);
+      }
+
+      // Environmental conditions
+      const envParts = [];
+      if (tempAvg != null) envParts.push(`temperature at ${tempAvg} degrees C`);
+      if (humAvg != null) envParts.push(`humidity at ${humAvg}%`);
+      if (co2Avg != null && co2Avg > 0) envParts.push(`CO2 at ${co2Avg} ppm`);
+      if (noiseAvg != null && noiseAvg > 0) envParts.push(`noise levels at ${noiseAvg} dBA`);
+      if (envParts.length > 0) {
+        parts.push(`Environmental conditions show ${envParts.join(", ")}.`);
+      }
+
+      // Severity breakdown
+      if (totalExc > 0) {
+        parts.push(`Severity breakdown: ${summary.moderate} moderate, ${summary.high} high, and ${summary.veryHigh} very high exceedances were observed. ${summary.veryHigh > 0 ? "Immediate corrective action is recommended for very high severity events." : summary.high > 0 ? "Continued monitoring and preventive measures are advised." : "Overall conditions remain within acceptable operational limits."}`);
+      } else {
+        parts.push("No exceedances were detected during this period. All monitored parameters remained within the established compliance thresholds, indicating good environmental conditions.");
+      }
+
+      cleanedText = parts.join(" ");
     }
 
     const splitBp = doc.splitTextToSize(cleanedText, contentW - margin * 2 - 6);
