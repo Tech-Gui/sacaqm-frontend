@@ -8,7 +8,7 @@ const SensorDataContext = createContext();
 // Step 2: Create the context provider component
 const SensorDataProvider = ({ children }) => {
   const [data, setData] = useState(null);
-  const [selectedSensor, setSelectedSensor] = useState("350457790740896");
+  const [selectedSensor, setSelectedSensor] = useState("80F3DA554B18");
   const [selectedSensor2, setSelectedSensor2] = useState("No Station 2 Selected");
   const [selectedPeriod, setSelectedPeriod] = useState("Today");
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ const SensorDataProvider = ({ children }) => {
       const { dates, Pm1p0, Pm2p5, Pm4p0, Pm10p0, Temperature, Humidity, Co2, Dba } =
         selectedSensor !== null
           ? await sendData(selectedSensor, selectedPeriod)
-          : await sendData("350457790740896", selectedPeriod);
+          : await sendData("80F3DA554B18", selectedPeriod);
 
       setData({
         dates,
