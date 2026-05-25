@@ -9,6 +9,7 @@ import { FaFileInvoiceDollar } from "react-icons/fa";
 import { IoIosPeople } from "react-icons/io";
 import { GiCoalWagon } from "react-icons/gi";
 import { BiLogIn, BiSupport } from "react-icons/bi";
+import { BsGrid3X3Gap } from "react-icons/bs";
 import { SiMicrosoftexcel } from "react-icons/si";
 import { FaInfoCircle } from "react-icons/fa";
 import { RiAlarmWarningFill } from "react-icons/ri";
@@ -116,19 +117,20 @@ function Sidebar() {
           <BiLogIn size={30} />
           <span style={{ marginLeft: "1rem" }}>Private Login</span>
         </Nav.Link> */}
-    <Nav.Link
-    onClick={handlePrivateClick}
-    style={{
-      textAlign: "left",
-      color: isLinkActive("/login") || isLinkActive("/mineDashboard") 
-        ? "#1B2791" 
-        : "#3DA2E6",
-    }}>
-    <BiLogIn size={30} />
-    <span style={{ marginLeft: "1rem" }}>
-      {isAuthed ? "Private Dashboard" : "Private Login"}
-    </span>
-  </Nav.Link>
+
+          <Nav.Link
+          onClick={handlePrivateClick}
+          style={{
+            textAlign: "left",
+            color: isLinkActive("/login") || isLinkActive("/mineDashboard") 
+              ? "#1B2791" 
+              : "#3DA2E6",
+          }}>
+          <BiLogIn size={30} />
+          <span style={{ marginLeft: "1rem" }}>
+            {isAuthed ? "Private Dashboard" : "Private Login"}
+          </span>
+        </Nav.Link>
         </Nav>
 
       </Navbar.Collapse>

@@ -28,7 +28,7 @@ export const StationProvider = ({ children }) => {
       if(path.includes("/env-dashboard")){
         const res = await axios.get(publicUrl);
         stationsData = res.data;
-      } else if (path.includes("/minedashboard")) {
+      } else if (path.includes("/minedashboard") || path.includes("/private-compliance")) {
       const token = localStorage.getItem("authToken");
 
       const res = await axios.get(`${API_BASE}/api/users_sensors/me/stations`, {

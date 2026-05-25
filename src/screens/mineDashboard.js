@@ -47,8 +47,8 @@ function MineDashboard() {
 
   const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
   const { selectedType, handleTypeSelect } = useDataType();
-  const { stations, setStations, loading, setLoading, error, setError,fetchStations } =
-      useContext(StationContext)
+  const { stations, setStations, loading, setLoading, error, setError, fetchStations } =
+    useContext(StationContext)
   const [sensorNameMap, setSensorNameMap] = useState({});
 
   const [startDate, setStartDate] = useState("");
@@ -59,29 +59,29 @@ function MineDashboard() {
   const [myStations, setMyStations] = useState([]);
   const [stationsLoading, setStationsLoading] = useState(false);
   const [stationsError, setStationsError] = useState(null);
-  const [offlineMessage, setOfflineMessage] = useState(null); 
+  const [offlineMessage, setOfflineMessage] = useState(null);
   const [customStartDate, setCustomStartDate] = useState(null);
   const [customEndDate, setCustomEndDate] = useState(null);
   const [isCustomRange, setIsCustomRange] = useState(false);
   const selectedStation = stations.find((s) => s._id === selectedSensor);
   const lat = Number(
-      selectedStation?.latitude ?? selectedStation?.lat
+    selectedStation?.latitude ?? selectedStation?.lat
   );
-  
+
   const lng = Number(
-      selectedStation?.longitude ?? selectedStation?.lng
+    selectedStation?.longitude ?? selectedStation?.lng
   );
-  
+
   let stationTimezone = "UTC";
-  
+
   try {
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        stationTimezone = tzlookup(lat, lng);
-      }
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      stationTimezone = tzlookup(lat, lng);
+    }
   } catch (e) {
-      stationTimezone = "UTC";
+    stationTimezone = "UTC";
   }
-  
+
 
 
 
@@ -90,10 +90,10 @@ function MineDashboard() {
   const handleLogout = () => {
     // Remove axios authorization header
     delete axios.defaults.headers.common["Authorization"];
-    
+
     // Call logout from context
     logout();
-    
+
     // Navigate to login page
     navigate("/login");
   };
@@ -208,7 +208,7 @@ function MineDashboard() {
   // const handleLogout = () => {
   //   navigate("/login");
   // };
-  
+
   const chartOptions = {
     responsive: true,
     scales: {
@@ -508,23 +508,23 @@ function MineDashboard() {
     ],
   };
 
-   const dbaChartData = {
+  const dbaChartData = {
     labels: dates,
     datasets: [
       {
         label: "Decibel (dB)",
-        data : filteredData.map((data) => data.dba),
-        fill: true, 
+        data: filteredData.map((data) => data.dba),
+        fill: true,
         spanGaps: true,
-        backgroundColor: function (context){
+        backgroundColor: function (context) {
           var ctx = context.chart.ctx;
-          var gradient = ctx.createLinearGradient(0,0,0,200);
-        gradient.addColorStop(0, "rgba(180, 75, 250, 1)");
-        gradient.addColorStop(0.25, "rgba(180, 75, 250, 0.75)");
-        gradient.addColorStop(0.5, "rgba(180, 75, 250, 0.5)");
-        gradient.addColorStop(0.75, "rgba(180, 75, 250, 0.25)");
-        gradient.addColorStop(1, "rgba(180, 75, 250, 0.0)");
-        return gradient;
+          var gradient = ctx.createLinearGradient(0, 0, 0, 200);
+          gradient.addColorStop(0, "rgba(180, 75, 250, 1)");
+          gradient.addColorStop(0.25, "rgba(180, 75, 250, 0.75)");
+          gradient.addColorStop(0.5, "rgba(180, 75, 250, 0.5)");
+          gradient.addColorStop(0.75, "rgba(180, 75, 250, 0.25)");
+          gradient.addColorStop(1, "rgba(180, 75, 250, 0.0)");
+          return gradient;
         },
         borderColor: "#b44bfa",
         tension: 0.4,
@@ -535,7 +535,7 @@ function MineDashboard() {
         pointBorderWidth: 2,
       },
     ],
-   };
+  };
 
   var noxValue = NoxChartData.datasets[0].data.slice(-1)[0];
   var tempDisplay = TemperatureChartData.datasets[0].data.slice(-1)[0];
@@ -901,24 +901,24 @@ function MineDashboard() {
               <Dropdown.Item eventKey="30 Days">30 Days</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
-        <Button
-          onClick={handleLogout}
-          style={{
-            marginLeft: "10px",
-            background: "#ff4d4f",
-            border: "none",
-            borderRadius: "20px",
-            padding: "8px 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "13px",
-            fontWeight: "500"
-          }}
-        >
-          <FaSignOutAlt />
-          Logout
-        </Button>
+          <Button
+            onClick={handleLogout}
+            style={{
+              marginLeft: "10px",
+              background: "#ff4d4f",
+              border: "none",
+              borderRadius: "20px",
+              padding: "8px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "13px",
+              fontWeight: "500"
+            }}
+          >
+            <FaSignOutAlt />
+            Logout
+          </Button>
         </div>
         <Row>
           <Col lg={12} md={12}>
@@ -1195,27 +1195,27 @@ function MineDashboard() {
                 paddingBottom: "0.2rem",
               }}>
               {offlineMessage ? (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "center",
-                                  alignItems: "center",
-                                  height: "25vh",
-                                  color: "#999",
-                                  fontSize: "14px",
-                                  fontWeight: "500",
-                                }}
-                              >
-                                {offlineMessage}
-                              </div>
-                            ) : filteredData && filteredData.length > 0 ? (
-                              <ChartCard
-                                data={TemperatureChartData}
-                                options={chartOptions}
-                                title="Temperature (°C)"
-                              />
-                            ) : (
-                              <Spinner animation="border" role="status" />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
+                </div>
+              ) : filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={TemperatureChartData}
+                  options={chartOptions}
+                  title="Temperature (°C)"
+                />
+              ) : (
+                <Spinner animation="border" role="status" />
               )}
             </Card>
           </Col>
@@ -1228,27 +1228,27 @@ function MineDashboard() {
                 paddingBottom: "0.2rem",
               }}>
               {offlineMessage ? (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "center",
-                                  alignItems: "center",
-                                  height: "25vh",
-                                  color: "#999",
-                                  fontSize: "14px",
-                                  fontWeight: "500",
-                                }}
-                              >
-                                {offlineMessage}
-                              </div>
-                            ) : filteredData && filteredData.length > 0 ? (
-                              <ChartCard
-                                data={HumiditychartData}
-                                options={chartOptions}
-                                title="Humidity (%)"
-                              />
-                            ) : (
-                              <Spinner animation="border" role="status" />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
+                </div>
+              ) : filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={HumiditychartData}
+                  options={chartOptions}
+                  title="Humidity (%)"
+                />
+              ) : (
+                <Spinner animation="border" role="status" />
               )}
             </Card>
           </Col>
@@ -1289,44 +1289,44 @@ function MineDashboard() {
                 <Spinner animation="border" role="status" />
               )}
             </Card>
-        </Col>
-  <Col md={6}>
-    <Card
-      className="mt-2"
-      style={{
-        border: "none",
-        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-        paddingBottom: "0.2rem",
-        minHeight: "25vh",
-      }}
-    >
-      {offlineMessage ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "25vh",
-            color: "#999",
-            fontSize: "14px",
-            fontWeight: "500",
-          }}
-        >
-          {offlineMessage}
-        </div>
-      ) : filteredData && filteredData.length > 0 ? (
-        <ChartCard
-          data={dbaChartData}
-          options={chartOptions}
-          title="Decibel (dB)"
-        />
-      ) : (
-        <Spinner animation="border" role="status" />
-      )}
-    </Card>
-  </Col>
-  </Row>
-      <Row>
+          </Col>
+          <Col md={6}>
+            <Card
+              className="mt-2"
+              style={{
+                border: "none",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                paddingBottom: "0.2rem",
+                minHeight: "25vh",
+              }}
+            >
+              {offlineMessage ? (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "25vh",
+                    color: "#999",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {offlineMessage}
+                </div>
+              ) : filteredData && filteredData.length > 0 ? (
+                <ChartCard
+                  data={dbaChartData}
+                  options={chartOptions}
+                  title="Decibel (dB)"
+                />
+              ) : (
+                <Spinner animation="border" role="status" />
+              )}
+            </Card>
+          </Col>
+        </Row>
+        <Row>
           <Col md={6}>
             <Card
               className="mt-2"
@@ -1361,8 +1361,8 @@ function MineDashboard() {
                 <Spinner animation="border" role="status" />
               )}
             </Card>
-        </Col>
-  </Row>
+          </Col>
+        </Row>
       </Container>
 
     </div>

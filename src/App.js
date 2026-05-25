@@ -8,6 +8,7 @@ import AppMap from "./map/index";
 import AnalyticsScreen from "./screens/Analytics";
 import MineLogin from "./screens/mine";
 import MineDashboard from "./screens/mineDashboard";
+import PrivateSummaryDashboard from "./screens/PrivateSummaryDashboard";
 import Stations from "./screens/Stations";
 
 import RequireAuth from "./routes/RequireAuth";
@@ -18,6 +19,8 @@ import { DataProvider } from "./contextProviders/DataContext";
 import { StationProvider } from "./contextProviders/StationContext";
 
 import EnvComplianceDashboard from "./screens/EnvComplianceDashboard";
+
+import PrivateComplianceDashboard from "./screens/PrivateComplianceDashboard";
 
 function App() {
   return (
@@ -47,6 +50,22 @@ function App() {
                       element={
                         <RequireAuth>
                           <MineDashboard />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/private-summary"
+                      element={
+                        <RequireAuth>
+                          <PrivateSummaryDashboard />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/private-compliance"
+                      element={
+                        <RequireAuth>
+                          <PrivateComplianceDashboard />
                         </RequireAuth>
                       }
                     />
