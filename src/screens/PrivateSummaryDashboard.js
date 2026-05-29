@@ -8,7 +8,6 @@ import {
 } from "chart.js";
 import Sidebar from "../components/SideBar";
 import TopNavBar from "../components/topNavBar";
-import { useAuth } from "../contextProviders/AuthContext";
 import { useSensorData } from "../contextProviders/sensorDataContext";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip);
@@ -344,7 +343,6 @@ const groupReadingsByDay = (data) => {
 ════════════════════════════════════ */
 export default function PrivateSummaryDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { setSelectedSensor, setSelectedPeriod } = useSensorData();
   const [stations, setStations] = useState([]);
   const [readings, setReadings] = useState({});
@@ -354,41 +352,39 @@ export default function PrivateSummaryDashboard() {
   const [refreshed, setRefreshed] = useState(null);
 
   const fetchStations = useCallback(async () => {
-    const tok = localStorage.getItem("authToken");
-    if (!tok) return [];
     setLoadingSt(true); setError(null);
     try {
-      const { data } = await axios.get(`${API_BASE}/api/users_sensors/me/stations`, {
-        headers: { Authorization: `Bearer ${tok}` },
-      });
-      let list = Array.isArray(data) ? [...data] : [];
-      try {
-        const [meR, allR] = await Promise.all([
-          axios.get(`${API_BASE}/api/users_sensors/me/sensors`, { headers:{ Authorization:`Bearer ${tok}` } }),
-          axios.get(`${API_BASE}/api/stations`, { headers:{ Authorization:`Bearer ${tok}` } }),
-        ]);
-        const myIds = new Set((meR?.data?.sensorIds||[]).map(String));
-        const seen = new Set(list.map(s=>String(s._id)));
-        (Array.isArray(allR.data)?allR.data:[]).forEach(st=>{
-          if ((st?.sensorIds||[]).map(String).some(id=>myIds.has(id))&&!seen.has(String(st._id))){
-            seen.add(String(st._id));
-            list.push({ _id:String(st._id), name:st.name||"Unnamed", lastSeen:st.lastSeen });
-          }
+      const tok = localStorage.getItem("authToken");
+      let list = [];
+      if (tok) {
+        // Logged in: fetch only the user's assigned stations (same as mineDashboard)
+        const { data } = await axios.get(`${API_BASE}/api/users_sensors/me/stations`, {
+          headers: { Authorization: `Bearer ${tok}` },
         });
-      } catch(_){}
+        list = Array.isArray(data) ? [...data] : [];
+      } else {
+        // Not logged in: fetch all private stations
+        const { data } = await axios.get(`${API_BASE}/api/stations/private`);
+        list = Array.isArray(data) ? [...data] : [];
+        list = list.filter(s => s.visibility === "private");
+      }
+      // Only keep Continental Systems and Mamba Systems
+      list = list.filter(s => {
+        const name = (s.name || "").toLowerCase();
+        return name.includes("continental") || name.includes("mamba");
+      });
       list.sort((a,b)=>(a.name||"").localeCompare(b.name||""));
       setStations(list); return list;
     } catch(e) {
       setError(e?.response?.data?.message||e.message||"Failed"); return [];
     } finally { setLoadingSt(false); }
-  }, [navigate]);
+  }, []);
 
   const fetchReadings = useCallback(async (list) => {
-    const tok = localStorage.getItem("authToken");
-    if (!tok||!list?.length) return;
+    if (!list?.length) return;
     const lm={}; list.forEach(s=>{ lm[s._id]=true; }); setLoadingR({...lm});
     const res = await Promise.allSettled(list.map(s=>
-      axios.get(`${API_BASE}/api/stations/${s._id}/sensorData?days=7`,{ headers:{ Authorization:`Bearer ${tok}` } })
+      axios.get(`${API_BASE}/api/stations/${s._id}/sensorData?days=7`)
         .then(r=>({ id:s._id, data:r.data }))
     ));
     const nr={};
@@ -398,7 +394,7 @@ export default function PrivateSummaryDashboard() {
 
   const refresh = useCallback(async()=>{ const l=await fetchStations(); if(l?.length) await fetchReadings(l); },[fetchStations,fetchReadings]);
 
-  useEffect(()=>{ refresh(); },[user]);
+  useEffect(()=>{ refresh(); },[refresh]);
   useEffect(()=>{ const t=setInterval(refresh,300000); return()=>clearInterval(t); },[refresh]);
 
   const onView = id => { setSelectedSensor(id); setSelectedPeriod("Today"); navigate("/private-compliance"); };
