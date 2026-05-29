@@ -284,7 +284,8 @@ export default function PMChartWidget({
   dataPoints,
   labels,
   threshold,
-  trend = 0
+  trend = 0,
+  unit = "µg/m³"
 }) {
   const avg          = Math.round(dataPoints.reduce((a, b) => a + b, 0) / dataPoints.length);
   const animatedValue= useCountUp(avg, 1200);
@@ -337,7 +338,7 @@ export default function PMChartWidget({
         bodyFont: { size: 12, weight: 500 },
         displayColors: false,
         callbacks: {
-          label: (ctx) => `${ctx.parsed.y} µg/m³`,
+          label: (ctx) => `${ctx.parsed.y} ${unit}`,
           afterLabel: (ctx) => {
             const diff = ctx.parsed.y - threshold;
             return diff > 0 ? `⚠️ ${diff} above threshold` : `✓ ${Math.abs(diff)} below threshold`;
@@ -365,7 +366,7 @@ export default function PMChartWidget({
       },
       y: {
         grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
-        title: { display: true, text: 'µg/m³', color: '#64748b', font: { size: 11, weight: 650 }, padding: { bottom: 4 } },
+        title: { display: true, text: unit, color: '#64748b', font: { size: 11, weight: 650 }, padding: { bottom: 4 } },
         ticks: { font: { size: 10, weight: 500 }, color: '#94a3b8', count: 5, padding: 8, callback: (v) => v }
       }
     }
@@ -406,7 +407,7 @@ export default function PMChartWidget({
           <Typography sx={{ fontWeight: 800, fontSize: '2.25rem', color: statusColor.color, lineHeight: 1 }}>
             {animatedValue}
           </Typography>
-          <Box component="span" sx={{ fontSize: '1rem', color: '#94a3b8', fontWeight: 500, mt: 0.5 }}>µg/m³</Box>
+          <Box component="span" sx={{ fontSize: '1rem', color: '#94a3b8', fontWeight: 500, mt: 0.5 }}>{unit}</Box>
         </Box>
 
         {/* Daily Average label */}

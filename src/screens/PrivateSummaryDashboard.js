@@ -6,7 +6,6 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale,
   PointElement, LineElement, Filler, Tooltip
 } from "chart.js";
-import Sidebar from "../components/SideBar";
 import TopNavBar from "../components/topNavBar";
 import { useSensorData } from "../contextProviders/sensorDataContext";
 
@@ -14,23 +13,43 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, 
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
-/* ── thresholds ── */
+/* ── thresholds from Excel ── */
+const HOURLY_THRESHOLDS = {
+  pm10: 190,
+  pm25: 103,
+  pm1: 10,
+  noise: 85,
+  temperature: 32,
+  humidity: 85,
+  voc: 200,
+  nox: 106
+};
+
+const DAILY_THRESHOLDS = {
+  pm10: 75,
+  pm25: 40,
+  pm4: 3.0,
+  pm1: 10
+};
+
 const pm25Level = v => {
-  if (v == null) return { label:"N/A", color:"#64748b", pct:0, tier:0 };
-  if (v <= 20)    return { label:"Good",       color:"#10b981", pct: (v/20)*20,       tier:1 };
-  if (v <= 40)  return { label:"Moderate",   color:"#f59e0b", pct: 20+(v-20)/20*20,  tier:2 };
-  if (v <= 50)  return { label:"Unhealthy*", color:"#f97316", pct: 40+(v-40)/10*20,  tier:3 };
-  if (v <= 150) return { label:"Unhealthy",  color:"#ef4444", pct: 60+(v-50)/100*20,  tier:4 };
-  return               { label:"Hazardous",    color:"#8b5cf6", pct:100,              tier:5 };
+  if (v == null) return { label:"N/A", color:"#64748b", pct:0 };
+  if (v <= 103) return { label:"Good", color:"#10b981", pct: (v/103)*25 };
+  if (v <= 153) return { label:"Moderate", color:"#eab308", pct: 25 + ((v-103)/50)*25 };
+  if (v <= 203) return { label:"High", color:"#f97316", pct: 50 + ((v-153)/50)*25 };
+  if (v <= 253) return { label:"Very High", color:"#ef4444", pct: 75 + ((v-203)/50)*25 };
+  return { label:"Severe", color:"#8b5cf6", pct: 100 };
 };
+
 const tempLevel = v => {
-  if (v == null) return { label:"N/A", color:"#64748b", pct:0, tier:0 };
-  if (v < 16)    return { label:"Too Cold",    color:"#3b82f6", pct: Math.max(0,(v/16)*20), tier:1 };
-  if (v < 22)    return { label:"Cool",        color:"#06b6d4", pct: 20+(v-16)/6*20, tier:2 };
-  if (v <= 32)   return { label:"Comfortable", color:"#10b981", pct: 40+(v-22)/10*20, tier:3 };
-  if (v <= 37)   return { label:"Action Level", color:"#f59e0b", pct: 60+(v-32)/5*20, tier:4 };
-  return               { label:"Too Hot",      color:"#ef4444", pct:100,              tier:5 };
+  if (v == null) return { label:"N/A", color:"#64748b", pct:0 };
+  if (v >= 15 && v <= 25) return { label:"Comfortable", color:"#10b981", pct: 50 };
+  if (v >= 26 && v <= 31) return { label:"Moderate", color:"#eab308", pct: 70 };
+  if (v >= 32 && v <= 37) return { label:"Action Level", color:"#f97316", pct: 85 };
+  if (v >= 38 && v <= 42) return { label:"Very High", color:"#ef4444", pct: 95 };
+  return { label:"Severe", color:"#8b5cf6", pct: 100 };
 };
+
 const online = ls => ls && Date.now()-new Date(ls)<86400000;
 
 /* ── Progress bar ── */
@@ -45,45 +64,24 @@ const Bar = ({ pct, color }) => (
   </div>
 );
 
-/* ── Metric panel inside card ── */
-const Metric = ({ title, std, val, unit, lvl }) => (
-  <div style={{
-    flex:1, background:`linear-gradient(135deg,${lvl.color}08,rgba(255,255,255,0.6))`,
-    borderRadius:"14px", padding:"16px",
-    border:`1px solid ${lvl.color}30`,
-    boxShadow:`0 2px 12px ${lvl.color}10`,
-  }}>
-    <div style={{ fontSize:"10px", fontWeight:800, letterSpacing:"1.5px", color:"#64748b", marginBottom:"4px" }}>{title}</div>
-    <div style={{ fontSize:"36px", fontWeight:900, color:lvl.color, lineHeight:1, letterSpacing:"-1px" }}>
-      {val!=null ? Number(val).toFixed(1) : "—"}
-      <span style={{ fontSize:"12px", fontWeight:600, color:"#94a3b8", marginLeft:"4px" }}>{unit}</span>
-    </div>
-    <Bar pct={lvl.pct} color={lvl.color} />
-    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"8px" }}>
-      <span style={{
-        fontSize:"11px", fontWeight:700, color:lvl.color,
-        background:`${lvl.color}15`, padding:"2px 8px", borderRadius:"999px",
-        border:`1px solid ${lvl.color}35`,
-      }}>{lvl.label}</span>
-      <span style={{ fontSize:"9px", color:"#94a3b8", fontWeight:600 }}>{std}</span>
-    </div>
-  </div>
-);
 
 /* ── noise level helper ── */
 const noiseLevel = v => {
   if (v == null) return { label:"N/A", color:"#64748b", pct:0 };
-  if (v < 82)   return { label:"Safe",       color:"#10b981", pct:(v/82)*40 };
-  if (v <= 85)   return { label:"Action Level", color:"#f59e0b", pct:40+(v-82)/3*30 };
-  return               { label:"Hazardous",  color:"#ef4444", pct:100 };
+  if (v < 70) return { label:"Good", color:"#10b981", pct: (v/70)*25 };
+  if (v <= 82) return { label:"Moderate", color:"#eab308", pct: 25 + ((v-70)/12)*25 };
+  if (v <= 85) return { label:"High", color:"#f97316", pct: 50 + ((v-82)/3)*25 };
+  if (v <= 105) return { label:"Very High", color:"#ef4444", pct: 75 + ((v-85)/20)*25 };
+  return { label:"Severe", color:"#8b5cf6", pct: 100 };
 };
 /* ── pm10 level helper ── */
 const pm10Level = v => {
   if (v == null) return { label:"N/A", color:"#64748b", pct:0 };
-  if (v <= 40)   return { label:"Good",       color:"#10b981", pct:(v/40)*25 };
-  if (v <= 75)   return { label:"Moderate",   color:"#f59e0b", pct:25+(v-40)/35*25 };
-  if (v <= 150)  return { label:"Unhealthy",  color:"#f97316", pct:50+(v-75)/75*25 };
-  return               { label:"Hazardous",  color:"#ef4444", pct:100 };
+  if (v <= 190) return { label:"Good", color:"#10b981", pct: (v/190)*25 };
+  if (v <= 240) return { label:"Moderate", color:"#eab308", pct: 25 + ((v-190)/50)*25 };
+  if (v <= 290) return { label:"High", color:"#f97316", pct: 50 + ((v-240)/50)*25 };
+  if (v <= 340) return { label:"Very High", color:"#ef4444", pct: 75 + ((v-290)/50)*25 };
+  return { label:"Severe", color:"#8b5cf6", pct: 100 };
 };
 
 /* ── Metric tile ── */
@@ -175,7 +173,29 @@ const Card = ({ station, histData, busy, onView }) => {
   const tl   = tempLevel(tp);
   const p10l = pm10Level(pm10);
   const nl   = noiseLevel(dba);
-  const alert = (pm != null && pm > 40) || (tp != null && (tp > 32 || tp < 16)) || (pm10 != null && pm10 > 75) || (dba != null && dba >= 82);
+
+  const dailyAvgs = groupReadingsByDay(histData);
+  const lastDaily = dailyAvgs.length ? dailyAvgs[dailyAvgs.length - 1] : null;
+
+  const hasHourlyAlert = last && (
+    (last.pm2p5 != null && last.pm2p5 > HOURLY_THRESHOLDS.pm25) ||
+    (last.pm10p0 != null && last.pm10p0 > HOURLY_THRESHOLDS.pm10) ||
+    (last.pm1p0 != null && last.pm1p0 > HOURLY_THRESHOLDS.pm1) ||
+    (last.dba != null && last.dba > HOURLY_THRESHOLDS.noise) ||
+    (last.temperature != null && (last.temperature > HOURLY_THRESHOLDS.temperature || last.temperature < 15)) ||
+    (last.humidity != null && last.humidity > HOURLY_THRESHOLDS.humidity) ||
+    (last.voc != null && last.voc > HOURLY_THRESHOLDS.voc) ||
+    (last.nox != null && last.nox > HOURLY_THRESHOLDS.nox)
+  );
+
+  const hasDailyAlert = lastDaily && (
+    (lastDaily.pm2p5 != null && lastDaily.pm2p5 > DAILY_THRESHOLDS.pm25) ||
+    (lastDaily.pm10p0 != null && lastDaily.pm10p0 > DAILY_THRESHOLDS.pm10) ||
+    (lastDaily.pm4p0 != null && lastDaily.pm4p0 > DAILY_THRESHOLDS.pm4) ||
+    (lastDaily.pm1p0 != null && lastDaily.pm1p0 > DAILY_THRESHOLDS.pm1)
+  );
+
+  const alert = hasHourlyAlert || hasDailyAlert;
   const accentColor = alert ? "#ef4444" : "#3b82f6";
 
   return (
@@ -248,9 +268,9 @@ const Card = ({ station, histData, busy, onView }) => {
           </div>
         ) : (
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
-            <MiniMetric title="PM 2.5" val={pm}   unit="μg/m³" lvl={pl}   threshold="40 μg/m³" />
-            <MiniMetric title="TEMP"   val={tp}   unit="°C"    lvl={tl}   threshold="37°C" />
-            <MiniMetric title="PM 10"  val={pm10} unit="μg/m³" lvl={p10l} threshold="75 μg/m³" />
+            <MiniMetric title="PM 2.5" val={pm}   unit="μg/m³" lvl={pl}   threshold="103 μg/m³" />
+            <MiniMetric title="TEMP"   val={tp}   unit="°C"    lvl={tl}   threshold="32°C" />
+            <MiniMetric title="PM 10"  val={pm10} unit="μg/m³" lvl={p10l} threshold="190 μg/m³" />
             <MiniMetric title="NOISE"  val={dba}  unit="dB"    lvl={nl}   threshold="85 dB" />
           </div>
         )}
@@ -314,11 +334,17 @@ const groupReadingsByDay = (data) => {
         timestamp: d.timestamp,
         dateStr,
         pm2p5: [],
+        pm10p0: [],
+        pm4p0: [],
+        pm1p0: [],
         temperature: [],
         dba: []
       };
     }
     if (d.pm2p5 != null) groups[dateStr].pm2p5.push(Number(d.pm2p5));
+    if (d.pm10p0 != null) groups[dateStr].pm10p0.push(Number(d.pm10p0));
+    if (d.pm4p0 != null) groups[dateStr].pm4p0.push(Number(d.pm4p0));
+    if (d.pm1p0 != null) groups[dateStr].pm1p0.push(Number(d.pm1p0));
     if (d.temperature != null) groups[dateStr].temperature.push(Number(d.temperature));
     if (d.dba != null) groups[dateStr].dba.push(Number(d.dba));
   });
@@ -329,6 +355,9 @@ const groupReadingsByDay = (data) => {
       timestamp: g.timestamp,
       dateStr: g.dateStr,
       pm2p5: avg(g.pm2p5),
+      pm10p0: avg(g.pm10p0),
+      pm4p0: avg(g.pm4p0),
+      pm1p0: avg(g.pm1p0),
       temperature: avg(g.temperature),
       dba: avg(g.dba)
     };
@@ -400,9 +429,33 @@ export default function PrivateSummaryDashboard() {
   const onView = id => { setSelectedSensor(id); setSelectedPeriod("Today"); navigate("/private-compliance"); };
 
   const liveCount  = stations.filter(s=>online(s.lastSeen)).length;
-  const getlast = id => { const arr=readings[id]; return arr?.length ? arr[arr.length-1] : null; };
-  const pm25Alerts = stations.filter(s=>{ const v=getlast(s._id)?.pm2p5; return v!=null&&v>40; }).length;
-  const tempAlerts = stations.filter(s=>{ const v=getlast(s._id)?.temperature; return v!=null&&(v>32||v<16); }).length;
+  
+  let totalHourlyAlerts = 0;
+  let totalDailyAlerts = 0;
+  stations.forEach(s => {
+    const hist = readings[s._id] || [];
+    const last = hist.length ? hist[hist.length - 1] : null;
+    const dailyAvgs = groupReadingsByDay(hist);
+    const lastDaily = dailyAvgs.length ? dailyAvgs[dailyAvgs.length - 1] : null;
+
+    if (last) {
+      if (last.pm2p5 != null && last.pm2p5 > HOURLY_THRESHOLDS.pm25) totalHourlyAlerts++;
+      if (last.pm10p0 != null && last.pm10p0 > HOURLY_THRESHOLDS.pm10) totalHourlyAlerts++;
+      if (last.pm1p0 != null && last.pm1p0 > HOURLY_THRESHOLDS.pm1) totalHourlyAlerts++;
+      if (last.dba != null && last.dba > HOURLY_THRESHOLDS.noise) totalHourlyAlerts++;
+      if (last.temperature != null && (last.temperature > HOURLY_THRESHOLDS.temperature || last.temperature < 15)) totalHourlyAlerts++;
+      if (last.humidity != null && last.humidity > HOURLY_THRESHOLDS.humidity) totalHourlyAlerts++;
+      if (last.voc != null && last.voc > HOURLY_THRESHOLDS.voc) totalHourlyAlerts++;
+      if (last.nox != null && last.nox > HOURLY_THRESHOLDS.nox) totalHourlyAlerts++;
+    }
+
+    if (lastDaily) {
+      if (lastDaily.pm2p5 != null && lastDaily.pm2p5 > DAILY_THRESHOLDS.pm25) totalDailyAlerts++;
+      if (lastDaily.pm10p0 != null && lastDaily.pm10p0 > DAILY_THRESHOLDS.pm10) totalDailyAlerts++;
+      if (lastDaily.pm4p0 != null && lastDaily.pm4p0 > DAILY_THRESHOLDS.pm4) totalDailyAlerts++;
+      if (lastDaily.pm1p0 != null && lastDaily.pm1p0 > DAILY_THRESHOLDS.pm1) totalDailyAlerts++;
+    }
+  });
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"linear-gradient(145deg,#f0f7ff 0%,#e8f0fe 40%,#dbeafe 70%,#eff6ff 100%)", fontFamily:"'Inter',system-ui,sans-serif" }}>
@@ -458,8 +511,128 @@ export default function PrivateSummaryDashboard() {
               <KPI label="Total Sensors"  value={stations.length}            color="#3b82f6" />
               <KPI label="Live"           value={liveCount}                  color="#10b981" />
               <KPI label="Offline"        value={stations.length-liveCount}  color="#475569" />
-              <KPI label="PM2.5 Alerts"   value={pm25Alerts} color={pm25Alerts>0?"#ef4444":"#10b981"} />
-              <KPI label="Temp Alerts"    value={tempAlerts} color={tempAlerts>0?"#f97316":"#10b981"} />
+              <KPI label="Hourly Alerts"  value={totalHourlyAlerts} color={totalHourlyAlerts>0?"#ef4444":"#10b981"} />
+              <KPI label="Daily Alerts"   value={totalDailyAlerts} color={totalDailyAlerts>0?"#f97316":"#10b981"} />
+            </div>
+          )}
+
+          {/* ── Alerts Center ── */}
+          {!loadingSt && stations.length > 0 && (
+            <div style={{
+              background: "rgba(255,255,255,0.85)",
+              border: "1px solid rgba(59,130,246,0.12)",
+              backdropFilter: "blur(8px)",
+              borderRadius: "18px",
+              padding: "24px",
+              marginBottom: "28px",
+              boxShadow: "0 8px 32px rgba(59,130,246,0.05)"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+                <span style={{ fontSize: "20px" }}>🚨</span>
+                <div style={{ fontSize: "18px", fontWeight: 850, color: "#0f172a", letterSpacing: "-0.5px" }}>
+                  Active Alerts Summary (Both Sensors)
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
+                {stations.map(s => {
+                  const hist = readings[s._id] || [];
+                  const last = hist.length ? hist[hist.length - 1] : null;
+                  const dailyAvgs = groupReadingsByDay(hist);
+                  const lastDaily = dailyAvgs.length ? dailyAvgs[dailyAvgs.length - 1] : null;
+                  
+                  const hAlerts = [];
+                  if (last) {
+                    if (last.pm2p5 != null && last.pm2p5 > HOURLY_THRESHOLDS.pm25) {
+                      hAlerts.push(`PM2.5 (${Number(last.pm2p5).toFixed(1)} > ${HOURLY_THRESHOLDS.pm25} µg/m³)`);
+                    }
+                    if (last.pm10p0 != null && last.pm10p0 > HOURLY_THRESHOLDS.pm10) {
+                      hAlerts.push(`PM10 (${Number(last.pm10p0).toFixed(1)} > ${HOURLY_THRESHOLDS.pm10} µg/m³)`);
+                    }
+                    if (last.pm1p0 != null && last.pm1p0 > HOURLY_THRESHOLDS.pm1) {
+                      hAlerts.push(`PM1.0 (${Number(last.pm1p0).toFixed(1)} > ${HOURLY_THRESHOLDS.pm1} µg/m³)`);
+                    }
+                    if (last.dba != null && last.dba > HOURLY_THRESHOLDS.noise) {
+                      hAlerts.push(`Noise (${Number(last.dba).toFixed(1)} > ${HOURLY_THRESHOLDS.noise} dBA)`);
+                    }
+                    if (last.temperature != null && (last.temperature > HOURLY_THRESHOLDS.temperature || last.temperature < 15)) {
+                      hAlerts.push(`Temp (${Number(last.temperature).toFixed(1)}°C outside 15-${HOURLY_THRESHOLDS.temperature}°C)`);
+                    }
+                    if (last.humidity != null && last.humidity > HOURLY_THRESHOLDS.humidity) {
+                      hAlerts.push(`Humidity (${Number(last.humidity).toFixed(1)}% > ${HOURLY_THRESHOLDS.humidity}%)`);
+                    }
+                    if (last.voc != null && last.voc > HOURLY_THRESHOLDS.voc) {
+                      hAlerts.push(`VOCs (${Number(last.voc).toFixed(1)} > ${HOURLY_THRESHOLDS.voc} µg/m³)`);
+                    }
+                    if (last.nox != null && last.nox > HOURLY_THRESHOLDS.nox) {
+                      hAlerts.push(`NOx (${Number(last.nox).toFixed(1)} > ${HOURLY_THRESHOLDS.nox} ppb)`);
+                    }
+                  }
+
+                  const dAlerts = [];
+                  if (lastDaily) {
+                    if (lastDaily.pm2p5 != null && lastDaily.pm2p5 > DAILY_THRESHOLDS.pm25) {
+                      dAlerts.push(`PM2.5 (${Number(lastDaily.pm2p5).toFixed(1)} > ${DAILY_THRESHOLDS.pm25} µg/m³)`);
+                    }
+                    if (lastDaily.pm10p0 != null && lastDaily.pm10p0 > DAILY_THRESHOLDS.pm10) {
+                      dAlerts.push(`PM10 (${Number(lastDaily.pm10p0).toFixed(1)} > ${DAILY_THRESHOLDS.pm10} µg/m³)`);
+                    }
+                    if (lastDaily.pm4p0 != null && lastDaily.pm4p0 > DAILY_THRESHOLDS.pm4) {
+                      dAlerts.push(`PM4.0 (${Number(lastDaily.pm4p0).toFixed(1)} > ${DAILY_THRESHOLDS.pm4} mg/m³)`);
+                    }
+                    if (lastDaily.pm1p0 != null && lastDaily.pm1p0 > DAILY_THRESHOLDS.pm1) {
+                      dAlerts.push(`PM1.0 (${Number(lastDaily.pm1p0).toFixed(1)} > ${DAILY_THRESHOLDS.pm1} µg/m³)`);
+                    }
+                  }
+
+                  const hasAny = hAlerts.length > 0 || dAlerts.length > 0;
+
+                  return (
+                    <div key={s._id} style={{
+                      background: hasAny ? "rgba(239, 68, 68, 0.03)" : "rgba(16, 185, 129, 0.03)",
+                      border: `1px solid ${hasAny ? "rgba(239, 68, 68, 0.15)" : "rgba(16, 185, 129, 0.15)"}`,
+                      borderRadius: "14px",
+                      padding: "16px 20px"
+                    }}>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#1e293b", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: hasAny ? "#ef4444" : "#10b981" }}/>
+                        {s.name}
+                      </div>
+                      
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <div>
+                          <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>Hourly Alerts</div>
+                          {hAlerts.length > 0 ? (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                              {hAlerts.map((a, idx) => (
+                                <span key={idx} style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", border: "1px solid rgba(239, 68, 68, 0.15)" }}>
+                                  {a}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: "12px", color: "#10b981", fontWeight: 600 }}>✓ Normal (All Hourly metrics within limit)</span>
+                          )}
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>Daily Alerts</div>
+                          {dAlerts.length > 0 ? (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                              {dAlerts.map((a, idx) => (
+                                <span key={idx} style={{ background: "rgba(249, 115, 22, 0.1)", color: "#f97316", fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", border: "1px solid rgba(249, 115, 22, 0.15)" }}>
+                                  {a}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: "12px", color: "#10b981", fontWeight: 600 }}>✓ Normal (All Daily metrics within limit)</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

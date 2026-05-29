@@ -51,9 +51,10 @@ function getPrevPeriod(start, end) {
 }
 
 const AQI_BANDS = {
-  pm25: [{ max: 40, status: "Green" }, { max: 48, status: "Yellow" }, { max: 60, status: "Orange" }, { max: Infinity, status: "Red" }],
-  pm10: [{ max: 75, status: "Green" }, { max: 90, status: "Yellow" }, { max: 112, status: "Orange" }, { max: Infinity, status: "Red" }],
-  noise: [{ max: 82, status: "Green" }, { max: 85, status: "Yellow" }, { max: 107, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm25: [{ max: 103, status: "Green" }, { max: 153, status: "Yellow" }, { max: 203, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm10: [{ max: 190, status: "Green" }, { max: 240, status: "Yellow" }, { max: 290, status: "Orange" }, { max: Infinity, status: "Red" }],
+  noise: [{ max: 70, status: "Green" }, { max: 82, status: "Yellow" }, { max: 85, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm5: [{ max: 1.5, status: "Green" }, { max: 2.5, status: "Yellow" }, { max: 3.0, status: "Orange" }, { max: Infinity, status: "Red" }],
 };
 
 function statusFor(val, thr, key) {
@@ -67,9 +68,9 @@ const sMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map(d => d.min ??
 const sMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map(d => d.max ?? 0))) : 0;
 
 // Hourly Thresholds
-const THRESHOLDS = { pm1: 50, pm25: 40, pm5: 50, pm10: 75, noise: 85, temperature: 37, humidity: 80, co2: 1000, nox: 3, voc: 1 };
+const THRESHOLDS = { pm1: 10, pm25: 103, pm5: 1.5, pm10: 190, noise: 85, temperature: 32, humidity: 85, co2: 1000, nox: 106, voc: 200 };
 // New Daily Thresholds for PM Widgets & Daily Exceedance Table
-const DAILY_THRESHOLDS = { pm1: 50, pm25: 40, pm5: 50, pm10: 75 };
+const DAILY_THRESHOLDS = { pm1: 10, pm25: 40, pm5: 3.0, pm10: 75 };
 
 function toForecastWidget(w) {
   if (!w) return null;
@@ -383,7 +384,7 @@ export default function PrivateComplianceDashboard() {
 
       const st = {
         pm1: statusFor(pmData.pm1.current, THRESHOLDS.pm1, "pm25"), pm25: statusFor(pmData.pm25.current, THRESHOLDS.pm25, "pm25"),
-        pm5: statusFor(pmData.pm5.current, THRESHOLDS.pm5, "pm25"), pm10: statusFor(pmData.pm10.current, THRESHOLDS.pm10, "pm10"),
+        pm5: statusFor(pmData.pm5.current, THRESHOLDS.pm5, "pm5"), pm10: statusFor(pmData.pm10.current, THRESHOLDS.pm10, "pm10"),
         noise: statusFor(noiseData.current, THRESHOLDS.noise, "noise"), temp: statusFor(tempData.current, THRESHOLDS.temperature),
         humidity: statusFor(humidityData.current, THRESHOLDS.humidity), co2: statusFor(co2Data.current, THRESHOLDS.co2),
         nox: statusFor(noxData.current, THRESHOLDS.nox), voc: statusFor(vocData.current, THRESHOLDS.voc),
@@ -622,7 +623,7 @@ export default function PrivateComplianceDashboard() {
                             {dailyExcData.map(row => (
                               <TableRow key={row.key}>
                                 <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
-                                <TableCell>{row.limit} µg/m³</TableCell>
+                                <TableCell>{row.limit} {row.key === 'pm5' ? 'mg/m³' : 'µg/m³'}</TableCell>
                                 <TableCell>
                                   <Chip
                                     label={`${row.exceedances} / ${row.total} Days`}
@@ -655,6 +656,7 @@ export default function PrivateComplianceDashboard() {
                     dataPoints={d.values}
                     threshold={DAILY_THRESHOLDS[key]}
                     trend={widget.trend}
+                    unit={key === "pm5" ? "mg/m³" : "µg/m³"}
                   />
                 </Box></Grid>);
               })}
