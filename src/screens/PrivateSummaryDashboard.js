@@ -425,10 +425,39 @@ export default function PrivateSummaryDashboard() {
   const fetchReadings = useCallback(async (list) => {
     if (!list?.length) return;
     const lm={}; list.forEach(s=>{ lm[s._id]=true; }); setLoadingR({...lm});
-    const res = await Promise.allSettled(list.map(s=>
-      axios.get(`${API_BASE}/api/stations/${s._id}/sensorData?days=7`)
-        .then(r=>({ id:s._id, data:r.data }))
-    ));
+    const tok = localStorage.getItem("authToken");
+    const res = await Promise.allSettled(list.map(async s => {
+      let data = [];
+      try {
+        const r = await axios.get(`${API_BASE}/api/stations/${s._id}/sensorData?days=7`);
+        data = r.data || [];
+      } catch (e) {
+        console.warn("Failed to fetch sensorData for", s.name);
+      }
+      
+      // Fallback: If sensorData is empty, try nodedata/aggregated if sensorIds exists
+      if ((!data || data.length === 0) && s.sensorIds && s.sensorIds.length > 0) {
+        try {
+          const d = new Date();
+          const end = d.toISOString();
+          d.setDate(d.getDate() - 7);
+          const start = d.toISOString();
+          
+          const nr = await axios.get(`${API_BASE}/api/nodedata/aggregated`, {
+            params: { sensor_id: s.sensorIds[0], start, end, resolution: 'hourly' },
+            headers: tok ? { Authorization: `Bearer ${tok}` } : {}
+          });
+          
+          if (nr.data && Array.isArray(nr.data)) {
+             data = nr.data;
+          }
+        } catch (e) {
+          console.warn("Failed fallback fetch for", s.name);
+        }
+      }
+
+      return { id: s._id, data };
+    }));
     const nr={};
     res.forEach(r=>{ 
       if(r.status==="fulfilled"){ 
