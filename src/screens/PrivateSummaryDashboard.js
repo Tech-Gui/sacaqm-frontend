@@ -355,7 +355,7 @@ export default function PrivateSummaryDashboard() {
 
   const fetchStations = useCallback(async () => {
     const tok = localStorage.getItem("authToken");
-    if (!tok) { navigate("/login"); return []; }
+    if (!tok) return [];
     setLoadingSt(true); setError(null);
     try {
       const { data } = await axios.get(`${API_BASE}/api/users_sensors/me/stations`, {

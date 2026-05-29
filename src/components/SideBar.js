@@ -25,11 +25,7 @@ function Sidebar() {
 
   const handlePrivateClick = (e) => {
     e.preventDefault();
-    if (isAuthed) {
-      navigate("/mineDashboard");
-    } else {
-      navigate("/login");
-    }
+    navigate("/private-summary");
   };
 
   const isLinkActive = (path) => location.pathname === path;
@@ -122,7 +118,7 @@ function Sidebar() {
           onClick={handlePrivateClick}
           style={{
             textAlign: "left",
-            color: isLinkActive("/login") || isLinkActive("/mineDashboard") 
+            color: isLinkActive("/login") || isLinkActive("/private-summary") || isLinkActive("/private-compliance")
               ? "#1B2791" 
               : "#3DA2E6",
           }}>

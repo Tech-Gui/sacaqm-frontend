@@ -39,11 +39,15 @@ const MineLogin = () => {
 
       // persist
       localStorage.setItem("authToken", token);
-      localStorage.setItem("authUser", JSON.stringify(user));
+      if (user) {
+        localStorage.setItem("authUser", JSON.stringify(user));
+      } else {
+        localStorage.removeItem("authUser");
+      }
 
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      login(token, user);
-      navigate("/mineDashboard");
+      login(token, user ?? null);
+      navigate("/private-summary");
     } catch (err) {
       if (err.response?.status === 401) {
         setError("Invalid credentials.");

@@ -51,8 +51,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const rawUser = localStorage.getItem("authUser");
     if (rawUser === "undefined") {
+      // Only clean the corrupted user entry; keep the token so the session survives
       localStorage.removeItem("authUser");
-      localStorage.removeItem("authToken");
+      setUser(null);
     }
   }, []);
 
