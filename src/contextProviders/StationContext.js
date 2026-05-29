@@ -35,10 +35,7 @@ export const StationProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      stationsData = Array.isArray(res.data) ? res.data.filter(s => {
-        const name = (s.name || "").toLowerCase();
-        return name.includes("continental") || name.includes("mamba");
-      }) : [];
+      stationsData = Array.isArray(res.data) ? res.data : [];
     }
     else {
       const res = await axios.get(publicUrl);

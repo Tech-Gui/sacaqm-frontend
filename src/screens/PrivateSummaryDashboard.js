@@ -8,6 +8,7 @@ import {
 } from "chart.js";
 import TopNavBar from "../components/topNavBar";
 import { useSensorData } from "../contextProviders/sensorDataContext";
+import { useAuth } from "../contextProviders/AuthContext";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip);
 
@@ -165,10 +166,19 @@ const SparkLine = ({ data, label, color, unit, thresholds, isDaily }) => {
 const Card = ({ station, histData, busy, onView }) => {
   const last = histData?.length ? histData[histData.length - 1] : null;
   const live = online(station.lastSeen);
-  const pm   = last?.pm2p5;
-  const tp   = last?.temperature;
-  const pm10 = last?.pm10p0;
-  const dba  = last?.dba;
+  
+  const getLatest = (key) => {
+    if (!histData?.length) return null;
+    for (let i = histData.length - 1; i >= 0; i--) {
+      if (histData[i][key] != null) return histData[i][key];
+    }
+    return null;
+  };
+
+  const pm   = getLatest('pm2p5');
+  const tp   = getLatest('temperature');
+  const pm10 = getLatest('pm10p0');
+  const dba  = getLatest('dba');
   const pl   = pm25Level(pm);
   const tl   = tempLevel(tp);
   const p10l = pm10Level(pm10);
@@ -373,12 +383,20 @@ const groupReadingsByDay = (data) => {
 export default function PrivateSummaryDashboard() {
   const navigate = useNavigate();
   const { setSelectedSensor, setSelectedPeriod } = useSensorData();
+  const { logout } = useAuth();
+  
   const [stations, setStations] = useState([]);
   const [readings, setReadings] = useState({});
   const [loadingSt, setLoadingSt] = useState(true);
   const [loadingR, setLoadingR] = useState({});
   const [error, setError] = useState(null);
   const [refreshed, setRefreshed] = useState(null);
+
+  const handleLogout = () => {
+    delete axios.defaults.headers.common["Authorization"];
+    logout();
+    navigate("/login");
+  };
 
   const fetchStations = useCallback(async () => {
     setLoadingSt(true); setError(null);
@@ -397,11 +415,6 @@ export default function PrivateSummaryDashboard() {
         list = Array.isArray(data) ? [...data] : [];
         list = list.filter(s => s.visibility === "private");
       }
-      // Only keep Continental Systems and Mamba Systems
-      list = list.filter(s => {
-        const name = (s.name || "").toLowerCase();
-        return name.includes("continental") || name.includes("mamba");
-      });
       list.sort((a,b)=>(a.name||"").localeCompare(b.name||""));
       setStations(list); return list;
     } catch(e) {
@@ -417,7 +430,14 @@ export default function PrivateSummaryDashboard() {
         .then(r=>({ id:s._id, data:r.data }))
     ));
     const nr={};
-    res.forEach(r=>{ if(r.status==="fulfilled"){ const {id,data}=r.value; nr[id]=Array.isArray(data)?data:[]; } });
+    res.forEach(r=>{ 
+      if(r.status==="fulfilled"){ 
+        const {id,data}=r.value; 
+        let arr = Array.isArray(data) ? data : [];
+        arr.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+        nr[id] = arr; 
+      } 
+    });
     setReadings(nr); setLoadingR({}); setRefreshed(new Date());
   }, []);
 
@@ -493,16 +513,28 @@ export default function PrivateSummaryDashboard() {
               </div>
               {refreshed && <div style={{ fontSize:"11px", color:"#94a3b8", marginTop:"6px", fontWeight:600 }}>· Refreshed {refreshed.toLocaleTimeString()}</div>}
             </div>
-            <button onClick={refresh} disabled={loadingSt} style={{
-              padding:"12px 26px", borderRadius:"14px",
-              background:"linear-gradient(135deg,#3b82f6,#6366f1)",
-              color:"#fff", border:"none", fontSize:"14px", fontWeight:800,
-              cursor:loadingSt?"not-allowed":"pointer", opacity:loadingSt?.7:1,
-              boxShadow:"0 6px 24px rgba(99,102,241,0.4)",
-              letterSpacing:"0.3px", display:"flex", alignItems:"center", gap:"8px",
-            }}>
-              <span style={{ fontSize:"18px" }}>↻</span> Refresh
-            </button>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <button onClick={handleLogout} style={{
+                padding:"12px 26px", borderRadius:"14px",
+                background:"#fff",
+                color:"#ef4444", border:"1px solid rgba(239,68,68,0.3)", fontSize:"14px", fontWeight:800,
+                cursor:"pointer",
+                boxShadow:"0 4px 12px rgba(239,68,68,0.1)",
+                letterSpacing:"0.3px", display:"flex", alignItems:"center", gap:"8px",
+              }}>
+                <span style={{ fontSize:"18px" }}>🚪</span> Logout
+              </button>
+              <button onClick={refresh} disabled={loadingSt} style={{
+                padding:"12px 26px", borderRadius:"14px",
+                background:"linear-gradient(135deg,#3b82f6,#6366f1)",
+                color:"#fff", border:"none", fontSize:"14px", fontWeight:800,
+                cursor:loadingSt?"not-allowed":"pointer", opacity:loadingSt?.7:1,
+                boxShadow:"0 6px 24px rgba(99,102,241,0.4)",
+                letterSpacing:"0.3px", display:"flex", alignItems:"center", gap:"8px",
+              }}>
+                <span style={{ fontSize:"18px" }}>↻</span> Refresh
+              </button>
+            </div>
           </div>
 
           {/* ── KPI row ── */}

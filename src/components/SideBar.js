@@ -15,6 +15,7 @@ import { FaInfoCircle } from "react-icons/fa";
 import { RiAlarmWarningFill } from "react-icons/ri";
 import { useAuth } from '../contextProviders/AuthContext';
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function Sidebar() {
   const location = useLocation();

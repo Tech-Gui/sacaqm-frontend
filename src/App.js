@@ -53,7 +53,14 @@ function App() {
                         </RequireAuth>
                       }
                     />
-                    <Route path="/private-summary" element={<PrivateSummaryDashboard />} />
+                    <Route
+                      path="/private-summary"
+                      element={
+                        <RequireAuth>
+                          <PrivateSummaryDashboard />
+                        </RequireAuth>
+                      }
+                    />
                     <Route
                       path="/private-compliance"
                       element={
