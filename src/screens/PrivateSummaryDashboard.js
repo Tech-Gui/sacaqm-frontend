@@ -643,16 +643,16 @@ export default function PrivateSummaryDashboard() {
             display:"flex", flexWrap:"wrap", gap:"18px",
           }}>
             <div>
-              <div style={{ fontSize:"9px", fontWeight:800, color:"#64748b", letterSpacing:"1.5px", marginBottom:"8px" }}>PM2.5 — SA MINING COMPLIANCE (μg/m³)</div>
+              <div style={{ fontSize:"9px", fontWeight:800, color:"#64748b", letterSpacing:"1.5px", marginBottom:"8px" }}>PM2.5 — EXCEL COMPLIANCE BANDS (μg/m³)</div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
-                {[["Annual Avg ≤20","#10b981"],["24-Hour Limit ≤40","#f59e0b"],["Unhealthy* ≤50","#f97316"],["Unhealthy ≤150","#ef4444"],["Hazardous >150","#8b5cf6"]]
+                {[["Good ≤103","#10b981"],["Moderate 104–153","#eab308"],["High 154–203","#f97316"],["Very High 204–253","#ef4444"],["Severe >254","#8b5cf6"]]
                   .map(([l,c])=><Chip key={l} label={l} color={c}/>)}
               </div>
             </div>
             <div>
               <div style={{ fontSize:"9px", fontWeight:800, color:"#64748b", letterSpacing:"1.5px", marginBottom:"8px" }}>TEMPERATURE — DRY-BULB LIMITS (°C)</div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
-                {[["Too Cold <16","#3b82f6"],["Cool 16–22","#06b6d4"],["Comfortable 22–32","#10b981"],["Action Level 32–37","#f59e0b"],["Too Hot >37","#ef4444"]]
+                {[["Comfortable 15–25","#10b981"],["Moderate 26–31","#eab308"],["Action Level 32–37","#f97316"],["Very High 38–42","#ef4444"],["Severe <4 or >42","#8b5cf6"]]
                   .map(([l,c])=><Chip key={l} label={l} color={c}/>)}
               </div>
             </div>
