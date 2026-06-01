@@ -9,7 +9,7 @@ mapboxgl.accessToken = (process.env.REACT_APP_MAPBOX_TOKEN || "").replace(/"/g, 
 const getStationStatus = (lastSeen) => {
   if (!lastSeen) return { label: "Offline", color: "#64748b", bg: "#f1f5f9", dot: "#94a3b8" };
   const diff = (Date.now() - new Date(lastSeen).getTime()) / 1000 / 60; // minutes
-  if (diff <= 60)   return { label: "Online",  color: "#16a34a", bg: "#dcfce7", dot: "#22c55e" };
+  if (diff <= 1440) return { label: "Online",  color: "#16a34a", bg: "#dcfce7", dot: "#22c55e" };
   return               { label: "Offline", color: "#64748b", bg: "#f1f5f9", dot: "#94a3b8" };
 };
 

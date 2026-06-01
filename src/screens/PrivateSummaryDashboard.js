@@ -483,27 +483,27 @@ export default function PrivateSummaryDashboard() {
   let totalDailyAlerts = 0;
   stations.forEach(s => {
     const hist = readings[s._id] || [];
-    const last = hist.length ? hist[hist.length - 1] : null;
+
+    // Count total hourly exceedances across ALL readings (synced with compliance dashboard)
+    hist.forEach(r => {
+      if ((r.pm2p5 || 0) > HOURLY_THRESHOLDS.pm25) totalHourlyAlerts++;
+      if ((r.pm10p0 || 0) > HOURLY_THRESHOLDS.pm10) totalHourlyAlerts++;
+      if ((r.pm1p0 || 0) > HOURLY_THRESHOLDS.pm1) totalHourlyAlerts++;
+      if ((r.dba || 0) > HOURLY_THRESHOLDS.noise) totalHourlyAlerts++;
+      if (r.temperature != null && (r.temperature > HOURLY_THRESHOLDS.temperature || r.temperature < 15)) totalHourlyAlerts++;
+      if ((r.humidity || 0) > HOURLY_THRESHOLDS.humidity) totalHourlyAlerts++;
+      if ((r.voc || 0) > HOURLY_THRESHOLDS.voc) totalHourlyAlerts++;
+      if ((r.nox || 0) > HOURLY_THRESHOLDS.nox) totalHourlyAlerts++;
+    });
+
+    // Count total daily exceedances across ALL days (synced with compliance dashboard)
     const dailyAvgs = groupReadingsByDay(hist);
-    const lastDaily = dailyAvgs.length ? dailyAvgs[dailyAvgs.length - 1] : null;
-
-    if (last) {
-      if (last.pm2p5 != null && last.pm2p5 > HOURLY_THRESHOLDS.pm25) totalHourlyAlerts++;
-      if (last.pm10p0 != null && last.pm10p0 > HOURLY_THRESHOLDS.pm10) totalHourlyAlerts++;
-      if (last.pm1p0 != null && last.pm1p0 > HOURLY_THRESHOLDS.pm1) totalHourlyAlerts++;
-      if (last.dba != null && last.dba > HOURLY_THRESHOLDS.noise) totalHourlyAlerts++;
-      if (last.temperature != null && (last.temperature > HOURLY_THRESHOLDS.temperature || last.temperature < 15)) totalHourlyAlerts++;
-      if (last.humidity != null && last.humidity > HOURLY_THRESHOLDS.humidity) totalHourlyAlerts++;
-      if (last.voc != null && last.voc > HOURLY_THRESHOLDS.voc) totalHourlyAlerts++;
-      if (last.nox != null && last.nox > HOURLY_THRESHOLDS.nox) totalHourlyAlerts++;
-    }
-
-    if (lastDaily) {
-      if (lastDaily.pm2p5 != null && lastDaily.pm2p5 > DAILY_THRESHOLDS.pm25) totalDailyAlerts++;
-      if (lastDaily.pm10p0 != null && lastDaily.pm10p0 > DAILY_THRESHOLDS.pm10) totalDailyAlerts++;
-      if (lastDaily.pm4p0 != null && lastDaily.pm4p0 > DAILY_THRESHOLDS.pm4) totalDailyAlerts++;
-      if (lastDaily.pm1p0 != null && lastDaily.pm1p0 > DAILY_THRESHOLDS.pm1) totalDailyAlerts++;
-    }
+    dailyAvgs.forEach(d => {
+      if ((d.pm2p5 || 0) > DAILY_THRESHOLDS.pm25) totalDailyAlerts++;
+      if ((d.pm10p0 || 0) > DAILY_THRESHOLDS.pm10) totalDailyAlerts++;
+      if ((d.pm4p0 || 0) > DAILY_THRESHOLDS.pm4) totalDailyAlerts++;
+      if ((d.pm1p0 || 0) > DAILY_THRESHOLDS.pm1) totalDailyAlerts++;
+    });
   });
 
   return (
