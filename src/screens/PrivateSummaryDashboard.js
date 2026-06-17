@@ -364,64 +364,7 @@ const groupReadingsByDay = (data) => {
   result.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   return result;
 };
-const downloadCSV = (stations, readings) => {
-  console.log("Download CSV called. Stations:", stations.length, "Readings keys:", Object.keys(readings));
 
-  const headers = [
-    "Station Name",
-    "Timestamp",
-    "PM2.5 (μg/m³)",
-    "PM10 (μg/m³)",
-    "Temperature (°C)",
-    "Humidity (%)",
-    "Noise (dBA)",
-    "VOC (μg/m³)",
-    "NOx (ppb)"
-  ];
-
-  const rows = [];
-  stations.forEach(station => {
-    const data = readings[station._id] || [];
-    console.log(`Station "${station.name}" (_id: ${station._id}) → ${data.length} readings`);
-    data.forEach(reading => {
-      rows.push([
-        station.name,
-        reading.timestamp ? new Date(reading.timestamp).toLocaleString() : "",
-        reading.pm2p5 ?? "",
-        reading.pm10p0 ?? "",
-        reading.temperature ?? "",
-        reading.humidity ?? "",
-        reading.dba ?? "",
-        reading.voc ?? "",
-        reading.nox ?? ""
-      ]);
-    });
-  });
-
-  console.log("Total CSV rows:", rows.length);
-
-  const escapeField = (field) => {
-    const str = String(field);
-    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-      return '"' + str.replace(/"/g, '""') + '"';
-    }
-    return str;
-  };
-
-  const csvContent =
-    headers.map(escapeField).join(",") + "\n" +
-    rows.map(row => row.map(escapeField).join(",")).join("\n");
-
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `private_sensors_data_${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
 /* ════════════════════════════════════
    MAIN
 ════════════════════════════════════ */
@@ -437,60 +380,7 @@ export default function PrivateSummaryDashboard() {
   const [error, setError] = useState(null);
   const [refreshed, setRefreshed] = useState(null);
 
-  // CSV date picker state
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [csvStartDate, setCsvStartDate] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().slice(0, 10);
-  });
-  const [csvEndDate, setCsvEndDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [csvLoading, setCsvLoading] = useState(false);
 
-  const fetchAndDownloadCSV = async () => {
-    if (!stations.length) return;
-    setCsvLoading(true);
-    try {
-      const tok = localStorage.getItem("authToken");
-      const start = new Date(csvStartDate).toISOString();
-      const end = new Date(csvEndDate + "T23:59:59").toISOString();
-
-      const allReadings = {};
-      await Promise.all(stations.map(async (s) => {
-        let data = [];
-        // Try sensorData endpoint first
-        try {
-          const daysDiff = Math.ceil((new Date(end) - new Date(start)) / 86400000);
-          const r = await axios.get(`${API_BASE}/api/stations/${s._id}/sensorData?days=${daysDiff}`);
-          data = (r.data || []).filter(d => {
-            const t = new Date(d.timestamp);
-            return t >= new Date(start) && t <= new Date(end);
-          });
-        } catch (e) {
-          console.warn("sensorData fetch failed for", s.name);
-        }
-        // Fallback to aggregated
-        if ((!data || data.length === 0) && s.sensorIds && s.sensorIds.length > 0) {
-          try {
-            const nr = await axios.get(`${API_BASE}/api/nodedata/aggregated`, {
-              params: { sensor_id: s.sensorIds[0], start, end, resolution: 'hourly' },
-              headers: tok ? { Authorization: `Bearer ${tok}` } : {}
-            });
-            if (nr.data && Array.isArray(nr.data)) data = nr.data;
-          } catch (e) {
-            console.warn("Aggregated fetch failed for", s.name);
-          }
-        }
-        allReadings[s._id] = Array.isArray(data) ? data : [];
-      }));
-
-      downloadCSV(stations, allReadings);
-      setShowDatePicker(false);
-    } catch (e) {
-      console.error("CSV download error:", e);
-      alert("Failed to fetch data for download. Please try again.");
-    } finally {
-      setCsvLoading(false);
-    }
-  };
 
   const handleLogout = () => {
     delete axios.defaults.headers.common["Authorization"];
@@ -642,104 +532,7 @@ export default function PrivateSummaryDashboard() {
               {refreshed && <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "6px", fontWeight: 600 }}>· Refreshed {refreshed.toLocaleTimeString()}</div>}
             </div>
             <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-              {/* Download CSV with date picker */}
-              <div style={{ position: "relative" }}>
-                <button onClick={() => setShowDatePicker(!showDatePicker)} disabled={loadingSt || !stations.length} style={{
-                  padding: "12px 26px", borderRadius: "14px",
-                  background: showDatePicker ? "rgba(5,150,105,0.08)" : "#fff",
-                  color: "#059669", border: `1px solid ${showDatePicker ? "rgba(5,150,105,0.5)" : "rgba(5,150,105,0.3)"}`, fontSize: "14px", fontWeight: 800,
-                  cursor: (loadingSt || !stations.length) ? "not-allowed" : "pointer",
-                  opacity: (loadingSt || !stations.length) ? 0.5 : 1,
-                  boxShadow: "0 4px 12px rgba(5,150,105,0.1)",
-                  letterSpacing: "0.3px", display: "flex", alignItems: "center", gap: "8px",
-                  transition: "all 0.2s ease",
-                }}>
-                  <span style={{ fontSize: "18px" }}>📥</span> Download CSV <span style={{ fontSize: "12px" }}>{showDatePicker ? "▲" : "▼"}</span>
-                </button>
 
-                {/* Date picker dropdown */}
-                {showDatePicker && (
-                  <div style={{
-                    position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 50,
-                    background: "#fff", borderRadius: "16px",
-                    border: "1px solid rgba(5,150,105,0.2)",
-                    boxShadow: "0 12px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(5,150,105,0.08)",
-                    padding: "20px", minWidth: "300px",
-                    animation: "fadeUp 0.2s ease",
-                  }}>
-                    <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "16px" }}>📅</span> Select Date Range
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                      <div>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", letterSpacing: "0.5px", display: "block", marginBottom: "4px" }}>FROM</label>
-                        <input
-                          type="date"
-                          value={csvStartDate}
-                          onChange={e => setCsvStartDate(e.target.value)}
-                          max={csvEndDate}
-                          style={{
-                            width: "100%", padding: "10px 12px", borderRadius: "10px",
-                            border: "1px solid rgba(59,130,246,0.2)", fontSize: "13px", fontWeight: 600,
-                            color: "#1e293b", outline: "none", background: "#f8fafc",
-                            boxSizing: "border-box",
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", letterSpacing: "0.5px", display: "block", marginBottom: "4px" }}>TO</label>
-                        <input
-                          type="date"
-                          value={csvEndDate}
-                          onChange={e => setCsvEndDate(e.target.value)}
-                          min={csvStartDate}
-                          max={new Date().toISOString().slice(0, 10)}
-                          style={{
-                            width: "100%", padding: "10px 12px", borderRadius: "10px",
-                            border: "1px solid rgba(59,130,246,0.2)", fontSize: "13px", fontWeight: 600,
-                            color: "#1e293b", outline: "none", background: "#f8fafc",
-                            boxSizing: "border-box",
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-                      <button
-                        onClick={fetchAndDownloadCSV}
-                        disabled={csvLoading || !csvStartDate || !csvEndDate}
-                        style={{
-                          flex: 1, padding: "10px", borderRadius: "10px",
-                          background: "linear-gradient(135deg,#059669,#10b981)",
-                          color: "#fff", border: "none", fontSize: "13px", fontWeight: 700,
-                          cursor: csvLoading ? "not-allowed" : "pointer",
-                          opacity: csvLoading ? 0.7 : 1,
-                          boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
-                          display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                        }}
-                      >
-                        {csvLoading ? (
-                          <><div style={{ width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> Fetching...</>
-                        ) : (
-                          <>📥 Download</>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setShowDatePicker(false)}
-                        style={{
-                          padding: "10px 16px", borderRadius: "10px",
-                          background: "#f1f5f9", color: "#64748b",
-                          border: "1px solid rgba(100,116,139,0.15)",
-                          fontSize: "13px", fontWeight: 700, cursor: "pointer",
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
               <button onClick={handleLogout} style={{
                 padding: "12px 26px", borderRadius: "14px",
                 background: "#fff",
