@@ -18,7 +18,6 @@ const API_BASE = process.env.REACT_APP_API_BASE;
 const HOURLY_THRESHOLDS = {
   pm10: 190,
   pm25: 103,
-  pm1: 10,
   noise: 85,
   temperature: 32,
   humidity: 85,
@@ -28,75 +27,73 @@ const HOURLY_THRESHOLDS = {
 
 const DAILY_THRESHOLDS = {
   pm10: 75,
-  pm25: 40,
-  pm4: 3.0,
-  pm1: 10
+  pm25: 40
 };
 
 const pm25Level = v => {
-  if (v == null) return { label:"N/A", color:"#64748b", pct:0 };
-  if (v <= 103) return { label:"Good", color:"#10b981", pct: (v/103)*25 };
-  if (v <= 153) return { label:"Moderate", color:"#eab308", pct: 25 + ((v-103)/50)*25 };
-  if (v <= 203) return { label:"High", color:"#f97316", pct: 50 + ((v-153)/50)*25 };
-  if (v <= 253) return { label:"Very High", color:"#ef4444", pct: 75 + ((v-203)/50)*25 };
-  return { label:"Severe", color:"#8b5cf6", pct: 100 };
+  if (v == null) return { label: "N/A", color: "#64748b", pct: 0 };
+  if (v <= 103) return { label: "Good", color: "#10b981", pct: (v / 103) * 25 };
+  if (v <= 153) return { label: "Moderate", color: "#eab308", pct: 25 + ((v - 103) / 50) * 25 };
+  if (v <= 203) return { label: "High", color: "#f97316", pct: 50 + ((v - 153) / 50) * 25 };
+  if (v <= 253) return { label: "Very High", color: "#ef4444", pct: 75 + ((v - 203) / 50) * 25 };
+  return { label: "Severe", color: "#8b5cf6", pct: 100 };
 };
 
 const tempLevel = v => {
-  if (v == null) return { label:"N/A", color:"#64748b", pct:0 };
-  if (v >= 15 && v <= 25) return { label:"Comfortable", color:"#10b981", pct: 50 };
-  if (v >= 26 && v <= 31) return { label:"Moderate", color:"#eab308", pct: 70 };
-  if (v >= 32 && v <= 37) return { label:"Action Level", color:"#f97316", pct: 85 };
-  if (v >= 38 && v <= 42) return { label:"Very High", color:"#ef4444", pct: 95 };
-  return { label:"Severe", color:"#8b5cf6", pct: 100 };
+  if (v == null) return { label: "N/A", color: "#64748b", pct: 0 };
+  if (v >= 15 && v <= 25) return { label: "Comfortable", color: "#10b981", pct: 50 };
+  if (v >= 26 && v <= 31) return { label: "Moderate", color: "#eab308", pct: 70 };
+  if (v >= 32 && v <= 37) return { label: "Action Level", color: "#f97316", pct: 85 };
+  if (v >= 38 && v <= 42) return { label: "Very High", color: "#ef4444", pct: 95 };
+  return { label: "Severe", color: "#8b5cf6", pct: 100 };
 };
 
-const online = ls => ls && Date.now()-new Date(ls)<86400000;
+const online = ls => ls && Date.now() - new Date(ls) < 86400000;
 
 /* ── Progress bar ── */
 const Bar = ({ pct, color }) => (
-  <div style={{ height:"6px", borderRadius:"99px", background:"rgba(59,130,246,0.10)", overflow:"hidden", marginTop:"8px" }}>
+  <div style={{ height: "6px", borderRadius: "99px", background: "rgba(59,130,246,0.10)", overflow: "hidden", marginTop: "8px" }}>
     <div style={{
-      height:"100%", width:`${Math.min(100,Math.max(0,pct))}%`, borderRadius:"99px",
-      background:`linear-gradient(90deg, ${color}88, ${color})`,
-      boxShadow:`0 0 8px ${color}80`,
-      transition:"width 1s cubic-bezier(.4,0,.2,1)",
-    }}/>
+      height: "100%", width: `${Math.min(100, Math.max(0, pct))}%`, borderRadius: "99px",
+      background: `linear-gradient(90deg, ${color}88, ${color})`,
+      boxShadow: `0 0 8px ${color}80`,
+      transition: "width 1s cubic-bezier(.4,0,.2,1)",
+    }} />
   </div>
 );
 
 
 /* ── noise level helper ── */
 const noiseLevel = v => {
-  if (v == null) return { label:"N/A", color:"#64748b", pct:0 };
-  if (v < 70) return { label:"Good", color:"#10b981", pct: (v/70)*25 };
-  if (v <= 82) return { label:"Moderate", color:"#eab308", pct: 25 + ((v-70)/12)*25 };
-  if (v <= 85) return { label:"High", color:"#f97316", pct: 50 + ((v-82)/3)*25 };
-  if (v <= 105) return { label:"Very High", color:"#ef4444", pct: 75 + ((v-85)/20)*25 };
-  return { label:"Severe", color:"#8b5cf6", pct: 100 };
+  if (v == null) return { label: "N/A", color: "#64748b", pct: 0 };
+  if (v < 70) return { label: "Good", color: "#10b981", pct: (v / 70) * 25 };
+  if (v <= 82) return { label: "Moderate", color: "#eab308", pct: 25 + ((v - 70) / 12) * 25 };
+  if (v <= 85) return { label: "High", color: "#f97316", pct: 50 + ((v - 82) / 3) * 25 };
+  if (v <= 105) return { label: "Very High", color: "#ef4444", pct: 75 + ((v - 85) / 20) * 25 };
+  return { label: "Severe", color: "#8b5cf6", pct: 100 };
 };
 /* ── pm10 level helper ── */
 const pm10Level = v => {
-  if (v == null) return { label:"N/A", color:"#64748b", pct:0 };
-  if (v <= 190) return { label:"Good", color:"#10b981", pct: (v/190)*25 };
-  if (v <= 240) return { label:"Moderate", color:"#eab308", pct: 25 + ((v-190)/50)*25 };
-  if (v <= 290) return { label:"High", color:"#f97316", pct: 50 + ((v-240)/50)*25 };
-  if (v <= 340) return { label:"Very High", color:"#ef4444", pct: 75 + ((v-290)/50)*25 };
-  return { label:"Severe", color:"#8b5cf6", pct: 100 };
+  if (v == null) return { label: "N/A", color: "#64748b", pct: 0 };
+  if (v <= 190) return { label: "Good", color: "#10b981", pct: (v / 190) * 25 };
+  if (v <= 240) return { label: "Moderate", color: "#eab308", pct: 25 + ((v - 190) / 50) * 25 };
+  if (v <= 290) return { label: "High", color: "#f97316", pct: 50 + ((v - 240) / 50) * 25 };
+  if (v <= 340) return { label: "Very High", color: "#ef4444", pct: 75 + ((v - 290) / 50) * 25 };
+  return { label: "Severe", color: "#8b5cf6", pct: 100 };
 };
 
 /* ── Metric tile ── */
 const MiniMetric = ({ title, val, unit, lvl, threshold }) => (
-  <div style={{ background:`linear-gradient(135deg,${lvl.color}08,rgba(255,255,255,0.8))`, borderRadius:"14px", padding:"18px 18px 14px", border:`1px solid ${lvl.color}25`, display:"flex", flexDirection:"column", gap:"6px" }}>
-    <div style={{ fontSize:"10px", fontWeight:800, letterSpacing:"1.5px", color:"#64748b" }}>{title}</div>
-    <div style={{ fontSize:"34px", fontWeight:900, color:lvl.color, lineHeight:1, letterSpacing:"-1px" }}>
-      {val!=null ? Number(val).toFixed(1) : "—"}
-      <span style={{ fontSize:"13px", color:"#94a3b8", marginLeft:"4px", fontWeight:600 }}>{unit}</span>
+  <div style={{ background: `linear-gradient(135deg,${lvl.color}08,rgba(255,255,255,0.8))`, borderRadius: "14px", padding: "18px 18px 14px", border: `1px solid ${lvl.color}25`, display: "flex", flexDirection: "column", gap: "6px" }}>
+    <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "1.5px", color: "#64748b" }}>{title}</div>
+    <div style={{ fontSize: "34px", fontWeight: 900, color: lvl.color, lineHeight: 1, letterSpacing: "-1px" }}>
+      {val != null ? Number(val).toFixed(1) : "—"}
+      <span style={{ fontSize: "13px", color: "#94a3b8", marginLeft: "4px", fontWeight: 600 }}>{unit}</span>
     </div>
     <Bar pct={lvl.pct} color={lvl.color} />
-    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"2px" }}>
-      <span style={{ fontSize:"11px", fontWeight:700, color:lvl.color, background:`${lvl.color}15`, padding:"2px 9px", borderRadius:"999px", border:`1px solid ${lvl.color}30` }}>{lvl.label}</span>
-      {threshold && <span style={{ fontSize:"10px", color:"#94a3b8" }}>limit: {threshold}</span>}
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px" }}>
+      <span style={{ fontSize: "11px", fontWeight: 700, color: lvl.color, background: `${lvl.color}15`, padding: "2px 9px", borderRadius: "999px", border: `1px solid ${lvl.color}30` }}>{lvl.label}</span>
+      {threshold && <span style={{ fontSize: "10px", color: "#94a3b8" }}>limit: {threshold}</span>}
     </div>
   </div>
 );
@@ -121,7 +118,7 @@ const SparkLine = ({ data, label, color, unit, thresholds, isDaily }) => {
       },
       ...(thresholds || []).map(t => ({
         data: data.map(() => t.value),
-        borderColor: t.color, borderWidth: 1.5, borderDash: [5,3],
+        borderColor: t.color, borderWidth: 1.5, borderDash: [5, 3],
         pointRadius: 0, fill: false, tension: 0,
         label: t.label,
       })),
@@ -166,7 +163,7 @@ const SparkLine = ({ data, label, color, unit, thresholds, isDaily }) => {
 const Card = ({ station, histData, busy, onView }) => {
   const last = histData?.length ? histData[histData.length - 1] : null;
   const live = online(station.lastSeen);
-  
+
   const getLatest = (key) => {
     if (!histData?.length) return null;
     for (let i = histData.length - 1; i >= 0; i--) {
@@ -175,14 +172,14 @@ const Card = ({ station, histData, busy, onView }) => {
     return null;
   };
 
-  const pm   = getLatest('pm2p5');
-  const tp   = getLatest('temperature');
+  const pm = getLatest('pm2p5');
+  const tp = getLatest('temperature');
   const pm10 = getLatest('pm10p0');
-  const dba  = getLatest('dba');
-  const pl   = pm25Level(pm);
-  const tl   = tempLevel(tp);
+  const dba = getLatest('dba');
+  const pl = pm25Level(pm);
+  const tl = tempLevel(tp);
   const p10l = pm10Level(pm10);
-  const nl   = noiseLevel(dba);
+  const nl = noiseLevel(dba);
 
   const dailyAvgs = groupReadingsByDay(histData);
   const lastDaily = dailyAvgs.length ? dailyAvgs[dailyAvgs.length - 1] : null;
@@ -190,7 +187,6 @@ const Card = ({ station, histData, busy, onView }) => {
   const hasHourlyAlert = last && (
     (last.pm2p5 != null && last.pm2p5 > HOURLY_THRESHOLDS.pm25) ||
     (last.pm10p0 != null && last.pm10p0 > HOURLY_THRESHOLDS.pm10) ||
-    (last.pm1p0 != null && last.pm1p0 > HOURLY_THRESHOLDS.pm1) ||
     (last.dba != null && last.dba > HOURLY_THRESHOLDS.noise) ||
     (last.temperature != null && (last.temperature > HOURLY_THRESHOLDS.temperature || last.temperature < 15)) ||
     (last.humidity != null && last.humidity > HOURLY_THRESHOLDS.humidity) ||
@@ -200,9 +196,7 @@ const Card = ({ station, histData, busy, onView }) => {
 
   const hasDailyAlert = lastDaily && (
     (lastDaily.pm2p5 != null && lastDaily.pm2p5 > DAILY_THRESHOLDS.pm25) ||
-    (lastDaily.pm10p0 != null && lastDaily.pm10p0 > DAILY_THRESHOLDS.pm10) ||
-    (lastDaily.pm4p0 != null && lastDaily.pm4p0 > DAILY_THRESHOLDS.pm4) ||
-    (lastDaily.pm1p0 != null && lastDaily.pm1p0 > DAILY_THRESHOLDS.pm1)
+    (lastDaily.pm10p0 != null && lastDaily.pm10p0 > DAILY_THRESHOLDS.pm10)
   );
 
   const alert = hasHourlyAlert || hasDailyAlert;
@@ -210,57 +204,57 @@ const Card = ({ station, histData, busy, onView }) => {
 
   return (
     <div style={{
-      background:"linear-gradient(145deg,#ffffff,#f0f7ff)",
-      borderRadius:"20px",
-      border:`1px solid ${alert?"rgba(239,68,68,0.3)":"rgba(59,130,246,0.12)"}`,
-      overflow:"hidden", position:"relative",
+      background: "linear-gradient(145deg,#ffffff,#f0f7ff)",
+      borderRadius: "20px",
+      border: `1px solid ${alert ? "rgba(239,68,68,0.3)" : "rgba(59,130,246,0.12)"}`,
+      overflow: "hidden", position: "relative",
       boxShadow: alert
         ? "0 8px 32px rgba(239,68,68,0.12),0 2px 8px rgba(0,0,0,0.06)"
         : "0 8px 32px rgba(59,130,246,0.08),0 2px 8px rgba(0,0,0,0.04)",
-      transition:"transform .25s,box-shadow .25s",
+      transition: "transform .25s,box-shadow .25s",
     }}
-      onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-6px)"; }}
-      onMouseLeave={e=>{ e.currentTarget.style.transform="translateY(0)"; }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}
     >
       {/* top accent stripe */}
       <div style={{
-        height:"3px",
-        background:`linear-gradient(90deg,${accentColor},${alert?"#f97316":"#6366f1"})`,
-      }}/>
+        height: "3px",
+        background: `linear-gradient(90deg,${accentColor},${alert ? "#f97316" : "#6366f1"})`,
+      }} />
 
       {/* glow blob */}
       <div style={{
-        position:"absolute", width:"200px", height:"200px", borderRadius:"50%",
-        background:`radial-gradient(circle,${accentColor}12 0%,transparent 70%)`,
-        top:"-60px", right:"-60px", pointerEvents:"none",
-      }}/>
+        position: "absolute", width: "200px", height: "200px", borderRadius: "50%",
+        background: `radial-gradient(circle,${accentColor}12 0%,transparent 70%)`,
+        top: "-60px", right: "-60px", pointerEvents: "none",
+      }} />
 
-      <div style={{ padding:"20px" }}>
+      <div style={{ padding: "20px" }}>
         {/* header row */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
           <div>
-            <div style={{ fontSize:"16px", fontWeight:800, color:"#0f172a", letterSpacing:"-0.3px" }}>
+            <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px" }}>
               {station.name}
             </div>
-            <div style={{ fontSize:"10px", color:"#94a3b8", marginTop:"3px" }}>
+            <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "3px" }}>
               {station.lastSeen ? new Date(station.lastSeen).toLocaleString() : "No data"}
             </div>
           </div>
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"6px" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
             <span style={{
-              fontSize:"10px", fontWeight:800, padding:"3px 10px", borderRadius:"999px",
+              fontSize: "10px", fontWeight: 800, padding: "3px 10px", borderRadius: "999px",
               background: live ? "rgba(16,185,129,0.15)" : "rgba(100,116,139,0.12)",
               color: live ? "#10b981" : "#475569",
-              border:`1px solid ${live?"rgba(16,185,129,0.3)":"rgba(100,116,139,0.2)"}`,
-              letterSpacing:"0.5px",
+              border: `1px solid ${live ? "rgba(16,185,129,0.3)" : "rgba(100,116,139,0.2)"}`,
+              letterSpacing: "0.5px",
             }}>
               {live ? "● LIVE" : "○ OFFLINE"}
             </span>
             {alert && !busy && (
               <span style={{
-                fontSize:"9px", fontWeight:700, padding:"2px 8px", borderRadius:"999px",
-                background:"rgba(239,68,68,0.12)", color:"#ef4444",
-                border:"1px solid rgba(239,68,68,0.25)", letterSpacing:"0.5px",
+                fontSize: "9px", fontWeight: 700, padding: "2px 8px", borderRadius: "999px",
+                background: "rgba(239,68,68,0.12)", color: "#ef4444",
+                border: "1px solid rgba(239,68,68,0.25)", letterSpacing: "0.5px",
               }}>⚠ ALERT</span>
             )}
           </div>
@@ -268,34 +262,34 @@ const Card = ({ station, histData, busy, onView }) => {
 
         {/* metrics */}
         {busy ? (
-          <div style={{ textAlign:"center", padding:"32px 0", color:"#94a3b8", fontSize:"13px" }}>
+          <div style={{ textAlign: "center", padding: "32px 0", color: "#94a3b8", fontSize: "13px" }}>
             <div style={{
-              width:"32px", height:"32px", border:"3px solid #bfdbfe",
-              borderTopColor:"#3b82f6", borderRadius:"50%",
-              animation:"spin 0.8s linear infinite", margin:"0 auto 10px",
-            }}/>
+              width: "32px", height: "32px", border: "3px solid #bfdbfe",
+              borderTopColor: "#3b82f6", borderRadius: "50%",
+              animation: "spin 0.8s linear infinite", margin: "0 auto 10px",
+            }} />
             Loading…
           </div>
         ) : (
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
-            <MiniMetric title="PM 2.5" val={pm}   unit="μg/m³" lvl={pl}   threshold="103 μg/m³" />
-            <MiniMetric title="TEMP"   val={tp}   unit="°C"    lvl={tl}   threshold="32°C" />
-            <MiniMetric title="PM 10"  val={pm10} unit="μg/m³" lvl={p10l} threshold="190 μg/m³" />
-            <MiniMetric title="NOISE"  val={dba}  unit="dB"    lvl={nl}   threshold="85 dB" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <MiniMetric title="PM 2.5" val={pm} unit="μg/m³" lvl={pl} threshold="103 μg/m³" />
+            <MiniMetric title="TEMP" val={tp} unit="°C" lvl={tl} threshold="32°C" />
+            <MiniMetric title="PM 10" val={pm10} unit="μg/m³" lvl={p10l} threshold="190 μg/m³" />
+            <MiniMetric title="NOISE" val={dba} unit="dB" lvl={nl} threshold="85 dB" />
           </div>
         )}
 
         {/* footer */}
         <button onClick={() => onView(station._id)} style={{
-          width:"100%", marginTop:"14px", padding:"11px",
-          background:`linear-gradient(135deg,#3b82f6,#6366f1)`,
-          color:"#fff", border:"none", borderRadius:"12px",
-          fontSize:"13px", fontWeight:700, cursor:"pointer", letterSpacing:"0.3px",
-          boxShadow:"0 4px 15px rgba(99,102,241,0.35)",
-          transition:"opacity .2s",
+          width: "100%", marginTop: "14px", padding: "11px",
+          background: `linear-gradient(135deg,#3b82f6,#6366f1)`,
+          color: "#fff", border: "none", borderRadius: "12px",
+          fontSize: "13px", fontWeight: 700, cursor: "pointer", letterSpacing: "0.3px",
+          boxShadow: "0 4px 15px rgba(99,102,241,0.35)",
+          transition: "opacity .2s",
         }}
-          onMouseEnter={e=>e.currentTarget.style.opacity=".8"}
-          onMouseLeave={e=>e.currentTarget.style.opacity="1"}
+          onMouseEnter={e => e.currentTarget.style.opacity = ".8"}
+          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
         >
           View Full Details →
         </button>
@@ -307,28 +301,28 @@ const Card = ({ station, histData, busy, onView }) => {
 /* ── KPI tile ── */
 const KPI = ({ label, value, color, sub }) => (
   <div style={{
-    background:"linear-gradient(145deg,#ffffff,#f0f9ff)",
-    border:`1px solid ${color}30`,
-    borderRadius:"16px", padding:"20px 24px", textAlign:"center",
-    boxShadow:`0 4px 20px ${color}15`,
-    position:"relative", overflow:"hidden",
+    background: "linear-gradient(145deg,#ffffff,#f0f9ff)",
+    border: `1px solid ${color}30`,
+    borderRadius: "16px", padding: "20px 24px", textAlign: "center",
+    boxShadow: `0 4px 20px ${color}15`,
+    position: "relative", overflow: "hidden",
   }}>
     <div style={{
-      position:"absolute", bottom:"-20px", right:"-20px",
-      width:"80px", height:"80px", borderRadius:"50%",
-      background:`radial-gradient(circle,${color}20,transparent 70%)`,
-    }}/>
-    <div style={{ fontSize:"36px", fontWeight:900, color, lineHeight:1 }}>{value}</div>
-    <div style={{ fontSize:"11px", fontWeight:700, color:"#64748b", marginTop:"6px" }}>{label}</div>
-    {sub && <div style={{ fontSize:"9px", color:"#94a3b8", marginTop:"2px", fontWeight:700, letterSpacing:"0.5px" }}>{sub}</div>}
+      position: "absolute", bottom: "-20px", right: "-20px",
+      width: "80px", height: "80px", borderRadius: "50%",
+      background: `radial-gradient(circle,${color}20,transparent 70%)`,
+    }} />
+    <div style={{ fontSize: "36px", fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
+    <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", marginTop: "6px" }}>{label}</div>
+    {sub && <div style={{ fontSize: "9px", color: "#94a3b8", marginTop: "2px", fontWeight: 700, letterSpacing: "0.5px" }}>{sub}</div>}
   </div>
 );
 
 /* ── Legend chip ── */
 const Chip = ({ label, color }) => (
   <span style={{
-    padding:"4px 11px", borderRadius:"999px", fontSize:"10px", fontWeight:700,
-    color, background:`${color}14`, border:`1px solid ${color}30`, whiteSpace:"nowrap",
+    padding: "4px 11px", borderRadius: "999px", fontSize: "10px", fontWeight: 700,
+    color, background: `${color}14`, border: `1px solid ${color}30`, whiteSpace: "nowrap",
   }}>{label}</span>
 );
 
@@ -345,16 +339,12 @@ const groupReadingsByDay = (data) => {
         dateStr,
         pm2p5: [],
         pm10p0: [],
-        pm4p0: [],
-        pm1p0: [],
         temperature: [],
         dba: []
       };
     }
     if (d.pm2p5 != null) groups[dateStr].pm2p5.push(Number(d.pm2p5));
     if (d.pm10p0 != null) groups[dateStr].pm10p0.push(Number(d.pm10p0));
-    if (d.pm4p0 != null) groups[dateStr].pm4p0.push(Number(d.pm4p0));
-    if (d.pm1p0 != null) groups[dateStr].pm1p0.push(Number(d.pm1p0));
     if (d.temperature != null) groups[dateStr].temperature.push(Number(d.temperature));
     if (d.dba != null) groups[dateStr].dba.push(Number(d.dba));
   });
@@ -366,8 +356,6 @@ const groupReadingsByDay = (data) => {
       dateStr: g.dateStr,
       pm2p5: avg(g.pm2p5),
       pm10p0: avg(g.pm10p0),
-      pm4p0: avg(g.pm4p0),
-      pm1p0: avg(g.pm1p0),
       temperature: avg(g.temperature),
       dba: avg(g.dba)
     };
@@ -376,7 +364,64 @@ const groupReadingsByDay = (data) => {
   result.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   return result;
 };
+const downloadCSV = (stations, readings) => {
+  console.log("Download CSV called. Stations:", stations.length, "Readings keys:", Object.keys(readings));
 
+  const headers = [
+    "Station Name",
+    "Timestamp",
+    "PM2.5 (μg/m³)",
+    "PM10 (μg/m³)",
+    "Temperature (°C)",
+    "Humidity (%)",
+    "Noise (dBA)",
+    "VOC (μg/m³)",
+    "NOx (ppb)"
+  ];
+
+  const rows = [];
+  stations.forEach(station => {
+    const data = readings[station._id] || [];
+    console.log(`Station "${station.name}" (_id: ${station._id}) → ${data.length} readings`);
+    data.forEach(reading => {
+      rows.push([
+        station.name,
+        reading.timestamp ? new Date(reading.timestamp).toLocaleString() : "",
+        reading.pm2p5 ?? "",
+        reading.pm10p0 ?? "",
+        reading.temperature ?? "",
+        reading.humidity ?? "",
+        reading.dba ?? "",
+        reading.voc ?? "",
+        reading.nox ?? ""
+      ]);
+    });
+  });
+
+  console.log("Total CSV rows:", rows.length);
+
+  const escapeField = (field) => {
+    const str = String(field);
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  };
+
+  const csvContent =
+    headers.map(escapeField).join(",") + "\n" +
+    rows.map(row => row.map(escapeField).join(",")).join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `private_sensors_data_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 /* ════════════════════════════════════
    MAIN
 ════════════════════════════════════ */
@@ -384,13 +429,68 @@ export default function PrivateSummaryDashboard() {
   const navigate = useNavigate();
   const { setSelectedSensor, setSelectedPeriod } = useSensorData();
   const { logout } = useAuth();
-  
+
   const [stations, setStations] = useState([]);
   const [readings, setReadings] = useState({});
   const [loadingSt, setLoadingSt] = useState(true);
   const [loadingR, setLoadingR] = useState({});
   const [error, setError] = useState(null);
   const [refreshed, setRefreshed] = useState(null);
+
+  // CSV date picker state
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [csvStartDate, setCsvStartDate] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().slice(0, 10);
+  });
+  const [csvEndDate, setCsvEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [csvLoading, setCsvLoading] = useState(false);
+
+  const fetchAndDownloadCSV = async () => {
+    if (!stations.length) return;
+    setCsvLoading(true);
+    try {
+      const tok = localStorage.getItem("authToken");
+      const start = new Date(csvStartDate).toISOString();
+      const end = new Date(csvEndDate + "T23:59:59").toISOString();
+
+      const allReadings = {};
+      await Promise.all(stations.map(async (s) => {
+        let data = [];
+        // Try sensorData endpoint first
+        try {
+          const daysDiff = Math.ceil((new Date(end) - new Date(start)) / 86400000);
+          const r = await axios.get(`${API_BASE}/api/stations/${s._id}/sensorData?days=${daysDiff}`);
+          data = (r.data || []).filter(d => {
+            const t = new Date(d.timestamp);
+            return t >= new Date(start) && t <= new Date(end);
+          });
+        } catch (e) {
+          console.warn("sensorData fetch failed for", s.name);
+        }
+        // Fallback to aggregated
+        if ((!data || data.length === 0) && s.sensorIds && s.sensorIds.length > 0) {
+          try {
+            const nr = await axios.get(`${API_BASE}/api/nodedata/aggregated`, {
+              params: { sensor_id: s.sensorIds[0], start, end, resolution: 'hourly' },
+              headers: tok ? { Authorization: `Bearer ${tok}` } : {}
+            });
+            if (nr.data && Array.isArray(nr.data)) data = nr.data;
+          } catch (e) {
+            console.warn("Aggregated fetch failed for", s.name);
+          }
+        }
+        allReadings[s._id] = Array.isArray(data) ? data : [];
+      }));
+
+      downloadCSV(stations, allReadings);
+      setShowDatePicker(false);
+    } catch (e) {
+      console.error("CSV download error:", e);
+      alert("Failed to fetch data for download. Please try again.");
+    } finally {
+      setCsvLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     delete axios.defaults.headers.common["Authorization"];
@@ -415,16 +515,16 @@ export default function PrivateSummaryDashboard() {
         list = Array.isArray(data) ? [...data] : [];
         list = list.filter(s => s.visibility === "private");
       }
-      list.sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+      list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       setStations(list); return list;
-    } catch(e) {
-      setError(e?.response?.data?.message||e.message||"Failed"); return [];
+    } catch (e) {
+      setError(e?.response?.data?.message || e.message || "Failed"); return [];
     } finally { setLoadingSt(false); }
   }, []);
 
   const fetchReadings = useCallback(async (list) => {
     if (!list?.length) return;
-    const lm={}; list.forEach(s=>{ lm[s._id]=true; }); setLoadingR({...lm});
+    const lm = {}; list.forEach(s => { lm[s._id] = true; }); setLoadingR({ ...lm });
     const tok = localStorage.getItem("authToken");
     const res = await Promise.allSettled(list.map(async s => {
       let data = [];
@@ -434,7 +534,7 @@ export default function PrivateSummaryDashboard() {
       } catch (e) {
         console.warn("Failed to fetch sensorData for", s.name);
       }
-      
+
       // Fallback: If sensorData is empty, try nodedata/aggregated if sensorIds exists
       if ((!data || data.length === 0) && s.sensorIds && s.sensorIds.length > 0) {
         try {
@@ -442,14 +542,14 @@ export default function PrivateSummaryDashboard() {
           const end = d.toISOString();
           d.setDate(d.getDate() - 7);
           const start = d.toISOString();
-          
+
           const nr = await axios.get(`${API_BASE}/api/nodedata/aggregated`, {
             params: { sensor_id: s.sensorIds[0], start, end, resolution: 'hourly' },
             headers: tok ? { Authorization: `Bearer ${tok}` } : {}
           });
-          
+
           if (nr.data && Array.isArray(nr.data)) {
-             data = nr.data;
+            data = nr.data;
           }
         } catch (e) {
           console.warn("Failed fallback fetch for", s.name);
@@ -458,56 +558,55 @@ export default function PrivateSummaryDashboard() {
 
       return { id: s._id, data };
     }));
-    const nr={};
-    res.forEach(r=>{ 
-      if(r.status==="fulfilled"){ 
-        const {id,data}=r.value; 
+    const nr = {};
+    res.forEach(r => {
+      if (r.status === "fulfilled") {
+        const { id, data } = r.value;
         let arr = Array.isArray(data) ? data : [];
-        arr.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-        nr[id] = arr; 
-      } 
+        arr.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        nr[id] = arr;
+      }
     });
     setReadings(nr); setLoadingR({}); setRefreshed(new Date());
   }, []);
 
-  const refresh = useCallback(async()=>{ const l=await fetchStations(); if(l?.length) await fetchReadings(l); },[fetchStations,fetchReadings]);
+  const refresh = useCallback(async () => { const l = await fetchStations(); if (l?.length) await fetchReadings(l); }, [fetchStations, fetchReadings]);
 
-  useEffect(()=>{ refresh(); },[refresh]);
-  useEffect(()=>{ const t=setInterval(refresh,300000); return()=>clearInterval(t); },[refresh]);
+  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { const t = setInterval(refresh, 300000); return () => clearInterval(t); }, [refresh]);
 
   const onView = id => { setSelectedSensor(id); setSelectedPeriod("Today"); navigate("/private-compliance"); };
 
-  const liveCount  = stations.filter(s=>online(s.lastSeen)).length;
-  
+  const liveCount = stations.filter(s => online(s.lastSeen)).length;
+
   let totalHourlyAlerts = 0;
   let totalDailyAlerts = 0;
   stations.forEach(s => {
     const hist = readings[s._id] || [];
+    const last = hist.length ? hist[hist.length - 1] : null;
 
-    // Count total hourly exceedances across ALL readings (synced with compliance dashboard)
-    hist.forEach(r => {
-      if ((r.pm2p5 || 0) > HOURLY_THRESHOLDS.pm25) totalHourlyAlerts++;
-      if ((r.pm10p0 || 0) > HOURLY_THRESHOLDS.pm10) totalHourlyAlerts++;
-      if ((r.pm1p0 || 0) > HOURLY_THRESHOLDS.pm1) totalHourlyAlerts++;
-      if ((r.dba || 0) > HOURLY_THRESHOLDS.noise) totalHourlyAlerts++;
-      if (r.temperature != null && (r.temperature > HOURLY_THRESHOLDS.temperature || r.temperature < 15)) totalHourlyAlerts++;
-      if ((r.humidity || 0) > HOURLY_THRESHOLDS.humidity) totalHourlyAlerts++;
-      if ((r.voc || 0) > HOURLY_THRESHOLDS.voc) totalHourlyAlerts++;
-      if ((r.nox || 0) > HOURLY_THRESHOLDS.nox) totalHourlyAlerts++;
-    });
+    // Count active hourly alerts from the latest reading only
+    if (last) {
+      if ((last.pm2p5 || 0) > HOURLY_THRESHOLDS.pm25) totalHourlyAlerts++;
+      if ((last.pm10p0 || 0) > HOURLY_THRESHOLDS.pm10) totalHourlyAlerts++;
+      if ((last.dba || 0) > HOURLY_THRESHOLDS.noise) totalHourlyAlerts++;
+      if (last.temperature != null && (last.temperature > HOURLY_THRESHOLDS.temperature || last.temperature < 15)) totalHourlyAlerts++;
+      if ((last.humidity || 0) > HOURLY_THRESHOLDS.humidity) totalHourlyAlerts++;
+      if ((last.voc || 0) > HOURLY_THRESHOLDS.voc) totalHourlyAlerts++;
+      if ((last.nox || 0) > HOURLY_THRESHOLDS.nox) totalHourlyAlerts++;
+    }
 
-    // Count total daily exceedances across ALL days (synced with compliance dashboard)
+    // Count active daily alerts from the latest day only
     const dailyAvgs = groupReadingsByDay(hist);
-    dailyAvgs.forEach(d => {
-      if ((d.pm2p5 || 0) > DAILY_THRESHOLDS.pm25) totalDailyAlerts++;
-      if ((d.pm10p0 || 0) > DAILY_THRESHOLDS.pm10) totalDailyAlerts++;
-      if ((d.pm4p0 || 0) > DAILY_THRESHOLDS.pm4) totalDailyAlerts++;
-      if ((d.pm1p0 || 0) > DAILY_THRESHOLDS.pm1) totalDailyAlerts++;
-    });
+    const lastDaily = dailyAvgs.length ? dailyAvgs[dailyAvgs.length - 1] : null;
+    if (lastDaily) {
+      if ((lastDaily.pm2p5 || 0) > DAILY_THRESHOLDS.pm25) totalDailyAlerts++;
+      if ((lastDaily.pm10p0 || 0) > DAILY_THRESHOLDS.pm10) totalDailyAlerts++;
+    }
   });
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"linear-gradient(145deg,#f0f7ff 0%,#e8f0fe 40%,#dbeafe 70%,#eff6ff 100%)", fontFamily:"'Inter',system-ui,sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "linear-gradient(145deg,#f0f7ff 0%,#e8f0fe 40%,#dbeafe 70%,#eff6ff 100%)", fontFamily: "'Inter',system-ui,sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         @keyframes spin { to { transform:rotate(360deg); } }
@@ -520,60 +619,158 @@ export default function PrivateSummaryDashboard() {
         ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:#e8f0fe;} ::-webkit-scrollbar-thumb{background:#93c5fd;border-radius:4px;}
       `}</style>
 
-      <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column" }}>
-        <div style={{ padding:"0 28px" }}><TopNavBar /></div>
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "0 28px" }}><TopNavBar /></div>
 
-        <div style={{ padding:"0 28px 56px" }}>
+        <div style={{ padding: "0 28px 56px" }}>
 
           {/* ── Hero header ── */}
           <div style={{
-            background:"linear-gradient(135deg,#ffffff,#eff6ff)",
-            border:"1px solid rgba(59,130,246,0.15)", borderRadius:"20px",
-            padding:"28px 32px", marginBottom:"28px",
-            display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"16px",
-            boxShadow:"0 4px 24px rgba(59,130,246,0.08)",
+            background: "linear-gradient(135deg,#ffffff,#eff6ff)",
+            border: "1px solid rgba(59,130,246,0.15)", borderRadius: "20px",
+            padding: "28px 32px", marginBottom: "28px",
+            display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px",
+            boxShadow: "0 4px 24px rgba(59,130,246,0.08)",
           }}>
             <div>
-              <div style={{ fontSize:"26px", fontWeight:900, color:"#0f172a", letterSpacing:"-0.8px", lineHeight:1.1 }}>
+              <div style={{ fontSize: "26px", fontWeight: 900, color: "#0f172a", letterSpacing: "-0.8px", lineHeight: 1.1 }}>
                 Private Sensors
-                <span style={{ background:"linear-gradient(135deg,#2563eb,#0ea5e9)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", marginLeft:"10px" }}>
+                <span style={{ background: "linear-gradient(135deg,#2563eb,#0ea5e9)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginLeft: "10px" }}>
                   Live Summary
                 </span>
               </div>
-              {refreshed && <div style={{ fontSize:"11px", color:"#94a3b8", marginTop:"6px", fontWeight:600 }}>· Refreshed {refreshed.toLocaleTimeString()}</div>}
+              {refreshed && <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "6px", fontWeight: 600 }}>· Refreshed {refreshed.toLocaleTimeString()}</div>}
             </div>
             <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              {/* Download CSV with date picker */}
+              <div style={{ position: "relative" }}>
+                <button onClick={() => setShowDatePicker(!showDatePicker)} disabled={loadingSt || !stations.length} style={{
+                  padding: "12px 26px", borderRadius: "14px",
+                  background: showDatePicker ? "rgba(5,150,105,0.08)" : "#fff",
+                  color: "#059669", border: `1px solid ${showDatePicker ? "rgba(5,150,105,0.5)" : "rgba(5,150,105,0.3)"}`, fontSize: "14px", fontWeight: 800,
+                  cursor: (loadingSt || !stations.length) ? "not-allowed" : "pointer",
+                  opacity: (loadingSt || !stations.length) ? 0.5 : 1,
+                  boxShadow: "0 4px 12px rgba(5,150,105,0.1)",
+                  letterSpacing: "0.3px", display: "flex", alignItems: "center", gap: "8px",
+                  transition: "all 0.2s ease",
+                }}>
+                  <span style={{ fontSize: "18px" }}>📥</span> Download CSV <span style={{ fontSize: "12px" }}>{showDatePicker ? "▲" : "▼"}</span>
+                </button>
+
+                {/* Date picker dropdown */}
+                {showDatePicker && (
+                  <div style={{
+                    position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 50,
+                    background: "#fff", borderRadius: "16px",
+                    border: "1px solid rgba(5,150,105,0.2)",
+                    boxShadow: "0 12px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(5,150,105,0.08)",
+                    padding: "20px", minWidth: "300px",
+                    animation: "fadeUp 0.2s ease",
+                  }}>
+                    <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "16px" }}>📅</span> Select Date Range
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                      <div>
+                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", letterSpacing: "0.5px", display: "block", marginBottom: "4px" }}>FROM</label>
+                        <input
+                          type="date"
+                          value={csvStartDate}
+                          onChange={e => setCsvStartDate(e.target.value)}
+                          max={csvEndDate}
+                          style={{
+                            width: "100%", padding: "10px 12px", borderRadius: "10px",
+                            border: "1px solid rgba(59,130,246,0.2)", fontSize: "13px", fontWeight: 600,
+                            color: "#1e293b", outline: "none", background: "#f8fafc",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", letterSpacing: "0.5px", display: "block", marginBottom: "4px" }}>TO</label>
+                        <input
+                          type="date"
+                          value={csvEndDate}
+                          onChange={e => setCsvEndDate(e.target.value)}
+                          min={csvStartDate}
+                          max={new Date().toISOString().slice(0, 10)}
+                          style={{
+                            width: "100%", padding: "10px 12px", borderRadius: "10px",
+                            border: "1px solid rgba(59,130,246,0.2)", fontSize: "13px", fontWeight: 600,
+                            color: "#1e293b", outline: "none", background: "#f8fafc",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+                      <button
+                        onClick={fetchAndDownloadCSV}
+                        disabled={csvLoading || !csvStartDate || !csvEndDate}
+                        style={{
+                          flex: 1, padding: "10px", borderRadius: "10px",
+                          background: "linear-gradient(135deg,#059669,#10b981)",
+                          color: "#fff", border: "none", fontSize: "13px", fontWeight: 700,
+                          cursor: csvLoading ? "not-allowed" : "pointer",
+                          opacity: csvLoading ? 0.7 : 1,
+                          boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                        }}
+                      >
+                        {csvLoading ? (
+                          <><div style={{ width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> Fetching...</>
+                        ) : (
+                          <>📥 Download</>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setShowDatePicker(false)}
+                        style={{
+                          padding: "10px 16px", borderRadius: "10px",
+                          background: "#f1f5f9", color: "#64748b",
+                          border: "1px solid rgba(100,116,139,0.15)",
+                          fontSize: "13px", fontWeight: 700, cursor: "pointer",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button onClick={handleLogout} style={{
-                padding:"12px 26px", borderRadius:"14px",
-                background:"#fff",
-                color:"#ef4444", border:"1px solid rgba(239,68,68,0.3)", fontSize:"14px", fontWeight:800,
-                cursor:"pointer",
-                boxShadow:"0 4px 12px rgba(239,68,68,0.1)",
-                letterSpacing:"0.3px", display:"flex", alignItems:"center", gap:"8px",
+                padding: "12px 26px", borderRadius: "14px",
+                background: "#fff",
+                color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)", fontSize: "14px", fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(239,68,68,0.1)",
+                letterSpacing: "0.3px", display: "flex", alignItems: "center", gap: "8px",
               }}>
-                <span style={{ fontSize:"18px" }}>🚪</span> Logout
+                <span style={{ fontSize: "18px" }}>🚪</span> Logout
               </button>
               <button onClick={refresh} disabled={loadingSt} style={{
-                padding:"12px 26px", borderRadius:"14px",
-                background:"linear-gradient(135deg,#3b82f6,#6366f1)",
-                color:"#fff", border:"none", fontSize:"14px", fontWeight:800,
-                cursor:loadingSt?"not-allowed":"pointer", opacity:loadingSt?.7:1,
-                boxShadow:"0 6px 24px rgba(99,102,241,0.4)",
-                letterSpacing:"0.3px", display:"flex", alignItems:"center", gap:"8px",
+                padding: "12px 26px", borderRadius: "14px",
+                background: "linear-gradient(135deg,#3b82f6,#6366f1)",
+                color: "#fff", border: "none", fontSize: "14px", fontWeight: 800,
+                cursor: loadingSt ? "not-allowed" : "pointer", opacity: loadingSt ? .7 : 1,
+                boxShadow: "0 6px 24px rgba(99,102,241,0.4)",
+                letterSpacing: "0.3px", display: "flex", alignItems: "center", gap: "8px",
               }}>
-                <span style={{ fontSize:"18px" }}>↻</span> Refresh
+                <span style={{ fontSize: "18px" }}>↻</span> Refresh
               </button>
             </div>
           </div>
 
           {/* ── KPI row ── */}
           {!loadingSt && stations.length > 0 && (
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"14px", marginBottom:"28px" }}>
-              <KPI label="Total Sensors"  value={stations.length}            color="#3b82f6" />
-              <KPI label="Live"           value={liveCount}                  color="#10b981" />
-              <KPI label="Offline"        value={stations.length-liveCount}  color="#475569" />
-              <KPI label="Hourly Alerts"  value={totalHourlyAlerts} color={totalHourlyAlerts>0?"#ef4444":"#10b981"} />
-              <KPI label="Daily Alerts"   value={totalDailyAlerts} color={totalDailyAlerts>0?"#f97316":"#10b981"} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "14px", marginBottom: "28px" }}>
+              <KPI label="Total Sensors" value={stations.length} color="#3b82f6" />
+              <KPI label="Live" value={liveCount} color="#10b981" />
+              <KPI label="Offline" value={stations.length - liveCount} color="#475569" />
+              <KPI label="Hourly Alerts" value={totalHourlyAlerts} color={totalHourlyAlerts > 0 ? "#ef4444" : "#10b981"} />
+              <KPI label="Daily Alerts" value={totalDailyAlerts} color={totalDailyAlerts > 0 ? "#f97316" : "#10b981"} />
             </div>
           )}
 
@@ -600,7 +797,7 @@ export default function PrivateSummaryDashboard() {
                   const last = hist.length ? hist[hist.length - 1] : null;
                   const dailyAvgs = groupReadingsByDay(hist);
                   const lastDaily = dailyAvgs.length ? dailyAvgs[dailyAvgs.length - 1] : null;
-                  
+
                   const hAlerts = [];
                   if (last) {
                     if (last.pm2p5 != null && last.pm2p5 > HOURLY_THRESHOLDS.pm25) {
@@ -609,9 +806,7 @@ export default function PrivateSummaryDashboard() {
                     if (last.pm10p0 != null && last.pm10p0 > HOURLY_THRESHOLDS.pm10) {
                       hAlerts.push(`PM10 (${Number(last.pm10p0).toFixed(1)} > ${HOURLY_THRESHOLDS.pm10} µg/m³)`);
                     }
-                    if (last.pm1p0 != null && last.pm1p0 > HOURLY_THRESHOLDS.pm1) {
-                      hAlerts.push(`PM1.0 (${Number(last.pm1p0).toFixed(1)} > ${HOURLY_THRESHOLDS.pm1} µg/m³)`);
-                    }
+
                     if (last.dba != null && last.dba > HOURLY_THRESHOLDS.noise) {
                       hAlerts.push(`Noise (${Number(last.dba).toFixed(1)} > ${HOURLY_THRESHOLDS.noise} dBA)`);
                     }
@@ -637,12 +832,7 @@ export default function PrivateSummaryDashboard() {
                     if (lastDaily.pm10p0 != null && lastDaily.pm10p0 > DAILY_THRESHOLDS.pm10) {
                       dAlerts.push(`PM10 (${Number(lastDaily.pm10p0).toFixed(1)} > ${DAILY_THRESHOLDS.pm10} µg/m³)`);
                     }
-                    if (lastDaily.pm4p0 != null && lastDaily.pm4p0 > DAILY_THRESHOLDS.pm4) {
-                      dAlerts.push(`PM4.0 (${Number(lastDaily.pm4p0).toFixed(1)} > ${DAILY_THRESHOLDS.pm4} mg/m³)`);
-                    }
-                    if (lastDaily.pm1p0 != null && lastDaily.pm1p0 > DAILY_THRESHOLDS.pm1) {
-                      dAlerts.push(`PM1.0 (${Number(lastDaily.pm1p0).toFixed(1)} > ${DAILY_THRESHOLDS.pm1} µg/m³)`);
-                    }
+
                   }
 
                   const hasAny = hAlerts.length > 0 || dAlerts.length > 0;
@@ -655,10 +845,10 @@ export default function PrivateSummaryDashboard() {
                       padding: "16px 20px"
                     }}>
                       <div style={{ fontSize: "15px", fontWeight: 800, color: "#1e293b", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: hasAny ? "#ef4444" : "#10b981" }}/>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: hasAny ? "#ef4444" : "#10b981" }} />
                         {s.name}
                       </div>
-                      
+
                       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                         <div>
                           <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>Hourly Alerts</div>
@@ -699,58 +889,58 @@ export default function PrivateSummaryDashboard() {
 
           {/* ── Legend ── */}
           <div style={{
-            background:"rgba(255,255,255,0.85)", border:"1px solid rgba(59,130,246,0.12)", backdropFilter:"blur(8px)",
-            borderRadius:"14px", padding:"16px 22px", marginBottom:"28px",
-            display:"flex", flexWrap:"wrap", gap:"18px",
+            background: "rgba(255,255,255,0.85)", border: "1px solid rgba(59,130,246,0.12)", backdropFilter: "blur(8px)",
+            borderRadius: "14px", padding: "16px 22px", marginBottom: "28px",
+            display: "flex", flexWrap: "wrap", gap: "18px",
           }}>
             <div>
-              <div style={{ fontSize:"9px", fontWeight:800, color:"#64748b", letterSpacing:"1.5px", marginBottom:"8px" }}>PM2.5 — EXCEL COMPLIANCE BANDS (μg/m³)</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
-                {[["Good ≤103","#10b981"],["Moderate 104–153","#eab308"],["High 154–203","#f97316"],["Very High 204–253","#ef4444"],["Severe >254","#8b5cf6"]]
-                  .map(([l,c])=><Chip key={l} label={l} color={c}/>)}
+              <div style={{ fontSize: "9px", fontWeight: 800, color: "#64748b", letterSpacing: "1.5px", marginBottom: "8px" }}>PM2.5 — EXCEL COMPLIANCE BANDS (μg/m³)</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {[["Good ≤103", "#10b981"], ["Moderate 104–153", "#eab308"], ["High 154–203", "#f97316"], ["Very High 204–253", "#ef4444"], ["Severe >254", "#8b5cf6"]]
+                  .map(([l, c]) => <Chip key={l} label={l} color={c} />)}
               </div>
             </div>
             <div>
-              <div style={{ fontSize:"9px", fontWeight:800, color:"#64748b", letterSpacing:"1.5px", marginBottom:"8px" }}>TEMPERATURE — DRY-BULB LIMITS (°C)</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
-                {[["Comfortable 15–25","#10b981"],["Moderate 26–31","#eab308"],["Action Level 32–37","#f97316"],["Very High 38–42","#ef4444"],["Severe <4 or >42","#8b5cf6"]]
-                  .map(([l,c])=><Chip key={l} label={l} color={c}/>)}
+              <div style={{ fontSize: "9px", fontWeight: 800, color: "#64748b", letterSpacing: "1.5px", marginBottom: "8px" }}>TEMPERATURE — DRY-BULB LIMITS (°C)</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {[["Comfortable 15–25", "#10b981"], ["Moderate 26–31", "#eab308"], ["Action Level 32–37", "#f97316"], ["Very High 38–42", "#ef4444"], ["Severe <4 or >42", "#8b5cf6"]]
+                  .map(([l, c]) => <Chip key={l} label={l} color={c} />)}
               </div>
             </div>
           </div>
 
           {/* ── Error ── */}
           {error && (
-            <div style={{ background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"12px", padding:"14px 20px", color:"#f87171", marginBottom:"24px", fontSize:"13px", fontWeight:600 }}>
+            <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "12px", padding: "14px 20px", color: "#f87171", marginBottom: "24px", fontSize: "13px", fontWeight: 600 }}>
               ⚠ {error}
             </div>
           )}
 
           {/* ── States ── */}
           {loadingSt ? (
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"120px 0", gap:"20px" }}>
-              <div style={{ width:"52px", height:"52px", border:"4px solid #bfdbfe", borderTopColor:"#3b82f6", borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
-              <div style={{ color:"#64748b", fontSize:"14px", fontWeight:600 }}>Loading your private sensors…</div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 0", gap: "20px" }}>
+              <div style={{ width: "52px", height: "52px", border: "4px solid #bfdbfe", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+              <div style={{ color: "#64748b", fontSize: "14px", fontWeight: 600 }}>Loading your private sensors…</div>
             </div>
           ) : stations.length === 0 ? (
-            <div style={{ textAlign:"center", padding:"120px 0" }}>
-              <div style={{ fontSize:"64px", marginBottom:"16px" }}>📡</div>
-              <div style={{ fontSize:"20px", fontWeight:800, color:"#1e293b", marginBottom:"8px" }}>No sensors found</div>
-              <div style={{ fontSize:"13px", color:"#64748b" }}>Contact your administrator to be assigned private sensors.</div>
+            <div style={{ textAlign: "center", padding: "120px 0" }}>
+              <div style={{ fontSize: "64px", marginBottom: "16px" }}>📡</div>
+              <div style={{ fontSize: "20px", fontWeight: 800, color: "#1e293b", marginBottom: "8px" }}>No sensors found</div>
+              <div style={{ fontSize: "13px", color: "#64748b" }}>Contact your administrator to be assigned private sensors.</div>
             </div>
           ) : (
             <>
-              <div style={{ fontSize:"12px", color:"#1e293b", fontWeight:700, letterSpacing:"0.5px", marginBottom:"16px", display:"flex", alignItems:"center", gap:"8px" }}>
-                <span style={{ color:"#2563eb" }}>■</span>
-                {stations.length} SENSOR{stations.length!==1?"S":""} ASSIGNED
-                {Object.keys(loadingR).length>0 && <span style={{ color:"#3b82f6", fontWeight:600 }}>· Fetching readings…</span>}
+              <div style={{ fontSize: "12px", color: "#1e293b", fontWeight: 700, letterSpacing: "0.5px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ color: "#2563eb" }}>■</span>
+                {stations.length} SENSOR{stations.length !== 1 ? "S" : ""} ASSIGNED
+                {Object.keys(loadingR).length > 0 && <span style={{ color: "#3b82f6", fontWeight: 600 }}>· Fetching readings…</span>}
               </div>
               <div className="sensor-grid" style={{
-                display:"grid",
-                gridTemplateColumns:"repeat(auto-fit,minmax(420px,1fr))",
-                gap:"24px",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit,minmax(420px,1fr))",
+                gap: "24px",
               }}>
-                {stations.map(s=>(
+                {stations.map(s => (
                   <Card
                     key={s._id}
                     station={s}
@@ -763,47 +953,47 @@ export default function PrivateSummaryDashboard() {
 
               {/* ── Historical Trends section ── */}
               {stations.some(s => readings[s._id]?.length > 1) && (
-                <div style={{ marginTop:"40px" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"20px" }}>
-                    <div style={{ width:"4px", height:"24px", background:"linear-gradient(180deg,#3b82f6,#6366f1)", borderRadius:"2px" }}/>
+                <div style={{ marginTop: "40px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+                    <div style={{ width: "4px", height: "24px", background: "linear-gradient(180deg,#3b82f6,#6366f1)", borderRadius: "2px" }} />
                     <div>
-                      <div style={{ fontSize:"18px", fontWeight:900, color:"#0f172a", letterSpacing:"-0.3px" }}>Historical Trends</div>
-                      <div style={{ fontSize:"11px", color:"#64748b", marginTop:"2px" }}>7-day daily data · PM2.5 (WHO 2021) · Temperature (ASHRAE 55) · Noise (NIOSH)</div>
+                      <div style={{ fontSize: "18px", fontWeight: 900, color: "#0f172a", letterSpacing: "-0.3px" }}>Historical Trends</div>
+                      <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>7-day daily data · PM2.5 (WHO 2021) · Temperature (ASHRAE 55) · Noise (NIOSH)</div>
                     </div>
                   </div>
-                  <div style={{ display:"flex", flexDirection:"column", gap:"24px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                     {stations.filter(s => readings[s._id]?.length > 1).map(s => (
                       <div key={s._id} style={{
-                        background:"linear-gradient(145deg,#ffffff,#f8faff)",
-                        borderRadius:"20px", padding:"22px 24px",
-                        border:"1px solid rgba(59,130,246,0.12)",
-                        boxShadow:"0 4px 20px rgba(59,130,246,0.06)",
+                        background: "linear-gradient(145deg,#ffffff,#f8faff)",
+                        borderRadius: "20px", padding: "22px 24px",
+                        border: "1px solid rgba(59,130,246,0.12)",
+                        boxShadow: "0 4px 20px rgba(59,130,246,0.06)",
                       }}>
-                        <div style={{ fontSize:"14px", fontWeight:800, color:"#0f172a", marginBottom:"16px", display:"flex", alignItems:"center", gap:"8px" }}>
-                          <span style={{ width:"8px", height:"8px", borderRadius:"50%", background: online(s.lastSeen)?"#10b981":"#94a3b8", display:"inline-block" }}/>
+                        <div style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: online(s.lastSeen) ? "#10b981" : "#94a3b8", display: "inline-block" }} />
                           {s.name}
-                          <span style={{ fontSize:"10px", color:"#94a3b8", fontWeight:600 }}>· Last 7 days</span>
+                          <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 600 }}>· Last 7 days</span>
                         </div>
-                        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:"16px" }}>
-                          <div style={{ background:"#fff", borderRadius:"14px", padding:"14px", border:"1px solid rgba(239,68,68,0.15)" }}>
-                            <div style={{ fontSize:"10px", fontWeight:800, color:"#64748b", letterSpacing:"1px", marginBottom:"8px" }}>PM 2.5 (μg/m³)</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: "16px" }}>
+                          <div style={{ background: "#fff", borderRadius: "14px", padding: "14px", border: "1px solid rgba(239,68,68,0.15)" }}>
+                            <div style={{ fontSize: "10px", fontWeight: 800, color: "#64748b", letterSpacing: "1px", marginBottom: "8px" }}>PM 2.5 (μg/m³)</div>
                             <SparkLine data={groupReadingsByDay(readings[s._id])} label="pm2p5" color="#ef4444" unit="μg/m³" isDaily={true} thresholds={[
-                              { value:20,   color:"#22c55e", label:"Annual Avg (20)" },
-                              { value:40, color:"#ef4444", label:"24-Hr Limit (40)" },
+                              { value: 20, color: "#22c55e", label: "Annual Avg (20)" },
+                              { value: 40, color: "#ef4444", label: "24-Hr Limit (40)" },
                             ]} />
                           </div>
-                          <div style={{ background:"#fff", borderRadius:"14px", padding:"14px", border:"1px solid rgba(59,130,246,0.15)" }}>
-                            <div style={{ fontSize:"10px", fontWeight:800, color:"#64748b", letterSpacing:"1px", marginBottom:"8px" }}>TEMPERATURE (°C)</div>
+                          <div style={{ background: "#fff", borderRadius: "14px", padding: "14px", border: "1px solid rgba(59,130,246,0.15)" }}>
+                            <div style={{ fontSize: "10px", fontWeight: 800, color: "#64748b", letterSpacing: "1px", marginBottom: "8px" }}>TEMPERATURE (°C)</div>
                             <SparkLine data={groupReadingsByDay(readings[s._id])} label="temperature" color="#3b82f6" unit="°C" isDaily={true} thresholds={[
-                              { value:32, color:"#eab308", label:"Action Level (32°C)" },
-                              { value:37, color:"#ef4444", label:"Max OEL (37°C)" },
+                              { value: 32, color: "#eab308", label: "Action Level (32°C)" },
+                              { value: 37, color: "#ef4444", label: "Max OEL (37°C)" },
                             ]} />
                           </div>
-                          <div style={{ background:"#fff", borderRadius:"14px", padding:"14px", border:"1px solid rgba(168,85,247,0.15)" }}>
-                            <div style={{ fontSize:"10px", fontWeight:800, color:"#64748b", letterSpacing:"1px", marginBottom:"8px" }}>NOISE (dBA)</div>
+                          <div style={{ background: "#fff", borderRadius: "14px", padding: "14px", border: "1px solid rgba(168,85,247,0.15)" }}>
+                            <div style={{ fontSize: "10px", fontWeight: 800, color: "#64748b", letterSpacing: "1px", marginBottom: "8px" }}>NOISE (dBA)</div>
                             <SparkLine data={groupReadingsByDay(readings[s._id])} label="dba" color="#a855f7" unit="dB" isDaily={true} thresholds={[
-                              { value:82, color:"#eab308", label:"Action Level (82dB)" },
-                              { value:85, color:"#ef4444", label:"Max OEL (85dB)" },
+                              { value: 82, color: "#eab308", label: "Action Level (82dB)" },
+                              { value: 85, color: "#ef4444", label: "Max OEL (85dB)" },
                             ]} />
                           </div>
                         </div>
