@@ -54,7 +54,7 @@ const AQI_BANDS = {
   pm25: [{ max: 103, status: "Green" }, { max: 153, status: "Yellow" }, { max: 203, status: "Orange" }, { max: Infinity, status: "Red" }],
   pm10: [{ max: 190, status: "Green" }, { max: 240, status: "Yellow" }, { max: 290, status: "Orange" }, { max: Infinity, status: "Red" }],
   noise: [{ max: 70, status: "Green" }, { max: 82, status: "Yellow" }, { max: 85, status: "Orange" }, { max: Infinity, status: "Red" }],
-  pm5: [{ max: 1.5, status: "Green" }, { max: 2.5, status: "Yellow" }, { max: 3.0, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm5: [{ max: 103, status: "Green" }, { max: 153, status: "Yellow" }, { max: 203, status: "Orange" }, { max: Infinity, status: "Red" }],
 };
 
 function statusFor(val, thr, key) {
@@ -68,9 +68,9 @@ const sMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map(d => d.min ??
 const sMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map(d => d.max ?? 0))) : 0;
 
 // Hourly Thresholds
-const THRESHOLDS = { pm1: 10, pm25: 103, pm5: 1.5, pm10: 190, noise: 85, temperature: 32, humidity: 85, co2: 1000, nox: 106, voc: 200 };
+const THRESHOLDS = { pm1: 103, pm25: 103, pm5: 103, pm10: 190, noise: 85, temperature: 32, humidity: 85, co2: 1000, nox: 106, voc: 200 };
 // New Daily Thresholds for PM Widgets & Daily Exceedance Table
-const DAILY_THRESHOLDS = { pm1: 10, pm25: 40, pm5: 3.0, pm10: 75 };
+const DAILY_THRESHOLDS = { pm1: 40, pm25: 40, pm5: 40, pm10: 75 };
 
 function toForecastWidget(w) {
   if (!w) return null;
@@ -623,7 +623,7 @@ export default function PrivateComplianceDashboard() {
                             {dailyExcData.map(row => (
                               <TableRow key={row.key}>
                                 <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
-                                <TableCell>{row.limit} {row.key === 'pm5' ? 'mg/m³' : 'µg/m³'}</TableCell>
+                                <TableCell>{row.limit} µg/m³</TableCell>
                                 <TableCell>
                                   <Chip
                                     label={`${row.exceedances} / ${row.total} Days`}
@@ -656,7 +656,7 @@ export default function PrivateComplianceDashboard() {
                     dataPoints={d.values}
                     threshold={DAILY_THRESHOLDS[key]}
                     trend={widget.trend}
-                    unit={key === "pm5" ? "mg/m³" : "µg/m³"}
+                    unit="µg/m³"
                   />
                 </Box></Grid>);
               })}
