@@ -151,22 +151,60 @@ export default function PrivateComplianceDashboard() {
   );
 
   useEffect(() => {
+    let isMounted = true;
     if (sensorOptions.length > 0) {
       if (selectedSensor) {
         const matchedStation = stations.find(st => st._id === selectedSensor);
         if (matchedStation && matchedStation.sensorIds && matchedStation.sensorIds.length > 0) {
-          const firstSensorId = matchedStation.sensorIds[0];
-          if (sensorOptions.some(o => o.id === firstSensorId)) {
-            setSensorId(firstSensorId);
+          // If sensorId is already set to one of the matched station's sensorIds, do nothing
+          if (sensorId && matchedStation.sensorIds.includes(sensorId)) {
             return;
           }
+
+          if (matchedStation.sensorIds.length === 1) {
+            setSensorId(matchedStation.sensorIds[0]);
+            return;
+          }
+
+          // If there are multiple sensors, find the one with the latest data in the last 7 days
+          const fetchActiveSensor = async () => {
+            try {
+              const res = await axios.get(`${BASE}/api/stations/${selectedSensor}/sensorData?days=7`);
+              if (!isMounted) return;
+              const data = res.data || [];
+              if (data.length > 0) {
+                // Find the reading with the latest timestamp
+                let latestReading = data[0];
+                for (const r of data) {
+                  if (new Date(r.timestamp) > new Date(latestReading.timestamp)) {
+                    latestReading = r;
+                  }
+                }
+                if (latestReading.sensor_id && matchedStation.sensorIds.includes(latestReading.sensor_id)) {
+                  setSensorId(latestReading.sensor_id);
+                  return;
+                }
+              }
+            } catch (err) {
+              console.warn("Failed to find active sensor from station sensorData:", err);
+            }
+            // Fallback to the first sensor
+            if (isMounted) {
+              setSensorId(matchedStation.sensorIds[0]);
+            }
+          };
+          fetchActiveSensor();
+          return;
         }
       }
       if (!sensorId) {
         setSensorId(sensorOptions[0].id);
       }
     }
-  }, [stations, selectedSensor]);
+    return () => {
+      isMounted = false;
+    };
+  }, [stations, selectedSensor, sensorId]);
 
   useEffect(() => { if (sensorId) fetchDashboard(); }, [sensorId, startDate, endDate, resolution]);
 
