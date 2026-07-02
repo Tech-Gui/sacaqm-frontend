@@ -126,6 +126,18 @@ export default function PrivateComplianceDashboard() {
   const { stations, loading: stationsLoading } = useContext(StationContext);
   const { selectedSensor } = useSensorData();
 
+  // Read sessionStorage synchronously on first render, then clear so they don't persist
+  const [pinnedSensorId] = useState(() => {
+    const v = sessionStorage.getItem("privateComplianceSensorId") || "";
+    sessionStorage.removeItem("privateComplianceSensorId");
+    return v;
+  });
+  const [pinnedStationId] = useState(() => {
+    const v = sessionStorage.getItem("privateComplianceStationId") || "";
+    sessionStorage.removeItem("privateComplianceStationId");
+    return v;
+  });
+
   const [sensorId, setSensorId] = useState("");
   const [startDate, setStartDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 7); return formatDate(d); });
   const [endDate, setEndDate] = useState(() => formatDate(new Date()));
@@ -152,59 +164,41 @@ export default function PrivateComplianceDashboard() {
 
   useEffect(() => {
     let isMounted = true;
-    if (sensorOptions.length > 0) {
-      if (selectedSensor) {
-        const matchedStation = stations.find(st => st._id === selectedSensor);
-        if (matchedStation && matchedStation.sensorIds && matchedStation.sensorIds.length > 0) {
-          // If sensorId is already set to one of the matched station's sensorIds, do nothing
-          if (sensorId && matchedStation.sensorIds.includes(sensorId)) {
-            return;
-          }
 
-          if (matchedStation.sensorIds.length === 1) {
-            setSensorId(matchedStation.sensorIds[0]);
-            return;
-          }
-
-          // If there are multiple sensors, find the one with the latest data in the last 7 days
-          const fetchActiveSensor = async () => {
-            try {
-              const res = await axios.get(`${BASE}/api/stations/${selectedSensor}/sensorData?days=7`);
-              if (!isMounted) return;
-              const data = res.data || [];
-              if (data.length > 0) {
-                // Find the reading with the latest timestamp
-                let latestReading = data[0];
-                for (const r of data) {
-                  if (new Date(r.timestamp) > new Date(latestReading.timestamp)) {
-                    latestReading = r;
-                  }
-                }
-                if (latestReading.sensor_id && matchedStation.sensorIds.includes(latestReading.sensor_id)) {
-                  setSensorId(latestReading.sensor_id);
-                  return;
-                }
-              }
-            } catch (err) {
-              console.warn("Failed to find active sensor from station sensorData:", err);
-            }
-            // Fallback to the first sensor
-            if (isMounted) {
-              setSensorId(matchedStation.sensorIds[0]);
-            }
-          };
-          fetchActiveSensor();
-          return;
-        }
-      }
-      if (!sensorId) {
-        setSensorId(sensorOptions[0].id);
+    // PRIORITY 1: came from Private Summary — pinnedStationId tells us which station.
+    // Directly use the last sensorId in the array (no API call, no guessing).
+    if (pinnedStationId) {
+      if (sensorOptions.length === 0 || stationsLoading) return; // wait for stations to load
+      const matchedStation = stations.find(st => st._id === pinnedStationId);
+      if (matchedStation && matchedStation.sensorIds?.length > 0) {
+        const desired = matchedStation.sensorIds[matchedStation.sensorIds.length - 1];
+        if (sensorId !== desired) setSensorId(desired);
+        return () => { isMounted = false; };
       }
     }
-    return () => {
-      isMounted = false;
-    };
-  }, [stations, selectedSensor, sensorId]);
+
+    // PRIORITY 2: fallback — use pinnedSensorId from sessionStorage or selectedSensor context
+    const targetStationId = pinnedSensorId ? null : selectedSensor;
+
+    if (pinnedSensorId) {
+      if (sensorId !== pinnedSensorId) setSensorId(pinnedSensorId);
+      return () => { isMounted = false; };
+    }
+
+    if (sensorOptions.length > 0) {
+      if (targetStationId) {
+        const matchedStation = stations.find(st => st._id === targetStationId);
+        if (matchedStation && matchedStation.sensorIds?.length > 0) {
+          if (sensorId && matchedStation.sensorIds.includes(sensorId)) return;
+          setSensorId(matchedStation.sensorIds[matchedStation.sensorIds.length - 1]);
+          return;
+        }
+        if (stationsLoading) return;
+      }
+      if (!sensorId) setSensorId(sensorOptions[0].id);
+    }
+    return () => { isMounted = false; };
+  }, [stations, pinnedSensorId, pinnedStationId, selectedSensor, sensorId, stationsLoading]);
 
   useEffect(() => { if (sensorId) fetchDashboard(); }, [sensorId, startDate, endDate, resolution]);
 

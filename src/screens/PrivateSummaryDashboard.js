@@ -465,7 +465,13 @@ export default function PrivateSummaryDashboard() {
   useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => { const t = setInterval(refresh, 300000); return () => clearInterval(t); }, [refresh]);
 
-  const onView = id => { setSelectedSensor(id); setSelectedPeriod("Today"); navigate("/private-compliance"); };
+  const onView = (id) => {
+    setSelectedSensor(id);
+    setSelectedPeriod("Today");
+    sessionStorage.setItem("privateComplianceStationId", id);
+    sessionStorage.removeItem("privateComplianceSensorId");
+    navigate("/private-compliance");
+  };
 
   const liveCount = stations.filter(s => online(s.lastSeen)).length;
 
