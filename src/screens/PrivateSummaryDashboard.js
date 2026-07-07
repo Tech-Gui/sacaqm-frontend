@@ -50,6 +50,28 @@ const tempLevel = v => {
 
 const online = ls => ls && Date.now() - new Date(ls) < 86400000;
 
+/**
+ * Pick the designated sensor ID for a given station:
+ *   Continental → sensor ending with "809"
+ *   Mamba       → sensor ending with "40"
+ * Falls back to the first sensor for all other stations.
+ */
+const getDesignatedSensorId = (station) => {
+  const ids = station.sensorIds || [];
+  if (!ids.length) return null;
+  const name = (station.name || "").toLowerCase();
+  if (name.includes("continental")) {
+    const match = ids.find(id => id.endsWith("809"));
+    if (match) return match;
+  }
+  if (name.includes("mamba")) {
+    const match = ids.find(id => id.endsWith("40"));
+    if (match) return match;
+  }
+  return ids[0];
+};
+
+
 /* ── Progress bar ── */
 const Bar = ({ pct, color }) => (
   <div style={{ height: "6px", borderRadius: "99px", background: "rgba(59,130,246,0.10)", overflow: "hidden", marginTop: "8px" }}>
@@ -162,7 +184,10 @@ const SparkLine = ({ data, label, color, unit, thresholds, isDaily }) => {
 
 const Card = ({ station, histData, busy, onView }) => {
   const last = histData?.length ? histData[histData.length - 1] : null;
-  const live = online(station.lastSeen);
+  // Use the designated sensor's last reading timestamp for online status,
+  // NOT station.lastSeen (which reflects any sensor in the station, not necessarily ours).
+  const sensorLastTs = last?.timestamp ?? null;
+  const live = online(sensorLastTs);
 
   const getLatest = (key) => {
     if (!histData?.length) return null;
@@ -237,7 +262,7 @@ const Card = ({ station, histData, busy, onView }) => {
               {station.name}
             </div>
             <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "3px" }}>
-              {station.lastSeen ? new Date(station.lastSeen).toLocaleString() : "No data"}
+              {sensorLastTs ? new Date(sensorLastTs).toLocaleString() : "No data"}
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
@@ -405,6 +430,11 @@ export default function PrivateSummaryDashboard() {
         list = Array.isArray(data) ? [...data] : [];
         list = list.filter(s => s.visibility === "private");
       }
+      // Only show the two stations that appear in the Private Compliance dashboard
+      list = list.filter(s => {
+        const n = (s.name || "").toLowerCase();
+        return n.includes("continental") || n.includes("mamba");
+      });
       list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       setStations(list); return list;
     } catch (e) {
@@ -417,24 +447,19 @@ export default function PrivateSummaryDashboard() {
     const lm = {}; list.forEach(s => { lm[s._id] = true; }); setLoadingR({ ...lm });
     const tok = localStorage.getItem("authToken");
     const res = await Promise.allSettled(list.map(async s => {
+      // Always fetch from the designated sensor directly (not the station-level endpoint
+      // which mixes data from ALL sensors in the station, causing wrong online status).
       let data = [];
-      try {
-        const r = await axios.get(`${API_BASE}/api/stations/${s._id}/sensorData?days=7`);
-        data = r.data || [];
-      } catch (e) {
-        console.warn("Failed to fetch sensorData for", s.name);
-      }
-
-      // Fallback: If sensorData is empty, try nodedata/aggregated if sensorIds exists
-      if ((!data || data.length === 0) && s.sensorIds && s.sensorIds.length > 0) {
+      const designatedSid = getDesignatedSensorId(s);
+      if (designatedSid) {
         try {
           const d = new Date();
           const end = d.toISOString();
-          d.setDate(d.getDate() - 7);
+          d.setDate(d.getDate() - 14); // 14-day window to catch sensors with data gaps
           const start = d.toISOString();
 
           const nr = await axios.get(`${API_BASE}/api/nodedata/aggregated`, {
-            params: { sensor_id: s.sensorIds[0], start, end, resolution: 'hourly' },
+            params: { sensor_id: designatedSid, start, end, resolution: 'hourly' },
             headers: tok ? { Authorization: `Bearer ${tok}` } : {}
           });
 
@@ -442,7 +467,7 @@ export default function PrivateSummaryDashboard() {
             data = nr.data;
           }
         } catch (e) {
-          console.warn("Failed fallback fetch for", s.name);
+          console.warn("Failed fetch for", s.name, getDesignatedSensorId(s));
         }
       }
 

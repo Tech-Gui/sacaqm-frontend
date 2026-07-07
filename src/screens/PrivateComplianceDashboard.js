@@ -139,10 +139,10 @@ export default function PrivateComplianceDashboard() {
   });
 
   const [sensorId, setSensorId] = useState("");
-  const [startDate, setStartDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 7); return formatDate(d); });
+  const [startDate, setStartDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 14); return formatDate(d); });
   const [endDate, setEndDate] = useState(() => formatDate(new Date()));
   const [dateLabel, setDateLabel] = useState(() => {
-    const d = new Date(), s = new Date(d); s.setDate(d.getDate() - 7);
+    const d = new Date(), s = new Date(d); s.setDate(d.getDate() - 14);
     return `${s.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${d.getFullYear()}`;
   });
   const [resolution, setResolution] = useState("daily");
@@ -158,21 +158,54 @@ export default function PrivateComplianceDashboard() {
   const [forecastLoading, setForecastLoading] = useState(false);
   const [forecastError, setForecastError] = useState(null);
 
-  const sensorOptions = (stations || []).flatMap(st =>
-    (st.sensorIds || []).map(sid => ({ id: sid, label: st.sensorIds.length === 1 ? st.name : `${st.name} – ${sid}` }))
-  );
+  // Tracks whether we have already resolved the initial sensor from pinned state.
+  // Once true, manual dropdown changes are never overridden.
+  const hasAppliedPinned = React.useRef(false);
+
+  // Pick the designated sensor ID for a station based on station name:
+  //   Continental → sensor ending with "809"
+  //   Mamba       → sensor ending with "40"
+  // Falls back to the last sensor if no match is found.
+  const getDesignatedSensorId = (st) => {
+    const ids = st.sensorIds || [];
+    const name = (st.name || "").toLowerCase();
+    if (name.includes("continental")) {
+      const match = ids.find(id => id.endsWith("809"));
+      if (match) return match;
+    }
+    if (name.includes("mamba")) {
+      const match = ids.find(id => id.endsWith("40"));
+      if (match) return match;
+    }
+    return ids[ids.length - 1];
+  };
+
+  // Only expose the single designated sensor per station in the dropdown
+  const sensorOptions = (stations || []).map(st => {
+    const sid = getDesignatedSensorId(st);
+    return sid ? { id: sid, label: st.name } : null;
+  }).filter(Boolean);
 
   useEffect(() => {
     let isMounted = true;
 
+    // Once the initial sensor has been resolved from pinned state / context,
+    // stop overriding the user's manual dropdown selections.
+    if (hasAppliedPinned.current) {
+      if (!sensorId && sensorOptions.length > 0) setSensorId(sensorOptions[0].id);
+      return () => { isMounted = false; };
+    }
+
     // PRIORITY 1: came from Private Summary — pinnedStationId tells us which station.
-    // Directly use the last sensorId in the array (no API call, no guessing).
     if (pinnedStationId) {
       if (sensorOptions.length === 0 || stationsLoading) return; // wait for stations to load
       const matchedStation = stations.find(st => st._id === pinnedStationId);
       if (matchedStation && matchedStation.sensorIds?.length > 0) {
-        const desired = matchedStation.sensorIds[matchedStation.sensorIds.length - 1];
-        if (sensorId !== desired) setSensorId(desired);
+        const desired = getDesignatedSensorId(matchedStation);
+        if (desired) {
+          setSensorId(desired);
+          hasAppliedPinned.current = true;
+        }
         return () => { isMounted = false; };
       }
     }
@@ -181,7 +214,8 @@ export default function PrivateComplianceDashboard() {
     const targetStationId = pinnedSensorId ? null : selectedSensor;
 
     if (pinnedSensorId) {
-      if (sensorId !== pinnedSensorId) setSensorId(pinnedSensorId);
+      setSensorId(pinnedSensorId);
+      hasAppliedPinned.current = true;
       return () => { isMounted = false; };
     }
 
@@ -189,13 +223,19 @@ export default function PrivateComplianceDashboard() {
       if (targetStationId) {
         const matchedStation = stations.find(st => st._id === targetStationId);
         if (matchedStation && matchedStation.sensorIds?.length > 0) {
-          if (sensorId && matchedStation.sensorIds.includes(sensorId)) return;
-          setSensorId(matchedStation.sensorIds[matchedStation.sensorIds.length - 1]);
-          return;
+          const desired = getDesignatedSensorId(matchedStation);
+          if (desired) {
+            setSensorId(desired);
+            hasAppliedPinned.current = true;
+          }
+          return () => { isMounted = false; };
         }
         if (stationsLoading) return;
       }
-      if (!sensorId) setSensorId(sensorOptions[0].id);
+      if (!sensorId) {
+        setSensorId(sensorOptions[0].id);
+        hasAppliedPinned.current = true;
+      }
     }
     return () => { isMounted = false; };
   }, [stations, pinnedSensorId, pinnedStationId, selectedSensor, sensorId, stationsLoading]);
@@ -369,27 +409,63 @@ export default function PrivateComplianceDashboard() {
     }
   }
 
-  async function fetchDashboard() {
+  async function fetchDashboard(overrideStart, overrideEnd, overrideRes) {
     setLoading(true); setError(null);
     const token = localStorage.getItem("authToken");
+    const qStart = overrideStart || startDate;
+    const qEnd   = overrideEnd   || endDate;
+    const qRes   = overrideRes   || resolution;
     try {
-      const prev = getPrevPeriod(startDate, endDate);
+      const prev = getPrevPeriod(qStart, qEnd);
       const [cR, hR, pR] = await Promise.all([
         axios.get(`${BASE}/api/nodedata/aggregated`, {
-          params: { sensor_id: sensorId, start: startDate, end: endDate, resolution },
+          params: { sensor_id: sensorId, start: qStart, end: qEnd, resolution: qRes },
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         }),
         axios.get(`${BASE}/api/nodedata/aggregated`, {
-          params: { sensor_id: sensorId, start: startDate, end: endDate, resolution: 'hourly' },
+          params: { sensor_id: sensorId, start: qStart, end: qEnd, resolution: 'hourly' },
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         }),
         axios.get(`${BASE}/api/nodedata/aggregated`, {
-          params: { sensor_id: sensorId, start: prev.start, end: prev.end, resolution },
+          params: { sensor_id: sensorId, start: prev.start, end: prev.end, resolution: qRes },
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         }).catch(() => ({ data: [] })),
       ]);
       const curr = cR.data || [], hourly = hR.data || [], prevData = pR.data || [];
-      if (!curr.length) { setError(`No data for "${sensorId}" between ${startDate} and ${endDate}.`); setDashData(null); setLoading(false); return; }
+
+      // Auto-retry with wider windows if no data found for the requested range
+      if (!curr.length && !overrideStart) {
+        const today = new Date();
+        const fallbackWindows = [30, 60, 90];
+        for (const days of fallbackWindows) {
+          const fb = new Date(today); fb.setDate(today.getDate() - days);
+          const fbStart = formatDate(fb);
+          const fbEnd = formatDate(today);
+          const fbRes = await axios.get(`${BASE}/api/nodedata/aggregated`, {
+            params: { sensor_id: sensorId, start: fbStart, end: fbEnd, resolution: 'daily' },
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          }).catch(() => ({ data: [] }));
+          if (fbRes.data && fbRes.data.length > 0) {
+            // Found data — update the date picker to reflect the actual window shown
+            setStartDate(fbStart);
+            setEndDate(fbEnd);
+            const s = fb, e = today;
+            setDateLabel(`${s.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${e.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${e.getFullYear()}`);
+            setLoading(false);
+            fetchDashboard(fbStart, fbEnd, 'daily');
+            return;
+          }
+        }
+        const sensorLabel = sensorOptions.find(o => o.id === sensorId)?.label || sensorId;
+        setError(`No data found for "${sensorLabel}". The sensor may not have reported recently.`);
+        setDashData(null); setLoading(false); return;
+      }
+
+      if (!curr.length) {
+        const sensorLabel = sensorOptions.find(o => o.id === sensorId)?.label || sensorId;
+        setError(`No data for "${sensorLabel}" between ${qStart} and ${qEnd}.`);
+        setDashData(null); setLoading(false); return;
+      }
 
       const mmF = ["pm1p0", "pm2p5", "pm4p0", "pm10p0", "dba", "temperature", "humidity", "co2", "nox", "voc"];
       const mmRes = await Promise.allSettled(mmF.map(f =>
