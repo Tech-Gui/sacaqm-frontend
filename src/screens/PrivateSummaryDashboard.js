@@ -48,7 +48,7 @@ const tempLevel = v => {
   return { label: "Severe", color: "#8b5cf6", pct: 100 };
 };
 
-const online = ls => ls && Date.now() - new Date(ls) < 86400000;
+const online = ls => ls && Date.now() - new Date(ls) < 3600000; // 1-hour online threshold
 
 /**
  * Pick the designated sensor ID for a given station:
@@ -498,7 +498,12 @@ export default function PrivateSummaryDashboard() {
     navigate("/private-compliance");
   };
 
-  const liveCount = stations.filter(s => online(s.lastSeen)).length;
+  // Use the designated sensor's last reading timestamp (same logic as card badges)
+  const liveCount = stations.filter(s => {
+    const hist = readings[s._id] || [];
+    const lastTs = hist.length ? hist[hist.length - 1]?.timestamp : null;
+    return online(lastTs);
+  }).length;
 
   let totalHourlyAlerts = 0;
   let totalDailyAlerts = 0;
