@@ -430,11 +430,18 @@ export default function PrivateSummaryDashboard() {
         list = Array.isArray(data) ? [...data] : [];
         list = list.filter(s => s.visibility === "private");
       }
-      // Only show the two stations that appear in the Private Compliance dashboard
-      list = list.filter(s => {
+      // If this user's stations include Continental or Mamba, restrict to only those two.
+      // Other clients (Raumix, Glossam, etc.) see all their own stations.
+      const hasContinentalOrMamba = list.some(s => {
         const n = (s.name || "").toLowerCase();
         return n.includes("continental") || n.includes("mamba");
       });
+      if (hasContinentalOrMamba) {
+        list = list.filter(s => {
+          const n = (s.name || "").toLowerCase();
+          return n.includes("continental") || n.includes("mamba");
+        });
+      }
       list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       setStations(list); return list;
     } catch (e) {
@@ -594,10 +601,9 @@ export default function PrivateSummaryDashboard() {
 
           {/* ── KPI row ── */}
           {!loadingSt && stations.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "14px", marginBottom: "28px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "28px" }}>
               <KPI label="Total Sensors" value={stations.length} color="#3b82f6" />
-              <KPI label="Live" value={liveCount} color="#10b981" />
-              <KPI label="Offline" value={stations.length - liveCount} color="#475569" />
+              <KPI label="Offline" value={stations.length - liveCount} color={stations.length - liveCount > 0 ? "#ef4444" : "#10b981"} />
               <KPI label="Hourly Alerts" value={totalHourlyAlerts} color={totalHourlyAlerts > 0 ? "#ef4444" : "#10b981"} />
               <KPI label="Daily Alerts" value={totalDailyAlerts} color={totalDailyAlerts > 0 ? "#f97316" : "#10b981"} />
             </div>
