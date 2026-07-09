@@ -48,6 +48,8 @@ const tempLevel = v => {
   return { label: "Severe", color: "#8b5cf6", pct: 100 };
 };
 
+
+// commit dummy
 const online = ls => ls && Date.now() - new Date(ls) < 3600000; // 1-hour online threshold
 
 /**
