@@ -70,7 +70,7 @@ const getDesignatedSensorId = (station) => {
     const match = ids.find(id => id.endsWith("40"));
     if (match) return match;
   }
-  return ids[0];
+  return ids[ids.length - 1]; // fallback: last sensor is typically the most recently active
 };
 
 
@@ -458,25 +458,24 @@ export default function PrivateSummaryDashboard() {
     const res = await Promise.allSettled(list.map(async s => {
       // Always fetch from the designated sensor directly (not the station-level endpoint
       // which mixes data from ALL sensors in the station, causing wrong online status).
+      // Use nodedata/aggregated with the designated sensor for all stations.
+      // Avoids the sensorData count-limit bug (truncates recent records) and ensures
+      // we read from the correct sensor for status and metrics.
       let data = [];
       const designatedSid = getDesignatedSensorId(s);
       if (designatedSid) {
         try {
           const d = new Date();
           const end = d.toISOString();
-          d.setDate(d.getDate() - 14); // 14-day window to catch sensors with data gaps
+          d.setDate(d.getDate() - 90); // 90-day window so long-offline sensors still show last known values
           const start = d.toISOString();
-
           const nr = await axios.get(`${API_BASE}/api/nodedata/aggregated`, {
             params: { sensor_id: designatedSid, start, end, resolution: 'hourly' },
             headers: tok ? { Authorization: `Bearer ${tok}` } : {}
           });
-
-          if (nr.data && Array.isArray(nr.data)) {
-            data = nr.data;
-          }
+          if (nr.data && Array.isArray(nr.data)) data = nr.data;
         } catch (e) {
-          console.warn("Failed fetch for", s.name, getDesignatedSensorId(s));
+          console.warn("Failed fetch for", s.name, designatedSid);
         }
       }
 
