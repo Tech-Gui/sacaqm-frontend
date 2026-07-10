@@ -50,7 +50,7 @@ const tempLevel = v => {
 
 
 // commit dummy
-const online = ls => ls && Date.now() - new Date(ls) < 3600000; // 1-hour online threshold
+const online = ls => ls && Date.now() - new Date(ls) < 86400000; // 24-hour online threshold
 
 /**
  * Pick the designated sensor ID for a given station:
