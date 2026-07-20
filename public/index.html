@@ -41,5 +41,491 @@
     <!-- Botpress Webchat Implementation -->
     <script src="https://cdn.botpress.cloud/webchat/v3.6/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2026/07/20/13/20260720132522-H0PSTREH.js" defer></script>
+
+    <!-- ═══════════════════════════════════════════════════
+         SACAQM Bot — Premium Sky-Blue Gradient Theme
+         Injects into: shadow DOM · iframe · host DOM
+         ═══════════════════════════════════════════════════ -->
+    <script>
+    (function () {
+
+      /* ─────────────────────────────────────────────────
+         1.  THEME CSS  (injected everywhere we can reach)
+         ───────────────────────────────────────────────── */
+      var CSS = [
+        "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');",
+
+        /* ── Root ── */
+        ".webchat-root,[class*='container'],[class*='widget']{",
+        "  font-family:'Inter','Segoe UI',sans-serif!important;",
+        "  border-radius:24px!important;overflow:hidden!important;",
+        "  box-shadow:0 32px 80px rgba(56,189,248,.22),0 8px 32px rgba(99,102,241,.15)!important;",
+        "  border:1px solid rgba(56,189,248,.2)!important;}",
+
+        /* ── Animated gradient header ── */
+        ".webchat-header-bar,[class*='header']{",
+        "  background:linear-gradient(-45deg,#0ea5e9,#38bdf8,#6366f1,#8b5cf6)!important;",
+        "  background-size:300% 300%!important;",
+        "  animation:bpHdr 8s ease infinite!important;",
+        "  border-bottom:none!important;padding:18px 20px!important;",
+        "  position:relative!important;overflow:hidden!important;}",
+        ".webchat-header-bar *,[class*='header'] *{",
+        "  color:#fff!important;font-weight:500!important;",
+        "  text-shadow:0 1px 6px rgba(0,0,0,.15)!important;}",
+        "@keyframes bpHdr{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}",
+
+        /* ── Message list background ── */
+        ".webchat-message-list,[class*='messageList'],[class*='message-list'],[class*='messages']{",
+        "  background:linear-gradient(160deg,#f0f9ff 0%,#fafafe 40%,#f5f3ff 100%)!important;",
+        "  padding:20px 14px!important;}",
+
+        /* ── Bot bubbles — glassmorphism ── */
+        "[class*='bot'] [class*='bubble'],[class*='bot'] [class*='message'],",
+        "[class*='fromBot'],[class*='from-bot'],[data-from='bot']{",
+        "  background:rgba(255,255,255,.92)!important;",
+        "  backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;",
+        "  border:1px solid rgba(56,189,248,.28)!important;",
+        "  border-radius:20px 20px 20px 5px!important;",
+        "  box-shadow:0 4px 20px rgba(56,189,248,.13),0 1px 4px rgba(0,0,0,.05)!important;",
+        "  color:#1e293b!important;font-size:14px!important;line-height:1.65!important;",
+        "  padding:12px 16px!important;",
+        "  animation:bpSlideL .3s ease!important;}",
+
+        /* ── User bubbles — gradient ── */
+        "[class*='user'] [class*='bubble'],[class*='user'] [class*='message'],",
+        "[class*='fromUser'],[class*='from-user'],[data-from='user']{",
+        "  background:linear-gradient(135deg,#38bdf8 0%,#6366f1 100%)!important;",
+        "  border-radius:20px 20px 5px 20px!important;",
+        "  box-shadow:0 6px 24px rgba(56,189,248,.35)!important;",
+        "  color:#fff!important;font-size:14px!important;line-height:1.65!important;",
+        "  padding:12px 16px!important;",
+        "  animation:bpSlideR .3s ease!important;}",
+
+        "@keyframes bpSlideL{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}",
+        "@keyframes bpSlideR{from{opacity:0;transform:translateX(10px) scale(.97)}to{opacity:1;transform:none}}",
+
+        /* ── Composer / input bar ── */
+        "[class*='composer'],[class*='inputBar'],[class*='input-bar'],[class*='footer']{",
+        "  background:rgba(255,255,255,.97)!important;",
+        "  border-top:1px solid rgba(56,189,248,.15)!important;",
+        "  padding:12px 14px!important;}",
+
+        ".webchat-input-message-input,textarea,[class*='textInput']{",
+        "  background:#f0f9ff!important;",
+        "  border:1.5px solid rgba(56,189,248,.4)!important;",
+        "  border-radius:14px!important;color:#1e293b!important;",
+        "  font-family:'Inter',sans-serif!important;font-size:14px!important;",
+        "  padding:10px 14px!important;transition:all .25s!important;}",
+        ".webchat-input-message-input:focus,textarea:focus{",
+        "  border-color:#38bdf8!important;background:#fff!important;",
+        "  box-shadow:0 0 0 4px rgba(56,189,248,.18)!important;outline:none!important;}",
+
+        /* ── Send button ── */
+        "[class*='send'],button[type='submit'],[aria-label*='send' i]{",
+        "  background:linear-gradient(135deg,#38bdf8,#6366f1)!important;",
+        "  border:none!important;border-radius:12px!important;",
+        "  box-shadow:0 4px 16px rgba(56,189,248,.42)!important;",
+        "  transition:transform .2s,box-shadow .2s!important;}",
+        "[class*='send']:hover,button[type='submit']:hover{",
+        "  transform:scale(1.07)!important;",
+        "  box-shadow:0 6px 24px rgba(56,189,248,.6)!important;}",
+
+        /* ── Quick replies ── */
+        "[class*='quickReply'] button,[class*='choice'],[class*='suggestion']{",
+        "  background:rgba(56,189,248,.09)!important;",
+        "  border:1.5px solid rgba(56,189,248,.45)!important;",
+        "  border-radius:20px!important;color:#0ea5e9!important;",
+        "  font-family:'Inter',sans-serif!important;font-size:13px!important;font-weight:500!important;",
+        "  padding:7px 17px!important;transition:all .2s!important;}",
+        "[class*='quickReply'] button:hover,[class*='choice']:hover{",
+        "  background:linear-gradient(135deg,#38bdf8,#6366f1)!important;",
+        "  color:#fff!important;border-color:transparent!important;",
+        "  transform:translateY(-2px)!important;",
+        "  box-shadow:0 6px 20px rgba(56,189,248,.35)!important;}",
+
+        /* ── FAB / toggle ── */
+        ".webchat-toggle-button,[class*='toggle'],[class*='fab'],[class*='Fab']{",
+        "  background:linear-gradient(135deg,#38bdf8 0%,#6366f1 100%)!important;",
+        "  box-shadow:0 8px 28px rgba(56,189,248,.5)!important;",
+        "  border:none!important;border-radius:50%!important;",
+        "  animation:bpFab 3s ease-in-out infinite!important;}",
+        "@keyframes bpFab{",
+        "  0%,100%{box-shadow:0 8px 28px rgba(56,189,248,.5),0 0 0 0 rgba(56,189,248,.35)}",
+        "  60%{box-shadow:0 8px 28px rgba(56,189,248,.5),0 0 0 14px rgba(56,189,248,0)}}",
+
+        /* ── Avatar ── */
+        "[class*='avatar'],[class*='Avatar']{",
+        "  background:linear-gradient(135deg,#38bdf8,#6366f1)!important;",
+        "  border:2px solid rgba(255,255,255,.8)!important;",
+        "  box-shadow:0 2px 12px rgba(56,189,248,.3)!important;}",
+
+        /* ── Timestamps ── */
+        "[class*='timestamp'],[class*='time']{color:#94a3b8!important;font-size:11px!important;}",
+
+        /* ── Scrollbar ── */
+        "::-webkit-scrollbar{width:4px;height:4px}",
+        "::-webkit-scrollbar-track{background:transparent}",
+        "::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#38bdf8,#6366f1);border-radius:4px}",
+      ].join('\n');
+
+      /* ─────────────────────────────────────────────────
+         2.  INJECT everywhere possible
+         ───────────────────────────────────────────────── */
+      var injected = [];
+      function injectInto(root) {
+        if (!root || injected.indexOf(root) !== -1) return;
+        injected.push(root);
+        try {
+          var s = (root.createElement || document.createElement.bind(document))('style');
+          s.id = 'sacaqm-bp-premium';
+          s.textContent = CSS;
+          (root.head || root.body || root).appendChild(s);
+        } catch(e) {}
+      }
+
+      function sweep() {
+        /* a) Shadow roots anywhere in the host page */
+        document.querySelectorAll('*').forEach(function(el) {
+          if (el.shadowRoot) injectInto(el.shadowRoot);
+        });
+        /* b) Same-origin iframes */
+        document.querySelectorAll('iframe').forEach(function(f) {
+          try { if (f.contentDocument) injectInto(f.contentDocument); } catch(e) {}
+        });
+        /* c) Direct host-page injection (if Botpress renders in main DOM) */
+        injectInto(document);
+      }
+
+      /* Watch for Botpress elements being added dynamically */
+      var mo = new MutationObserver(function() { sweep(); huntFab(); });
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+
+      /* ─────────────────────────────────────────────────
+         3.  FAB HUNTER — walks ALL shadow roots recursively
+             and force-styles the toggle button via inline JS
+         ───────────────────────────────────────────────── */
+      var FAB_STYLE = [
+        'background:linear-gradient(135deg,#38bdf8 0%,#6366f1 100%)',
+        'box-shadow:0 8px 32px rgba(56,189,248,.55)',
+        'border:none',
+        'border-radius:50%',
+        'cursor:pointer',
+        'animation:bpFabPulse 2.8s ease-in-out infinite'
+      ].join(';');
+
+      var FAB_KF = '@keyframes bpFabPulse{' +
+        '0%,100%{box-shadow:0 8px 32px rgba(56,189,248,.55),0 0 0 0 rgba(56,189,248,.4)}' +
+        '60%{box-shadow:0 8px 32px rgba(56,189,248,.55),0 0 0 16px rgba(56,189,248,0)}}';
+
+      /* inject the keyframe into a given root so the animation plays */
+      function injectFabKf(root) {
+        var appNode = root.host ? root : root.head || root.body || root;
+        if (appNode && !appNode._bpkf) {
+          appNode._bpkf = true;
+          var s = document.createElement('style');
+          s.textContent = FAB_KF;
+          (root.head || root.body || root).appendChild(s);
+        }
+      }
+
+      /* walk a root (document or shadowRoot) and style every FAB-like element */
+      function walkAndStyle(root) {
+        if (!root) return;
+        try {
+          /* inject keyframe so animation works */
+          injectFabKf(root);
+
+          /* target by known Botpress class fragments & role */
+          var sels = [
+            '.webchat-toggle-button',
+            '[class*="toggle"]',
+            '[class*="Fab"]',
+            '[class*="fab"]',
+            '[aria-label*="chat" i]',
+            '[aria-label*="open" i]',
+            '[title*="chat" i]'
+          ];
+          sels.forEach(function(sel) {
+            try {
+              root.querySelectorAll(sel).forEach(function(el) {
+                el.setAttribute('style', (el.getAttribute('style') || '') + ';' + FAB_STYLE);
+              });
+            } catch(e) {}
+          });
+
+          /* also recurse into any nested shadow roots */
+          root.querySelectorAll('*').forEach(function(el) {
+            if (el.shadowRoot) walkAndStyle(el.shadowRoot);
+          });
+        } catch(e) {}
+      }
+
+      function huntFab() {
+        /* start from document */
+        walkAndStyle(document);
+        /* also walk any top-level shadow roots */
+        document.querySelectorAll('*').forEach(function(el) {
+          if (el.shadowRoot) walkAndStyle(el.shadowRoot);
+        });
+      }
+
+      /* ─────────────────────────────────────────────────
+         4.  JS CONFIG API  (official Botpress theming)
+         ───────────────────────────────────────────────── */
+      function applyConfig() {
+        if (window.botpress && typeof window.botpress.config === 'function') {
+          window.botpress.config({
+            configuration: {
+              color: '#38bdf8',
+              themeMode: 'light',
+              fontFamily: 'Inter, Segoe UI, sans-serif',
+              borderRadius: 16,
+              headerVariant: 'glass',
+              showPoweredBy: false
+            }
+          });
+          sweep();
+          huntFab();
+        } else {
+          setTimeout(applyConfig, 350);
+        }
+      }
+
+      window.addEventListener('load', function() {
+        applyConfig();
+        setTimeout(function(){ sweep(); huntFab(); }, 800);
+        setTimeout(function(){ sweep(); huntFab(); }, 2000);
+        setTimeout(function(){ sweep(); huntFab(); }, 4000);
+      });
+
+    })();
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════
+         SACAQM — Custom Gradient FAB Chat Button
+         Replaces the default Botpress toggle button
+         ═══════════════════════════════════════════════════ -->
+    <style>
+      /* ── Hide original Botpress FAB in host DOM ──────── */
+      [id*="bp-webchat"] button:first-child,
+      [class*="Fab"], [class*="fab-button"] {
+        opacity: 0 !important; pointer-events: none !important;
+      }
+
+      /* ── Custom FAB wrapper ───────────────────────────── */
+      #sacaqm-chat-fab {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 2147483647;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+      }
+
+      /* ── Tooltip ─────────────────────────────────────── */
+      #sacaqm-fab-tip {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: #e2e8f0;
+        font-size: 12.5px;
+        font-weight: 500;
+        letter-spacing: 0.2px;
+        padding: 7px 14px;
+        border-radius: 10px;
+        white-space: nowrap;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        opacity: 0;
+        transform: translateY(6px) scale(0.95);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        pointer-events: none;
+        border: 1px solid rgba(255,255,255,0.07);
+      }
+
+      #sacaqm-chat-fab:hover #sacaqm-fab-tip {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      /* ── FAB button ──────────────────────────────────── */
+      #sacaqm-fab-btn {
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #38bdf8 0%, #818cf8 55%, #6366f1 100%);
+        box-shadow:
+          0 8px 28px rgba(56, 189, 248, 0.45),
+          0 0 0 0 rgba(56, 189, 248, 0.35);
+        transition: transform 0.28s cubic-bezier(.34,1.56,.64,1),
+                    box-shadow 0.28s ease;
+        animation: sacaqmFabPulse 3s ease-in-out infinite;
+        position: relative;
+        overflow: visible;
+        outline: none;
+      }
+
+      #sacaqm-fab-btn:hover {
+        transform: scale(1.12);
+        box-shadow:
+          0 14px 40px rgba(56, 189, 248, 0.65),
+          0 0 0 0 transparent;
+        animation: none;
+      }
+
+      #sacaqm-fab-btn:active {
+        transform: scale(0.95);
+      }
+
+      @keyframes sacaqmFabPulse {
+        0%, 100% {
+          box-shadow: 0 8px 28px rgba(56,189,248,.45), 0 0 0 0 rgba(56,189,248,.4);
+        }
+        60% {
+          box-shadow: 0 8px 28px rgba(56,189,248,.45), 0 0 0 16px rgba(56,189,248,0);
+        }
+      }
+
+
+
+      /* ── Ripple on click ─────────────────────────────── */
+      .sacaqm-ripple {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.4);
+        transform: scale(0);
+        animation: sacaqmRipple 0.6s linear;
+        pointer-events: none;
+      }
+
+      @keyframes sacaqmRipple {
+        to { transform: scale(4); opacity: 0; }
+      }
+
+      /* ── Icon transitions ────────────────────────────── */
+      #sacaqm-icon-chat,
+      #sacaqm-icon-close {
+        position: absolute;
+        transition: opacity 0.22s ease, transform 0.28s cubic-bezier(.34,1.56,.64,1);
+      }
+
+      #sacaqm-icon-close {
+        opacity: 0;
+        transform: rotate(-90deg) scale(0.7);
+      }
+
+      /* open state — gradient shifts to pink-indigo */
+      #sacaqm-chat-fab.open #sacaqm-icon-chat {
+        opacity: 0;
+        transform: rotate(90deg) scale(0.7);
+      }
+
+      #sacaqm-chat-fab.open #sacaqm-icon-close {
+        opacity: 1;
+        transform: rotate(0deg) scale(1);
+      }
+
+      #sacaqm-chat-fab.open #sacaqm-fab-btn {
+        background: linear-gradient(135deg, #f472b6 0%, #818cf8 55%, #6366f1 100%);
+        box-shadow: 0 8px 28px rgba(244, 114, 182, 0.45);
+        animation: none;
+      }
+    </style>
+
+    <div id="sacaqm-chat-fab">
+      <div id="sacaqm-fab-tip">💬 Chat with SACAQM Air</div>
+      <button id="sacaqm-fab-btn" aria-label="Open SACAQM chatbot" title="Chat with SACAQM Bot">
+
+        <!-- Chat bubble icon (shown when closed) -->
+        <svg id="sacaqm-icon-chat" width="28" height="28" viewBox="0 0 24 24" fill="none"
+             xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"
+                fill="white"/>
+          <circle cx="8"  cy="11" r="1.3" fill="rgba(56,189,248,0.95)"/>
+          <circle cx="12" cy="11" r="1.3" fill="rgba(56,189,248,0.95)"/>
+          <circle cx="16" cy="11" r="1.3" fill="rgba(56,189,248,0.95)"/>
+        </svg>
+
+        <!-- Close X icon (shown when open) -->
+        <svg id="sacaqm-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none"
+             xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 6L6 18M6 6l12 12" stroke="white" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+
+      </button>
+    </div>
+
+    <script>
+    (function() {
+      var fab    = document.getElementById('sacaqm-chat-fab');
+      var fabBtn = document.getElementById('sacaqm-fab-btn');
+      var isOpen = false;
+
+      /* ── Ripple effect ── */
+      fabBtn.addEventListener('click', function(e) {
+        var r    = document.createElement('span');
+        var d    = Math.max(fabBtn.clientWidth, fabBtn.clientHeight);
+        var rect = fabBtn.getBoundingClientRect();
+        r.style.width = r.style.height = d + 'px';
+        r.style.left  = (e.clientX - rect.left  - d / 2) + 'px';
+        r.style.top   = (e.clientY - rect.top   - d / 2) + 'px';
+        r.classList.add('sacaqm-ripple');
+        fabBtn.appendChild(r);
+        setTimeout(function() { r.remove(); }, 650);
+
+        isOpen = !isOpen;
+        fab.classList.toggle('open', isOpen);
+
+        if (window.botpress) {
+          try {
+            isOpen ? window.botpress.open() : window.botpress.close();
+          } catch(err) {
+            try { window.botpress.toggle(); } catch(e2) {}
+          }
+        }
+      });
+
+      /* ── Sync with Botpress open/close events ── */
+      function attachEvents() {
+        if (!window.botpress || !window.botpress.on) {
+          setTimeout(attachEvents, 400); return;
+        }
+        try {
+          window.botpress.on('webchat:opened', function() {
+            isOpen = true; fab.classList.add('open');
+          });
+          window.botpress.on('webchat:closed', function() {
+            isOpen = false; fab.classList.remove('open');
+          });
+        } catch(e) {}
+      }
+
+      window.addEventListener('load', function() {
+        attachEvents();
+        /* Hide original Botpress FAB */
+        var hide = function() {
+          document.querySelectorAll('*').forEach(function(el) {
+            if (el.shadowRoot) {
+              ['.webchat-toggle-button','[class*="toggle"]','[class*="Fab"]'].forEach(function(sel) {
+                el.shadowRoot.querySelectorAll(sel).forEach(function(f) {
+                  f.style.cssText = 'display:none!important;';
+                });
+              });
+            }
+          });
+        };
+        setTimeout(hide, 800);
+        setTimeout(hide, 2000);
+      });
+    })();
+    </script>
+
   </body>
 </html>
+
