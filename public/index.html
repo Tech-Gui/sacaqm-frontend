@@ -526,6 +526,33 @@
     })();
     </script>
 
+    <!-- Chatbot Route Visibility Control -->
+    <style id="chatbot-route-visibility">
+      #sacaqm-chat-fab, [id*="bp-webchat"] { display: none !important; }
+    </style>
+    <script>
+      (function() {
+        function updateVisibility() {
+          var style = document.getElementById('chatbot-route-visibility');
+          // Allow only on /env-dashboard
+          if (window.location.hash.indexOf('#/env-dashboard') === 0) {
+            style.textContent = '';
+          } else {
+            style.textContent = '#sacaqm-chat-fab, [id*="bp-webchat"] { display: none !important; }';
+            
+            // Close bot if leaving the page
+            var fab = document.getElementById('sacaqm-chat-fab');
+            if (fab && fab.classList.contains('open') && window.botpress) {
+              try { window.botpress.close(); } catch(e) {}
+              fab.classList.remove('open');
+            }
+          }
+        }
+        window.addEventListener('hashchange', updateVisibility);
+        window.addEventListener('load', updateVisibility);
+        updateVisibility();
+      })();
+    </script>
   </body>
 </html>
 
