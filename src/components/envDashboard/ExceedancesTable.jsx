@@ -9,10 +9,25 @@ import {
   TableRow
 } from "@mui/material";
 
+const SEVERITY_BANDS = {
+  pm1p0: { moderate: 55, high: 75 },
+  pm2p5: { moderate: 55, high: 75 },
+  pm4p0: { moderate: 55, high: 75 },
+  pm10p0: { moderate: 110, high: 150 },
+  dba: { moderate: 85, high: 100 },
+  co2: { moderate: 1400, high: 2000 },
+};
+
 const getSeverityLevel = (value, threshold, paramKey) => {
   if (threshold == null || value <= threshold) return null;
-  if (value <= threshold * 1.2) return "moderate";
-  if (value <= threshold * 1.5) return "high";
+  const bands = SEVERITY_BANDS[paramKey];
+  if (bands) {
+    if (value <= bands.moderate) return "moderate";
+    if (value <= bands.high) return "high";
+    return "veryHigh";
+  }
+  if (value <= threshold * 1.375) return "moderate";
+  if (value <= threshold * 1.875) return "high";
   return "veryHigh";
 };
 
@@ -78,7 +93,22 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {}, isF
 
   const getSeverityChip = (count, level) => {
     if (count === "—") return <Box sx={{ color: '#94a3b8', fontWeight: 500 }}>—</Box>;
-    if (count === 0) return <Box sx={{ color: '#94a3b8', fontWeight: 500 }}>—</Box>;
+    if (count === 0) {
+      return (
+        <Chip
+          label="0"
+          size="small"
+          sx={{
+            bgcolor: '#f1f5f9',
+            color: '#64748b',
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            minWidth: 45,
+            height: 26
+          }}
+        />
+      );
+    }
 
     const colors = {
       moderate: { bg: '#fef3c7', color: '#92400e' },
@@ -187,8 +217,8 @@ export default function ExceedancesTable({ hourlyData = [], thresholds = {}, isF
                       label={row.exceedances.total}
                       size="small"
                       sx={{
-                        bgcolor: row.exceedances.total > 0 ? '#e2e8f0' : 'transparent',
-                        color: '#1e293b',
+                        bgcolor: row.exceedances.total > 0 ? '#cbd5e1' : '#f1f5f9',
+                        color: row.exceedances.total > 0 ? '#1e293b' : '#64748b',
                         fontWeight: 700,
                         fontSize: '0.75rem',
                         minWidth: 45,

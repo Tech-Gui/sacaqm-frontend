@@ -480,6 +480,7 @@ import ExceedancesTable from "../components/envDashboard/ExceedancesTable";
 import ExceedancesSeverityChart from "../components/envDashboard/ExceedancesSeverityChart";
 import StationMap from "../components/envDashboard/StationMap";
 import generateReport from "../utils/generateReport";
+// import AlertsPanel from "../components/envDashboard/AlertsPanel";
 
 const BASE = process.env.REACT_APP_API_BASE;
 
@@ -510,9 +511,10 @@ function getPrevPeriod(start, end) {
 }
 
 const AQI_BANDS = {
-  pm25: [{ max: 103, status: "Green" }, { max: 128, status: "Yellow" }, { max: 178, status: "Orange" }, { max: Infinity, status: "Red" }],
-  pm10: [{ max: 190, status: "Green" }, { max: 240, status: "Yellow" }, { max: 290, status: "Orange" }, { max: Infinity, status: "Red" }],
-  noise: [{ max: 70, status: "Green" }, { max: 90, status: "Yellow" }, { max: 120, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm25: [{ max: 40, status: "Green" }, { max: 55, status: "Yellow" }, { max: 75, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm10: [{ max: 75, status: "Green" }, { max: 110, status: "Yellow" }, { max: 150, status: "Orange" }, { max: Infinity, status: "Red" }],
+  noise: [{ max: 70, status: "Green" }, { max: 85, status: "Yellow" }, { max: 100, status: "Orange" }, { max: Infinity, status: "Red" }],
+  co2: [{ max: 1000, status: "Green" }, { max: 1400, status: "Yellow" }, { max: 2000, status: "Orange" }, { max: Infinity, status: "Red" }],
 };
 
 function statusFor(val, thr, key) {
@@ -525,8 +527,8 @@ const avgF = (arr, key) => arr.length ? Math.round(arr.reduce((s, d) => s + (d[k
 const sMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map(d => d.min ?? 0))) : 0;
 const sMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map(d => d.max ?? 0))) : 0;
 
-// Hourly Thresholds
-const THRESHOLDS = { pm1: 103, pm25: 103, pm5: 103, pm10: 190, noise: 70, temperature: 32, humidity: 80, co2: 1000, nox: null, voc: null };
+// Hourly / Standard Thresholds
+const THRESHOLDS = { pm1: 40, pm25: 40, pm5: 40, pm10: 75, noise: 70, temperature: 32, humidity: 80, co2: 1000, nox: null, voc: null };
 // New Daily Thresholds for PM Widgets & Daily Exceedance Table
 const DAILY_THRESHOLDS = { pm1: 40, pm25: 40, pm5: 40, pm10: 75 };
 
@@ -653,12 +655,12 @@ export default function EnvComplianceDashboard() {
         return `${h} ${ampm}`;
       });
 
-      const avg = (arr) => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
+      const avg = (arr) => arr.length ? Number((arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(1)) : 0;
 
       const mkWidget = (field, title) => ({
         title,
         labels,
-        values: preds.map(p => Math.round(p[field] || 0)),
+        values: preds.map(p => Number((p[field] || 0).toFixed(1))),
         current: avg(preds.map(p => p[field] || 0)),
         trend: 0,
       });
@@ -678,7 +680,8 @@ export default function EnvComplianceDashboard() {
         noxData: mkWidget("nox", "NOx"), vocData: mkWidget("voc", "VOC"),
         hourlyData,
         hasNoise: preds.some(p => (p.dba || 0) > 0),
-        modelName: modelName || "AI Forecast"
+        modelName: modelName || "AI Forecast",
+        isMLForecast: true,
       });
       setForecastLoading(false);
     }
@@ -770,7 +773,8 @@ export default function EnvComplianceDashboard() {
         noxData: mkWidget("nox", "NOx"), vocData: mkWidget("voc", "VOC"),
         hourlyData: last24,
         hasNoise: last24.some(d => (d.dba || 0) > 0),
-        modelName: "Historical Fallback (24h shifted)"
+        modelName: "Historical Projection (last 24h)",
+        isMLForecast: false,
       });
     } catch (e) {
       console.error("Forecast fallback also failed:", e.message);
@@ -924,11 +928,11 @@ export default function EnvComplianceDashboard() {
             </Grid>
             <Grid item xs={12} md={2}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <Button fullWidth onClick={async () => { 
-                  setDownloadLoading(true); 
-                  try { 
-                    const selSensor = sensorOptions.find(o => o.id === sensorId); 
-                    
+                <Button fullWidth onClick={async () => {
+                  setDownloadLoading(true);
+                  try {
+                    const selSensor = sensorOptions.find(o => o.id === sensorId);
+
                     let botpressReasoning = "";
                     try {
                       const llmRes = await axios.post(`${BASE}/api/nodedata/llm-summary`, {
@@ -940,12 +944,12 @@ export default function EnvComplianceDashboard() {
                       console.warn("LLM summary failed:", llmErr);
                     }
 
-                    await generateReport({ dashData: D, sensorId, sensorLabel: selSensor?.label || sensorId, dateLabel, startDate, endDate, thresholds: THRESHOLDS, dailyThresholds: DAILY_THRESHOLDS, dailyExcData, forecastData: F, showForecast, botpressAnalysis: botpressReasoning }); 
-                  } catch(e) { 
-                    console.error('Report generation failed:', e); 
-                  } finally { 
-                    setDownloadLoading(false); 
-                  } 
+                    await generateReport({ dashData: D, sensorId, sensorLabel: selSensor?.label || sensorId, dateLabel, startDate, endDate, thresholds: THRESHOLDS, dailyThresholds: DAILY_THRESHOLDS, dailyExcData, forecastData: F, showForecast, botpressAnalysis: botpressReasoning });
+                  } catch (e) {
+                    console.error('Report generation failed:', e);
+                  } finally {
+                    setDownloadLoading(false);
+                  }
                 }} disabled={downloadLoading || !D} startIcon={downloadLoading ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <span>⬇️</span>} sx={{ bgcolor: '#0ea5e9', color: 'white', borderRadius: 3, py: 1, fontSize: '0.8rem', fontWeight: 600, textTransform: 'none', '&:hover': { bgcolor: '#0284c7', transform: 'translateY(-2px)' }, '&:disabled': { bgcolor: '#cbd5e1', color: 'white' } }}>
                   {downloadLoading ? 'Analyzing & Generating...' : 'Download Report'}
                 </Button>
@@ -978,6 +982,20 @@ export default function EnvComplianceDashboard() {
           </Box>
         </Popover>
 
+        {/* ── AI Agent Alerts Panel ─────────────────────────────────────────── */}
+        {/* {sensorId && (
+          <AlertsPanel
+            sensorId={sensorId}
+            sensorLabel={sensorOptions.find(o => o.id === sensorId)?.label || sensorId}
+            stationMap={Object.fromEntries([
+              // Map station _id → station name (agent returns these)
+              ...(stations || []).map(st => [st._id, st.name]),
+              // Map sensorId → label as fallback
+              ...sensorOptions.map(o => [o.id, o.label]),
+            ])}
+          />
+        )} */}
+
         {forecastLoading && (
           <Box sx={{ position: 'fixed', inset: 0, zIndex: 9999, bgcolor: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <CircularProgress size={60} sx={{ color: '#8b5cf6', mb: 3 }} />
@@ -993,22 +1011,43 @@ export default function EnvComplianceDashboard() {
         {!loading && D && (
           <>
             {showForecast && (
-              <Box sx={{ mb: 3, p: 2.5, borderRadius: 3, background: 'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(99,102,241,0.1))', border: '1.5px solid rgba(139,92,246,0.35)', display: 'flex', alignItems: 'center', gap: 2, boxShadow: '0 4px 20px rgba(139,92,246,0.12)' }}>
-                <span style={{ fontSize: '1.8rem' }}>🤖</span>
-                <Box sx={{ flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                    <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#5b21b6' }}>AI Forecast Mode Active</Typography>
-                    <Box sx={{ px: 1.5, py: 0.25, borderRadius: 10, background: 'linear-gradient(90deg,#7c3aed,#6366f1)', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                      <span style={{ fontSize: '0.7rem' }}>✦</span>
-                      <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>AI-Powered</Typography>
+              F?.isMLForecast !== false ? (
+                // ML / AI forecast banner (purple)
+                <Box sx={{ mb: 3, p: 2.5, borderRadius: 3, background: 'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(99,102,241,0.1))', border: '1.5px solid rgba(139,92,246,0.35)', display: 'flex', alignItems: 'center', gap: 2, boxShadow: '0 4px 20px rgba(139,92,246,0.12)' }}>
+                  <span style={{ fontSize: '1.8rem' }}>🤖</span>
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#5b21b6' }}>AI Forecast Mode Active</Typography>
+                      <Box sx={{ px: 1.5, py: 0.25, borderRadius: 10, background: 'linear-gradient(90deg,#7c3aed,#6366f1)', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        <span style={{ fontSize: '0.7rem' }}>✦</span>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{F?.modelName || 'AI-Powered'}</Typography>
+                      </Box>
                     </Box>
+                    <Typography sx={{ fontSize: '0.95rem', color: '#6d28d9', mt: 0.4 }}>
+                      Showing AI-generated hourly forecasts for next 24 hours&nbsp;
+                      <Box component="span" sx={{ fontWeight: 700, color: '#5b21b6' }}>({FORECAST_DAY_LABEL})</Box>
+                    </Typography>
                   </Box>
-                  <Typography sx={{ fontSize: '0.95rem', color: '#6d28d9', mt: 0.4 }}>
-                    Showing AI-generated hourly forecasts for next 24 hours&nbsp;
-                    <Box component="span" sx={{ fontWeight: 700, color: '#5b21b6' }}>({FORECAST_DAY_LABEL})</Box>
-                  </Typography>
                 </Box>
-              </Box>
+              ) : (
+                // Historical fallback banner (amber)
+                <Box sx={{ mb: 3, p: 2.5, borderRadius: 3, background: 'linear-gradient(135deg,rgba(251,191,36,0.14),rgba(245,158,11,0.08))', border: '1.5px solid rgba(251,191,36,0.5)', display: 'flex', alignItems: 'center', gap: 2, boxShadow: '0 4px 20px rgba(251,191,36,0.1)' }}>
+                  <span style={{ fontSize: '1.8rem' }}>📊</span>
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#92400e' }}>Statistical Projection</Typography>
+                      <Box sx={{ px: 1.5, py: 0.25, borderRadius: 10, background: 'linear-gradient(90deg,#d97706,#f59e0b)', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        <span style={{ fontSize: '0.7rem' }}>⚠</span>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Fallback Mode</Typography>
+                      </Box>
+                    </Box>
+                    <Typography sx={{ fontSize: '0.95rem', color: '#b45309', mt: 0.4 }}>
+                      AI service unavailable — showing last 24h of historical data projected forward.&nbsp;
+                      <Box component="span" sx={{ fontWeight: 700, color: '#92400e' }}>({FORECAST_DAY_LABEL})</Box>
+                    </Typography>
+                  </Box>
+                </Box>
+              )
             )}
 
             <Box sx={{ mb: 3 }}><StationMap /></Box>

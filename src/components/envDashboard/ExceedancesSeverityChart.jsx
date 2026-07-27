@@ -14,10 +14,25 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
+const SEVERITY_BANDS = {
+  pm1p0: { moderate: 55, high: 75 },
+  pm2p5: { moderate: 55, high: 75 },
+  pm4p0: { moderate: 55, high: 75 },
+  pm10p0: { moderate: 110, high: 150 },
+  dba: { moderate: 85, high: 100 },
+  co2: { moderate: 1400, high: 2000 },
+};
+
 const getSeverityLevel = (value, threshold, paramKey) => {
   if (threshold == null || value <= threshold) return null;
-  if (value <= threshold * 1.2) return "moderate";
-  if (value <= threshold * 1.5) return "high";
+  const bands = SEVERITY_BANDS[paramKey];
+  if (bands) {
+    if (value <= bands.moderate) return "moderate";
+    if (value <= bands.high) return "high";
+    return "veryHigh";
+  }
+  if (value <= threshold * 1.375) return "moderate";
+  if (value <= threshold * 1.875) return "high";
   return "veryHigh";
 };
 
@@ -53,10 +68,22 @@ export default function ExceedancesSeverityChart({
   // Group hourly data by date and count exceedances per parameter at this severity
   const dailyExceedances = {};
 
-  hourlyData.forEach((record) => {
+  hourlyData.forEach((record, index) => {
     const d = new Date(record.timestamp);
-    const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    let dateKey, label;
+    if (isForecast) {
+      dateKey = `hour-${index}`;
+      if (!isNaN(d.getTime())) {
+        const h = d.getHours() % 12 || 12;
+        const ampm = d.getHours() < 12 ? 'AM' : 'PM';
+        label = `${h} ${ampm}`;
+      } else {
+        label = forecastHourLabels[index] || `Hour ${index + 1}`;
+      }
+    } else {
+      dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }
 
     if (!dailyExceedances[dateKey]) {
       dailyExceedances[dateKey] = { label, pm1: 0, pm25: 0, pm5: 0, pm10: 0, noise: 0, co2: 0, nox: 0, voc: 0 };
@@ -82,23 +109,8 @@ export default function ExceedancesSeverityChart({
   });
 
   const allBuckets = Object.values(dailyExceedances);
-  // In forecast mode: use hourly labels
-  let labels, mappedValues;
-  if (isForecast && forecastHourLabels.length > 0) {
-    labels = allBuckets.map((b, i) => {
-      const d = new Date(hourlyData[i]?.timestamp || '');
-      if (!isNaN(d.getTime())) {
-        const h = d.getHours() % 12 || 12;
-        const ampm = d.getHours() < 12 ? 'AM' : 'PM';
-        return `${h} ${ampm}`;
-      }
-      return forecastHourLabels[i] ?? b.label;
-    });
-    mappedValues = allBuckets;
-  } else {
-    labels = allBuckets.map(b => b.label);
-    mappedValues = allBuckets;
-  }
+  const labels = allBuckets.map(b => b.label);
+  const mappedValues = allBuckets;
 
   // Define parameters with colors
   const parameterConfig = [

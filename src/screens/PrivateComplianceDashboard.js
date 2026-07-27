@@ -51,10 +51,10 @@ function getPrevPeriod(start, end) {
 }
 
 const AQI_BANDS = {
-  pm25: [{ max: 103, status: "Green" }, { max: 153, status: "Yellow" }, { max: 203, status: "Orange" }, { max: Infinity, status: "Red" }],
-  pm10: [{ max: 190, status: "Green" }, { max: 240, status: "Yellow" }, { max: 290, status: "Orange" }, { max: Infinity, status: "Red" }],
-  noise: [{ max: 70, status: "Green" }, { max: 82, status: "Yellow" }, { max: 85, status: "Orange" }, { max: Infinity, status: "Red" }],
-  pm5: [{ max: 103, status: "Green" }, { max: 153, status: "Yellow" }, { max: 203, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm25: [{ max: 40, status: "Green" }, { max: 55, status: "Yellow" }, { max: 75, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm10: [{ max: 75, status: "Green" }, { max: 110, status: "Yellow" }, { max: 150, status: "Orange" }, { max: Infinity, status: "Red" }],
+  noise: [{ max: 70, status: "Green" }, { max: 85, status: "Yellow" }, { max: 100, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm5: [{ max: 40, status: "Green" }, { max: 55, status: "Yellow" }, { max: 75, status: "Orange" }, { max: Infinity, status: "Red" }],
 };
 
 function statusFor(val, thr, key) {
@@ -67,8 +67,8 @@ const avgF = (arr, key) => arr.length ? Math.round(arr.reduce((s, d) => s + (d[k
 const sMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map(d => d.min ?? 0))) : 0;
 const sMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map(d => d.max ?? 0))) : 0;
 
-// Hourly Thresholds
-const THRESHOLDS = { pm1: 103, pm25: 103, pm5: 103, pm10: 190, noise: 85, temperature: 32, humidity: 85, co2: 1000, nox: 106, voc: 200 };
+// Hourly / Standard Thresholds
+const THRESHOLDS = { pm1: 40, pm25: 40, pm5: 40, pm10: 75, noise: 85, temperature: 32, humidity: 85, co2: 1000, nox: 106, voc: 200 };
 // New Daily Thresholds for PM Widgets & Daily Exceedance Table
 const DAILY_THRESHOLDS = { pm1: 40, pm25: 40, pm5: 40, pm10: 75 };
 
@@ -674,22 +674,43 @@ export default function PrivateComplianceDashboard() {
         {!loading && D && (
           <>
             {showForecast && (
-              <Box sx={{ mb: 3, p: 2.5, borderRadius: 3, background: 'gradient(135deg,rgba(139,92,246,0.14),rgba(99,102,241,0.1))', border: '1.5px solid rgba(139,92,246,0.35)', display: 'flex', alignItems: 'center', gap: 2, boxShadow: '0 4px 20px rgba(139,92,246,0.12)' }}>
-                <span style={{ fontSize: '1.8rem' }}>🤖</span>
-                <Box sx={{ flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                    <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#5b21b6' }}>AI Forecast Mode Active</Typography>
-                    <Box sx={{ px: 1.5, py: 0.25, borderRadius: 10, background: 'linear-gradient(90deg,#7c3aed,#6366f1)', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                      <span style={{ fontSize: '0.7rem' }}>✦</span>
-                      <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>AI-Powered</Typography>
+              F?.isMLForecast !== false ? (
+                // ML / AI forecast banner (purple)
+                <Box sx={{ mb: 3, p: 2.5, borderRadius: 3, background: 'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(99,102,241,0.1))', border: '1.5px solid rgba(139,92,246,0.35)', display: 'flex', alignItems: 'center', gap: 2, boxShadow: '0 4px 20px rgba(139,92,246,0.12)' }}>
+                  <span style={{ fontSize: '1.8rem' }}>🤖</span>
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#5b21b6' }}>AI Forecast Mode Active</Typography>
+                      <Box sx={{ px: 1.5, py: 0.25, borderRadius: 10, background: 'linear-gradient(90deg,#7c3aed,#6366f1)', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        <span style={{ fontSize: '0.7rem' }}>✦</span>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{F?.modelName || 'AI-Powered'}</Typography>
+                      </Box>
                     </Box>
+                    <Typography sx={{ fontSize: '0.95rem', color: '#6d28d9', mt: 0.4 }}>
+                      Showing AI-generated hourly forecasts for next 24 hours&nbsp;
+                      <Box component="span" sx={{ fontWeight: 700, color: '#5b21b6' }}>({FORECAST_DAY_LABEL})</Box>
+                    </Typography>
                   </Box>
-                  <Typography sx={{ fontSize: '0.95rem', color: '#6d28d9', mt: 0.4 }}>
-                    Showing AI-generated hourly forecasts for next 24 hours&nbsp;
-                    <Box component="span" sx={{ fontWeight: 700, color: '#5b21b6' }}>({FORECAST_DAY_LABEL})</Box>
-                  </Typography>
                 </Box>
-              </Box>
+              ) : (
+                // Historical fallback banner (amber)
+                <Box sx={{ mb: 3, p: 2.5, borderRadius: 3, background: 'linear-gradient(135deg,rgba(251,191,36,0.14),rgba(245,158,11,0.08))', border: '1.5px solid rgba(251,191,36,0.5)', display: 'flex', alignItems: 'center', gap: 2, boxShadow: '0 4px 20px rgba(251,191,36,0.1)' }}>
+                  <span style={{ fontSize: '1.8rem' }}>📊</span>
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#92400e' }}>Statistical Projection</Typography>
+                      <Box sx={{ px: 1.5, py: 0.25, borderRadius: 10, background: 'linear-gradient(90deg,#d97706,#f59e0b)', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        <span style={{ fontSize: '0.7rem' }}>⚠</span>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Fallback Mode</Typography>
+                      </Box>
+                    </Box>
+                    <Typography sx={{ fontSize: '0.95rem', color: '#b45309', mt: 0.4 }}>
+                      AI service unavailable — showing last 24h of historical data projected forward.&nbsp;
+                      <Box component="span" sx={{ fontWeight: 700, color: '#92400e' }}>({FORECAST_DAY_LABEL})</Box>
+                    </Typography>
+                  </Box>
+                </Box>
+              )
             )}
 
             <Box sx={{ mb: 3 }}><StationMap /></Box>

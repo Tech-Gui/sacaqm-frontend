@@ -30,10 +30,19 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
   // Group hourly data by date (or by hour if single day view) and count total exceedances per parameter
   const dailyExceedances = {};
 
-  hourlyData.forEach((record) => {
+  hourlyData.forEach((record, index) => {
     const d = new Date(record.timestamp);
     let key, label;
-    if (isSingleDay && !isForecast) {
+    if (isForecast) {
+      key = `hour-${index}`;
+      if (!isNaN(d.getTime())) {
+        const h = d.getHours() % 12 || 12;
+        const ampm = d.getHours() < 12 ? 'AM' : 'PM';
+        label = `${h} ${ampm}`;
+      } else {
+        label = forecastHourLabels[index] || `Hour ${index + 1}`;
+      }
+    } else if (isSingleDay) {
       key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
       const h = d.getHours() % 12 || 12;
       const ampm = d.getHours() < 12 ? 'AM' : 'PM';
@@ -58,29 +67,9 @@ export default function ExceedancesOverTimeChart({ hourlyData = [], thresholds =
     if (thresholds.voc != null && (record.voc || 0) > thresholds.voc) dailyExceedances[key].voc++;
   });
 
-
-
   const allBuckets = Object.values(dailyExceedances);
-  // In forecast mode with hourly data: use hour labels directly
-  // Otherwise group by day as before
-  let labels, mappedValues;
-  if (isForecast && forecastHourLabels.length > 0) {
-    // For 24-hour forecast, show per-hour data points
-    // Each data point is already one hour, so use individual hour labels
-    labels = allBuckets.map((b, i) => {
-      const d = new Date(hourlyData[i]?.timestamp || '');
-      if (!isNaN(d.getTime())) {
-        const h = d.getHours() % 12 || 12;
-        const ampm = d.getHours() < 12 ? 'AM' : 'PM';
-        return `${h} ${ampm}`;
-      }
-      return forecastHourLabels[i] ?? b.label;
-    });
-    mappedValues = allBuckets;
-  } else {
-    labels = allBuckets.map(b => b.label);
-    mappedValues = allBuckets;
-  }
+  const labels = allBuckets.map(b => b.label);
+  const mappedValues = allBuckets;
 
   // Define parameters with colors
   const parameterConfig = [
