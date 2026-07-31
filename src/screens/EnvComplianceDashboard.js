@@ -708,7 +708,7 @@ export default function EnvComplianceDashboard() {
       console.warn("ML forecast via backend unavailable:", mlErr.message);
     }
 
-    // 2. Fallback: try local ML service directly (localhost:8001)
+    // 2. Try local ML service directly (localhost:8001)
     try {
       const res = await axios.post("http://localhost:8001/predict", {
         sensor_id: sid, hours: 24,
@@ -727,60 +727,12 @@ export default function EnvComplianceDashboard() {
         setShowForecast(false); // Toggle off forecast mode on failure
         return; // Stop entirely
       }
-      console.warn("Local ML service also unavailable, falling back to historical data:", localErr.message);
+      console.warn("Local ML service also unavailable:", localErr.message);
     }
 
-    // ── Fallback: use last 24 hours of historical data ──
-    try {
-      const today = new Date();
-      const fEnd = formatDate(today);
-      const fStart = formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1));
-
-      const [hR] = await Promise.all([
-        axios.get(`${BASE}/api/nodedata/aggregated`, { params: { sensor_id: sid, start: fStart, end: fEnd, resolution: 'hourly' } }).catch(() => ({ data: [] })),
-      ]);
-
-      const hourly = hR.data || [];
-      if (!hourly.length) return;
-
-      // Take last 24 hours, build hourly labels
-      // Take last 24 hours and map timestamps 24h into future
-      const last24 = hourly.slice(-24).map(item => ({
-        ...item,
-        timestamp: new Date(new Date(item.timestamp).getTime() + 24 * 3600 * 1000).toISOString()
-      }));
-
-      const labels = last24.map(item => {
-        const d = new Date(item.timestamp);
-        const h = d.getHours() % 12 || 12;
-        const ampm = d.getHours() < 12 ? 'AM' : 'PM';
-        return `${h} ${ampm}`;
-      });
-
-      const avg = (arr, key) => arr.length ? Math.round(arr.reduce((s, d) => s + (d[key] || 0), 0) / arr.length) : 0;
-      const mkWidget = (field, title) => ({
-        title,
-        labels,
-        values: last24.map(d => Math.round(d[field] || 0)),
-        current: avg(last24, field),
-        trend: 0,
-      });
-
-      setForecastData({
-        pmData: { pm1: mkWidget("pm1p0", "PM1.0"), pm25: mkWidget("pm2p5", "PM2.5"), pm5: mkWidget("pm4p0", "PM4.0"), pm10: mkWidget("pm10p0", "PM10") },
-        noiseData: mkWidget("dba", "Noise"), tempData: mkWidget("temperature", "Temperature"),
-        humidityData: mkWidget("humidity", "Humidity"), co2Data: mkWidget("co2", "CO2"),
-        noxData: mkWidget("nox", "NOx"), vocData: mkWidget("voc", "VOC"),
-        hourlyData: last24,
-        hasNoise: last24.some(d => (d.dba || 0) > 0),
-        modelName: "Historical Projection (last 24h)",
-        isMLForecast: false,
-      });
-    } catch (e) {
-      console.error("Forecast fallback also failed:", e.message);
-    } finally {
-      setForecastLoading(false);
-    }
+    setForecastError("AI forecast service unavailable");
+    setForecastLoading(false);
+    setShowForecast(false);
   }
 
   async function fetchDashboard() {
@@ -1011,43 +963,22 @@ export default function EnvComplianceDashboard() {
         {!loading && D && (
           <>
             {showForecast && (
-              F?.isMLForecast !== false ? (
-                // ML / AI forecast banner (purple)
-                <Box sx={{ mb: 3, p: 2.5, borderRadius: 3, background: 'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(99,102,241,0.1))', border: '1.5px solid rgba(139,92,246,0.35)', display: 'flex', alignItems: 'center', gap: 2, boxShadow: '0 4px 20px rgba(139,92,246,0.12)' }}>
-                  <span style={{ fontSize: '1.8rem' }}>🤖</span>
-                  <Box sx={{ flex: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                      <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#5b21b6' }}>AI Forecast Mode Active</Typography>
-                      <Box sx={{ px: 1.5, py: 0.25, borderRadius: 10, background: 'linear-gradient(90deg,#7c3aed,#6366f1)', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                        <span style={{ fontSize: '0.7rem' }}>✦</span>
-                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{F?.modelName || 'AI-Powered'}</Typography>
-                      </Box>
+              <Box sx={{ mb: 3, p: 2.5, borderRadius: 3, background: 'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(99,102,241,0.1))', border: '1.5px solid rgba(139,92,246,0.35)', display: 'flex', alignItems: 'center', gap: 2, boxShadow: '0 4px 20px rgba(139,92,246,0.12)' }}>
+                <span style={{ fontSize: '1.8rem' }}>🤖</span>
+                <Box sx={{ flex: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                    <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#5b21b6' }}>AI Forecast Mode Active</Typography>
+                    <Box sx={{ px: 1.5, py: 0.25, borderRadius: 10, background: 'linear-gradient(90deg,#7c3aed,#6366f1)', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                      <span style={{ fontSize: '0.7rem' }}>✦</span>
+                      <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{F?.modelName || 'AI-Powered'}</Typography>
                     </Box>
-                    <Typography sx={{ fontSize: '0.95rem', color: '#6d28d9', mt: 0.4 }}>
-                      Showing AI-generated hourly forecasts for next 24 hours&nbsp;
-                      <Box component="span" sx={{ fontWeight: 700, color: '#5b21b6' }}>({FORECAST_DAY_LABEL})</Box>
-                    </Typography>
                   </Box>
+                  <Typography sx={{ fontSize: '0.95rem', color: '#6d28d9', mt: 0.4 }}>
+                    Showing AI-generated hourly forecasts for next 24 hours&nbsp;
+                    <Box component="span" sx={{ fontWeight: 700, color: '#5b21b6' }}>({FORECAST_DAY_LABEL})</Box>
+                  </Typography>
                 </Box>
-              ) : (
-                // Historical fallback banner (amber)
-                <Box sx={{ mb: 3, p: 2.5, borderRadius: 3, background: 'linear-gradient(135deg,rgba(251,191,36,0.14),rgba(245,158,11,0.08))', border: '1.5px solid rgba(251,191,36,0.5)', display: 'flex', alignItems: 'center', gap: 2, boxShadow: '0 4px 20px rgba(251,191,36,0.1)' }}>
-                  <span style={{ fontSize: '1.8rem' }}>📊</span>
-                  <Box sx={{ flex: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                      <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#92400e' }}>Statistical Projection</Typography>
-                      <Box sx={{ px: 1.5, py: 0.25, borderRadius: 10, background: 'linear-gradient(90deg,#d97706,#f59e0b)', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                        <span style={{ fontSize: '0.7rem' }}>⚠</span>
-                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Fallback Mode</Typography>
-                      </Box>
-                    </Box>
-                    <Typography sx={{ fontSize: '0.95rem', color: '#b45309', mt: 0.4 }}>
-                      AI service unavailable — showing last 24h of historical data projected forward.&nbsp;
-                      <Box component="span" sx={{ fontWeight: 700, color: '#92400e' }}>({FORECAST_DAY_LABEL})</Box>
-                    </Typography>
-                  </Box>
-                </Box>
-              )
+              </Box>
             )}
 
             <Box sx={{ mb: 3 }}><StationMap /></Box>
