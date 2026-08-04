@@ -583,6 +583,7 @@ function buildWidgets(curr, prevData, labels, mm1, mm25, mm4, mm10) {
 
 export default function EnvComplianceDashboard() {
   const { stations, loading: stationsLoading } = useContext(StationContext);
+  const BASE = (process.env.REACT_APP_API_BASE || "https://try-again-test-isaiah.app.cern.ch").replace(/\/api\/?$/, "");
 
   const [sensorId, setSensorId] = useState("");
   const [startDate, setStartDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 7); return formatDate(d); });
@@ -645,7 +646,15 @@ export default function EnvComplianceDashboard() {
     setForecastLoading(true);
     setForecastError(null);
 
-    const cleanSid = typeof sid === 'object' && sid !== null ? (sid.id || sid.sensor_id || sid.sensorId) : sid;
+    let cleanSid = sid;
+    if (typeof sid === 'object' && sid !== null) {
+      cleanSid = sid.sensor_id || sid.sensorId || sid.id || sid._id;
+    }
+    if (typeof cleanSid === 'object' && cleanSid !== null) {
+      cleanSid = cleanSid.sensor_id || cleanSid.sensorId || cleanSid.id || cleanSid._id;
+    }
+    cleanSid = String(cleanSid || '').trim();
+
     if (!cleanSid) {
       setForecastError("No sensor ID selected");
       setForecastLoading(false);
@@ -654,7 +663,6 @@ export default function EnvComplianceDashboard() {
 
     // Helper to process ML predictions into forecast widgets
     function applyMLPredictions(preds, modelName) {
-      // Predictions are already hourly — use hour labels
       const labels = preds.map(p => {
         const d = new Date(p.timestamp);
         const h = d.getHours() % 12 || 12;
@@ -672,7 +680,6 @@ export default function EnvComplianceDashboard() {
         trend: 0,
       });
 
-      // Predictions are already hourly — use directly as hourlyData
       const hourlyData = preds.map(p => ({
         timestamp: p.timestamp,
         pm1p0: p.pm1p0 || 0, pm2p5: p.pm2p5 || 0, pm4p0: p.pm4p0 || 0, pm10p0: p.pm10p0 || 0,
@@ -693,7 +700,7 @@ export default function EnvComplianceDashboard() {
       setForecastLoading(false);
     }
 
-    // 1. Try the remote backend proxy first
+    // 1. Try backend proxy route first
     try {
       const res = await axios.get(`${BASE}/api/nodedata/forecast`, {
         params: { sensor_id: cleanSid, hours: 24 },
@@ -703,39 +710,40 @@ export default function EnvComplianceDashboard() {
       const forecast = res.data;
       if (forecast && forecast.predictions && forecast.predictions.length) {
         applyMLPredictions(forecast.predictions, forecast.model);
-        return; // ML forecast via backend succeeded — done
+        return;
+      } else if (forecast && forecast.error) {
+        setForecastError(forecast.error);
+        setForecastLoading(false);
+        setShowForecast(false);
+        return;
       }
     } catch (mlErr) {
-      if (mlErr.response?.data?.error_code === "SensorOffline" || mlErr.response?.data?.detail?.error_code === "SensorOffline") {
-        setForecastError(mlErr.response.data.message || mlErr.response.data.detail?.message || "Sensor offline");
-        setForecastLoading(false);
-        setShowForecast(false); // Toggle off forecast mode on failure
-        return; // Stop entirely
-      }
-      console.warn("ML forecast via backend unavailable:", mlErr.message);
+      console.warn("Backend proxy error, trying direct ML route:", mlErr.message);
     }
 
-    // 2. Try direct ML service fallback (REACT_APP_ML_SERVICE_URL or localhost)
+    // 2. Direct ML service route fallback
     try {
-      const mlDirectUrl = process.env.REACT_APP_ML_SERVICE_URL || "http://localhost:8001";
+      const mlDirectUrl = process.env.REACT_APP_ML_SERVICE_URL || "https://ml-forecast-dashboard-test-isaiah.app.cern.ch";
       const res = await axios.post(`${mlDirectUrl}/predict`, {
         sensor_id: cleanSid, hours: 24,
       }, { timeout: 120000 });
 
       const forecast = res.data;
       if (forecast && forecast.predictions && forecast.predictions.length) {
-        console.info(`ML forecast loaded from service (${mlDirectUrl})`);
         applyMLPredictions(forecast.predictions, forecast.model);
+        return;
+      } else if (forecast && forecast.error) {
+        setForecastError(forecast.error);
+        setForecastLoading(false);
+        setShowForecast(false);
         return;
       }
     } catch (localErr) {
-      if (localErr.response?.data?.error_code === "SensorOffline" || localErr.response?.data?.detail?.error_code === "SensorOffline") {
-        setForecastError(localErr.response.data.message || localErr.response.data.detail?.message || "Sensor offline");
-        setForecastLoading(false);
-        setShowForecast(false); // Toggle off forecast mode on failure
-        return; // Stop entirely
-      }
-      console.warn("Local ML service also unavailable:", localErr.message);
+      const msg = localErr.response?.data?.message || localErr.response?.data?.error || localErr.message;
+      setForecastError(msg || "AI forecast service unavailable");
+      setForecastLoading(false);
+      setShowForecast(false);
+      return;
     }
 
     setForecastError("AI forecast service unavailable");

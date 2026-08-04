@@ -124,6 +124,7 @@ function buildWidgets(curr, prevData, labels, mm1, mm25, mm4, mm10) {
 export default function PrivateComplianceDashboard() {
   const navigate = useNavigate();
   const { stations, loading: stationsLoading } = useContext(StationContext);
+  const BASE = (process.env.REACT_APP_API_BASE || "https://try-again-test-isaiah.app.cern.ch").replace(/\/api\/?$/, "");
   const { selectedSensor } = useSensorData();
 
   // Read sessionStorage synchronously on first render, then clear so they don't persist
@@ -331,19 +332,18 @@ export default function PrivateComplianceDashboard() {
       if (forecast && forecast.predictions && forecast.predictions.length) {
         applyMLPredictions(forecast.predictions, forecast.model);
         return;
-      }
-    } catch (mlErr) {
-      if (mlErr.response?.data?.error_code === "SensorOffline" || mlErr.response?.data?.detail?.error_code === "SensorOffline") {
-        setForecastError(mlErr.response.data.message || mlErr.response.data.detail?.message || "Sensor offline");
+      } else if (forecast && forecast.error) {
+        setForecastError(forecast.error);
         setForecastLoading(false);
         setShowForecast(false);
         return;
       }
-      console.warn("ML forecast via backend unavailable:", mlErr.message);
+    } catch (mlErr) {
+      console.warn("Backend proxy error, trying direct ML route:", mlErr.message);
     }
 
     try {
-      const mlDirectUrl = process.env.REACT_APP_ML_SERVICE_URL || "http://localhost:8001";
+      const mlDirectUrl = process.env.REACT_APP_ML_SERVICE_URL || "https://ml-forecast-dashboard-test-isaiah.app.cern.ch";
       const res = await axios.post(`${mlDirectUrl}/predict`, {
         sensor_id: cleanSid, hours: 24,
       }, { timeout: 120000 });
@@ -353,15 +353,18 @@ export default function PrivateComplianceDashboard() {
         console.info(`ML forecast loaded from service (${mlDirectUrl})`);
         applyMLPredictions(forecast.predictions, forecast.model);
         return;
-      }
-    } catch (localErr) {
-      if (localErr.response?.data?.error_code === "SensorOffline" || localErr.response?.data?.detail?.error_code === "SensorOffline") {
-        setForecastError(localErr.response.data.message || localErr.response.data.detail?.message || "Sensor offline");
+      } else if (forecast && forecast.error) {
+        setForecastError(forecast.error);
         setForecastLoading(false);
         setShowForecast(false);
         return;
       }
-      console.warn("Local ML service also unavailable:", localErr.message);
+    } catch (localErr) {
+      const msg = localErr.response?.data?.message || localErr.response?.data?.error || localErr.message;
+      setForecastError(msg || "AI forecast service unavailable");
+      setForecastLoading(false);
+      setShowForecast(false);
+      return;
     }
 
     setForecastError("AI forecast service unavailable");
