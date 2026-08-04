@@ -337,13 +337,14 @@ export default function PrivateComplianceDashboard() {
     }
 
     try {
-      const res = await axios.post("http://localhost:8001/predict", {
+      const mlDirectUrl = process.env.REACT_APP_ML_SERVICE_URL || "http://localhost:8001";
+      const res = await axios.post(`${mlDirectUrl}/predict`, {
         sensor_id: sid, hours: 24,
       }, { timeout: 120000 });
 
       const forecast = res.data;
       if (forecast && forecast.predictions && forecast.predictions.length) {
-        console.info("ML forecast loaded from local service (localhost:8001)");
+        console.info(`ML forecast loaded from service (${mlDirectUrl})`);
         applyMLPredictions(forecast.predictions, forecast.model);
         return;
       }
