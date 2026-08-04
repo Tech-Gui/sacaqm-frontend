@@ -645,6 +645,13 @@ export default function EnvComplianceDashboard() {
     setForecastLoading(true);
     setForecastError(null);
 
+    const cleanSid = typeof sid === 'object' && sid !== null ? (sid.id || sid.sensor_id || sid.sensorId) : sid;
+    if (!cleanSid) {
+      setForecastError("No sensor ID selected");
+      setForecastLoading(false);
+      return;
+    }
+
     // Helper to process ML predictions into forecast widgets
     function applyMLPredictions(preds, modelName) {
       // Predictions are already hourly — use hour labels
@@ -689,7 +696,7 @@ export default function EnvComplianceDashboard() {
     // 1. Try the remote backend proxy first
     try {
       const res = await axios.get(`${BASE}/api/nodedata/forecast`, {
-        params: { sensor_id: sid, hours: 24 },
+        params: { sensor_id: cleanSid, hours: 24 },
         timeout: 120000,
       });
 
@@ -712,7 +719,7 @@ export default function EnvComplianceDashboard() {
     try {
       const mlDirectUrl = process.env.REACT_APP_ML_SERVICE_URL || "http://localhost:8001";
       const res = await axios.post(`${mlDirectUrl}/predict`, {
-        sensor_id: sid, hours: 24,
+        sensor_id: cleanSid, hours: 24,
       }, { timeout: 120000 });
 
       const forecast = res.data;

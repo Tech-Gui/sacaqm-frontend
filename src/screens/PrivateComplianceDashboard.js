@@ -275,7 +275,13 @@ export default function PrivateComplianceDashboard() {
   async function loadForecast(sid) {
     setForecastLoading(true);
     setForecastError(null);
-    const token = localStorage.getItem("authToken");
+
+    const cleanSid = typeof sid === 'object' && sid !== null ? (sid.id || sid.sensor_id || sid.sensorId) : sid;
+    if (!cleanSid) {
+      setForecastError("No sensor ID selected");
+      setForecastLoading(false);
+      return;
+    }
 
     function applyMLPredictions(preds, modelName) {
       const labels = preds.map(p => {
@@ -285,12 +291,12 @@ export default function PrivateComplianceDashboard() {
         return `${h} ${ampm}`;
       });
 
-      const avg = (arr) => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
+      const avg = (arr) => arr.length ? Number((arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(1)) : 0;
 
       const mkWidget = (field, title) => ({
         title,
         labels,
-        values: preds.map(p => Math.round(p[field] || 0)),
+        values: preds.map(p => Number((p[field] || 0).toFixed(1))),
         current: avg(preds.map(p => p[field] || 0)),
         trend: 0,
       });
@@ -309,16 +315,16 @@ export default function PrivateComplianceDashboard() {
         noxData: mkWidget("nox", "NOx"), vocData: mkWidget("voc", "VOC"),
         hourlyData,
         hasNoise: preds.some(p => (p.dba || 0) > 0),
-        modelName: modelName || "AI Forecast"
+        modelName: modelName || "AI Forecast",
+        isMLForecast: true,
       });
       setForecastLoading(false);
     }
 
     try {
       const res = await axios.get(`${BASE}/api/nodedata/forecast`, {
-        params: { sensor_id: sid, hours: 24 },
+        params: { sensor_id: cleanSid, hours: 24 },
         timeout: 120000,
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       const forecast = res.data;
@@ -339,7 +345,7 @@ export default function PrivateComplianceDashboard() {
     try {
       const mlDirectUrl = process.env.REACT_APP_ML_SERVICE_URL || "http://localhost:8001";
       const res = await axios.post(`${mlDirectUrl}/predict`, {
-        sensor_id: sid, hours: 24,
+        sensor_id: cleanSid, hours: 24,
       }, { timeout: 120000 });
 
       const forecast = res.data;
