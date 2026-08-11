@@ -10,10 +10,10 @@ import {
 } from "@mui/material";
 
 const SEVERITY_BANDS = {
-  pm1p0: { moderate: 55, high: 75 },
-  pm2p5: { moderate: 55, high: 75 },
-  pm4p0: { moderate: 55, high: 75 },
-  pm10p0: { moderate: 110, high: 150 },
+  pm1p0: { moderate: 128, high: 203 },
+  pm2p5: { moderate: 128, high: 203 },
+  pm4p0: { moderate: 128, high: 203 },
+  pm10p0: { moderate: 215, high: 290 },
   dba: { moderate: 85, high: 100 },
   co2: { moderate: 1400, high: 2000 },
 };

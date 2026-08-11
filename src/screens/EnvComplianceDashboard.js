@@ -511,8 +511,8 @@ function getPrevPeriod(start, end) {
 }
 
 const AQI_BANDS = {
-  pm25: [{ max: 40, status: "Green" }, { max: 55, status: "Yellow" }, { max: 75, status: "Orange" }, { max: Infinity, status: "Red" }],
-  pm10: [{ max: 75, status: "Green" }, { max: 110, status: "Yellow" }, { max: 150, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm25: [{ max: 103, status: "Green" }, { max: 128, status: "Yellow" }, { max: 178, status: "Orange" }, { max: Infinity, status: "Red" }],
+  pm10: [{ max: 190, status: "Green" }, { max: 240, status: "Yellow" }, { max: 290, status: "Orange" }, { max: Infinity, status: "Red" }],
   noise: [{ max: 70, status: "Green" }, { max: 85, status: "Yellow" }, { max: 100, status: "Orange" }, { max: Infinity, status: "Red" }],
   co2: [{ max: 1000, status: "Green" }, { max: 1400, status: "Yellow" }, { max: 2000, status: "Orange" }, { max: Infinity, status: "Red" }],
 };
@@ -528,7 +528,7 @@ const sMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map(d => d.min ??
 const sMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map(d => d.max ?? 0))) : 0;
 
 // Hourly / Standard Thresholds
-const THRESHOLDS = { pm1: 40, pm25: 40, pm5: 40, pm10: 75, noise: 70, temperature: 32, humidity: 80, co2: 1000, nox: null, voc: null };
+const THRESHOLDS = { pm1: 103, pm25: 103, pm5: 103, pm10: 190, noise: 70, temperature: 32, humidity: 80, co2: 1000, nox: 106, voc: 200 };
 // New Daily Thresholds for PM Widgets & Daily Exceedance Table
 const DAILY_THRESHOLDS = { pm1: 40, pm25: 40, pm5: 40, pm10: 75 };
 
