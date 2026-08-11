@@ -21,8 +21,8 @@ const HOURLY_THRESHOLDS = {
   noise: 85,
   temperature: 32,
   humidity: 85,
-  voc: 200,
-  nox: 106
+  voc: null,
+  nox: null
 };
 
 const DAILY_THRESHOLDS = {

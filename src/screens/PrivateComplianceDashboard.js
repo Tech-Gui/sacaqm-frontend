@@ -68,7 +68,7 @@ const sMin = (arr) => arr?.length ? Math.round(Math.min(...arr.map(d => d.min ??
 const sMax = (arr) => arr?.length ? Math.round(Math.max(...arr.map(d => d.max ?? 0))) : 0;
 
 // Hourly / Standard Thresholds
-const THRESHOLDS = { pm1: 103, pm25: 103, pm5: 103, pm10: 190, noise: 85, temperature: 32, humidity: 85, co2: 1000, nox: 106, voc: 200 };
+const THRESHOLDS = { pm1: 103, pm25: 103, pm5: 103, pm10: 190, noise: 85, temperature: 32, humidity: 85, co2: 1000, nox: null, voc: null };
 // New Daily Thresholds for PM Widgets & Daily Exceedance Table
 const DAILY_THRESHOLDS = { pm1: 40, pm25: 40, pm5: 40, pm10: 75 };
 
