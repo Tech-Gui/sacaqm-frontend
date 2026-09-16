@@ -47,7 +47,16 @@ const MineLogin = () => {
 
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       login(token, user ?? null);
-      navigate("/private-summary");
+
+      
+      const normalizedEmail = email.trim().toLowerCase(); // confirm with Dominique and benton if the leeds alert should have a starndard email .. 
+      if (normalizedEmail === "brenton@sacaqm.co.za") {
+        navigate("/alerts-leeds");
+      } else if (normalizedEmail === "blaauwbergbeachhotel@sacaqm.co.za") {
+        navigate("/hotel-summary");
+      } else {
+        navigate("/private-summary");
+      }
     } catch (err) {
       if (err.response?.status === 401) {
         setError("Invalid credentials.");

@@ -12,7 +12,10 @@ import { useAuth } from "../contextProviders/AuthContext";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip);
 
-const API_BASE = process.env.REACT_APP_API_BASE;
+// Different from the old backend's API_BASE - this page talks only to
+// midranges' hotel-* endpoints, never the old backend.
+const MIDRANGES_BASE = (process.env.REACT_APP_MIDRANGES_API_BASE || "").replace(/\/+$/, "");
+const HOTEL_READ_KEY = process.env.REACT_APP_HOTEL_READ_KEY;
 
 /* ── thresholds from Excel ── */
 const HOURLY_THRESHOLDS = {
@@ -48,31 +51,15 @@ const tempLevel = v => {
   return { label: "Severe", color: "#8b5cf6", pct: 100 };
 };
 
-
-// commit dummy
 const online = ls => ls && Date.now() - new Date(ls) < 86400000; // 24-hour online threshold
 
-/**
- * Pick the designated sensor ID for a given station:
- *   Continental → sensor ending with "809"
- *   Mamba       → sensor ending with "40"
- * Falls back to the first sensor for all other stations.
- */
+// Hotel devices have exactly one macAddress each (stored as sensorIds: [macAddress]
+// when we map the /api/hotel-locations response), so this always just returns it.
 const getDesignatedSensorId = (station) => {
   const ids = station.sensorIds || [];
   if (!ids.length) return null;
-  const name = (station.name || "").toLowerCase();
-  if (name.includes("continental")) {
-    const match = ids.find(id => id.endsWith("809"));
-    if (match) return match;
-  }
-  if (name.includes("mamba")) {
-    const match = ids.find(id => id.endsWith("40"));
-    if (match) return match;
-  }
-  return ids[ids.length - 1]; // fallback: last sensor is typically the most recently active
+  return ids[ids.length - 1];
 };
-
 
 /* ── Progress bar ── */
 const Bar = ({ pct, color }) => (
@@ -85,7 +72,6 @@ const Bar = ({ pct, color }) => (
     }} />
   </div>
 );
-
 
 /* ── noise level helper ── */
 const noiseLevel = v => {
@@ -183,11 +169,8 @@ const SparkLine = ({ data, label, color, unit, thresholds, isDaily }) => {
   );
 };
 
-
 const Card = ({ station, histData, busy, onView }) => {
   const last = histData?.length ? histData[histData.length - 1] : null;
-  // Use the designated sensor's last reading timestamp for online status,
-  // NOT station.lastSeen (which reflects any sensor in the station, not necessarily ours).
   const sensorLastTs = last?.timestamp ?? null;
   const live = online(sensorLastTs);
 
@@ -240,16 +223,14 @@ const Card = ({ station, histData, busy, onView }) => {
         : "0 8px 32px rgba(59,130,246,0.08),0 2px 8px rgba(0,0,0,0.04)",
       transition: "transform .25s,box-shadow .25s",
     }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px)"; }} 
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px)"; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}
     >
-      {/* top accent stripe */}
       <div style={{
         height: "3px",
         background: `linear-gradient(90deg,${accentColor},${alert ? "#f97316" : "#6366f1"})`,
       }} />
 
-      {/* glow blob */}
       <div style={{
         position: "absolute", width: "200px", height: "200px", borderRadius: "50%",
         background: `radial-gradient(circle,${accentColor}12 0%,transparent 70%)`,
@@ -257,7 +238,6 @@ const Card = ({ station, histData, busy, onView }) => {
       }} />
 
       <div style={{ padding: "20px" }}>
-        {/* header row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
           <div>
             <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px" }}>
@@ -287,7 +267,6 @@ const Card = ({ station, histData, busy, onView }) => {
           </div>
         </div>
 
-        {/* metrics */}
         {busy ? (
           <div style={{ textAlign: "center", padding: "32px 0", color: "#94a3b8", fontSize: "13px" }}>
             <div style={{
@@ -306,7 +285,6 @@ const Card = ({ station, histData, busy, onView }) => {
           </div>
         )}
 
-        {/* footer */}
         <button onClick={() => onView(station._id)} style={{
           width: "100%", marginTop: "14px", padding: "11px",
           background: `linear-gradient(135deg,#3b82f6,#6366f1)`,
@@ -395,7 +373,7 @@ const groupReadingsByDay = (data) => {
 /* ════════════════════════════════════
    MAIN
 ════════════════════════════════════ */
-export default function PrivateSummaryDashboard() {
+export default function HotelSummary() {
   const navigate = useNavigate();
   const { setSelectedSensor, setSelectedPeriod } = useSensorData();
   const { logout } = useAuth();
@@ -407,43 +385,28 @@ export default function PrivateSummaryDashboard() {
   const [error, setError] = useState(null);
   const [refreshed, setRefreshed] = useState(null);
 
-
-
   const handleLogout = () => {
     delete axios.defaults.headers.common["Authorization"];
     logout();
     navigate("/login");
   };
 
+  // Swapped: calls midranges' hotel-locations instead of the old backend's
+  // users_sensors/me/stations. No token/branching needed - this account
+  // only ever sees the hotel's own devices, scoped server-side.
   const fetchStations = useCallback(async () => {
     setLoadingSt(true); setError(null);
     try {
-      const tok = localStorage.getItem("authToken");
-      let list = [];
-      if (tok) {
-        // Logged in: fetch only the user's assigned stations (same as mineDashboard)
-        const { data } = await axios.get(`${API_BASE}/api/users_sensors/me/stations`, {
-          headers: { Authorization: `Bearer ${tok}` },
-        });
-        list = Array.isArray(data) ? [...data] : [];
-      } else {
-        // Not logged in: fetch all private stations
-        const { data } = await axios.get(`${API_BASE}/api/stations/private`);
-        list = Array.isArray(data) ? [...data] : [];
-        list = list.filter(s => s.visibility === "private");
-      }
-      // If this user's stations include Continental or Mamba, restrict to only those two.
-      // Other clients (Raumix, Glossam, etc.) see all their own stations.
-      const hasContinentalOrMamba = list.some(s => {
-        const n = (s.name || "").toLowerCase();
-        return n.includes("continental") || n.includes("mamba");
+      const { data } = await axios.get(`${MIDRANGES_BASE}/api/hotel-locations`, {
+        headers: { Authorization: `Bearer ${HOTEL_READ_KEY}` },
       });
-      if (hasContinentalOrMamba) {
-        list = list.filter(s => {
-          const n = (s.name || "").toLowerCase();
-          return n.includes("continental") || n.includes("mamba");
-        });
-      }
+      let list = Array.isArray(data)
+        ? data.map(loc => ({
+            _id: loc._id,
+            name: loc.name,
+            sensorIds: loc.macAddress ? [loc.macAddress] : [],
+          }))
+        : [];
       list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       setStations(list); return list;
     } catch (e) {
@@ -451,34 +414,30 @@ export default function PrivateSummaryDashboard() {
     } finally { setLoadingSt(false); }
   }, []);
 
+  // Swapped: calls midranges' hotel-readings instead of the old backend's
+  // nodedata/aggregated. Same 90-day window, same shared-key auth as the
+  // rest of the hotel setup.
   const fetchReadings = useCallback(async (list) => {
     if (!list?.length) return;
     const lm = {}; list.forEach(s => { lm[s._id] = true; }); setLoadingR({ ...lm });
-    const tok = localStorage.getItem("authToken");
     const res = await Promise.allSettled(list.map(async s => {
-      // Always fetch from the designated sensor directly (not the station-level endpoint
-      // which mixes data from ALL sensors in the station, causing wrong online status).
-      // Use nodedata/aggregated with the designated sensor for all stations.
-      // Avoids the sensorData count-limit bug (truncates recent records) and ensures
-      // we read from the correct sensor for status and metrics.
       let data = [];
       const designatedSid = getDesignatedSensorId(s);
       if (designatedSid) {
         try {
           const d = new Date();
           const end = d.toISOString();
-          d.setDate(d.getDate() - 90); // 90-day window so long-offline sensors still show last known values
+          d.setDate(d.getDate() - 90);
           const start = d.toISOString();
-          const nr = await axios.get(`${API_BASE}/api/nodedata/aggregated`, {
+          const nr = await axios.get(`${MIDRANGES_BASE}/api/hotel-readings`, {
             params: { sensor_id: designatedSid, start, end, resolution: 'hourly' },
-            headers: tok ? { Authorization: `Bearer ${tok}` } : {}
+            headers: { Authorization: `Bearer ${HOTEL_READ_KEY}` }
           });
           if (nr.data && Array.isArray(nr.data)) data = nr.data;
         } catch (e) {
           console.warn("Failed fetch for", s.name, designatedSid);
         }
       }
-
       return { id: s._id, data };
     }));
     const nr = {};
@@ -501,12 +460,11 @@ export default function PrivateSummaryDashboard() {
   const onView = (id) => {
     setSelectedSensor(id);
     setSelectedPeriod("Today");
-    sessionStorage.setItem("privateComplianceStationId", id);
-    sessionStorage.removeItem("privateComplianceSensorId");
-    navigate("/private-compliance");
+    sessionStorage.setItem("hotelComplianceStationId", id);
+    sessionStorage.removeItem("hotelComplianceSensorId");
+    navigate("/hotel-compliance");
   };
 
-  // Use the designated sensor's last reading timestamp (same logic as card badges)
   const liveCount = stations.filter(s => {
     const hist = readings[s._id] || [];
     const lastTs = hist.length ? hist[hist.length - 1]?.timestamp : null;
@@ -519,7 +477,6 @@ export default function PrivateSummaryDashboard() {
     const hist = readings[s._id] || [];
     const last = hist.length ? hist[hist.length - 1] : null;
 
-    // Count active hourly alerts from the latest reading only
     if (last) {
       if ((last.pm2p5 || 0) > HOURLY_THRESHOLDS.pm25) totalHourlyAlerts++;
       if ((last.pm10p0 || 0) > HOURLY_THRESHOLDS.pm10) totalHourlyAlerts++;
@@ -530,7 +487,6 @@ export default function PrivateSummaryDashboard() {
       if ((last.nox || 0) > HOURLY_THRESHOLDS.nox) totalHourlyAlerts++;
     }
 
-    // Count active daily alerts from the latest day only
     const dailyAvgs = groupReadingsByDay(hist);
     const lastDaily = dailyAvgs.length ? dailyAvgs[dailyAvgs.length - 1] : null;
     if (lastDaily) {
@@ -558,7 +514,6 @@ export default function PrivateSummaryDashboard() {
 
         <div style={{ padding: "0 28px 56px" }}>
 
-          {/* ── Hero header ── */}
           <div style={{
             background: "linear-gradient(135deg,#ffffff,#eff6ff)",
             border: "1px solid rgba(59,130,246,0.15)", borderRadius: "20px",
@@ -600,7 +555,6 @@ export default function PrivateSummaryDashboard() {
             </div>
           </div>
 
-          {/* ── KPI row ── */}
           {!loadingSt && stations.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "28px" }}>
               <KPI label="Total Sensors" value={stations.length} color="#3b82f6" />
@@ -610,7 +564,6 @@ export default function PrivateSummaryDashboard() {
             </div>
           )}
 
-          {/* ── Alerts Center ── */}
           {!loadingSt && stations.length > 0 && (
             <div style={{
               background: "rgba(255,255,255,0.85)",
@@ -642,7 +595,6 @@ export default function PrivateSummaryDashboard() {
                     if (last.pm10p0 != null && last.pm10p0 > HOURLY_THRESHOLDS.pm10) {
                       hAlerts.push(`PM10 (${Number(last.pm10p0).toFixed(1)} > ${HOURLY_THRESHOLDS.pm10} µg/m³)`);
                     }
-
                     if (last.dba != null && last.dba > HOURLY_THRESHOLDS.noise) {
                       hAlerts.push(`Noise (${Number(last.dba).toFixed(1)} > ${HOURLY_THRESHOLDS.noise} dBA)`);
                     }
@@ -668,7 +620,6 @@ export default function PrivateSummaryDashboard() {
                     if (lastDaily.pm10p0 != null && lastDaily.pm10p0 > DAILY_THRESHOLDS.pm10) {
                       dAlerts.push(`PM10 (${Number(lastDaily.pm10p0).toFixed(1)} > ${DAILY_THRESHOLDS.pm10} µg/m³)`);
                     }
-
                   }
 
                   const hasAny = hAlerts.length > 0 || dAlerts.length > 0;
@@ -723,7 +674,6 @@ export default function PrivateSummaryDashboard() {
             </div>
           )}
 
-          {/* ── Legend ── */}
           <div style={{
             background: "rgba(255,255,255,0.85)", border: "1px solid rgba(59,130,246,0.12)", backdropFilter: "blur(8px)",
             borderRadius: "14px", padding: "16px 22px", marginBottom: "28px",
@@ -745,14 +695,12 @@ export default function PrivateSummaryDashboard() {
             </div>
           </div>
 
-          {/* ── Error ── */}
           {error && (
             <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "12px", padding: "14px 20px", color: "#f87171", marginBottom: "24px", fontSize: "13px", fontWeight: 600 }}>
               ⚠ {error}
             </div>
           )}
 
-          {/* ── States ── */}
           {loadingSt ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 0", gap: "20px" }}>
               <div style={{ width: "52px", height: "52px", border: "4px solid #bfdbfe", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
@@ -787,7 +735,6 @@ export default function PrivateSummaryDashboard() {
                 ))}
               </div>
 
-              {/* ── Historical Trends section ── */}
               {stations.some(s => readings[s._id]?.length > 1) && (
                 <div style={{ marginTop: "40px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>

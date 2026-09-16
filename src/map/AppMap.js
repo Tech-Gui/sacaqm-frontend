@@ -1,101 +1,105 @@
-// src/map/AppMap.jsx
-import React, { useContext, useEffect, useState } from "react";
-import ReactMapGL, { Marker, NavigationControl, Popup } from "react-map-gl";
+import React, { useCallback, useContext, useEffect, useState } from "react";
+import ReactMapGL, {
+  Layer,
+  Marker,
+  NavigationControl,
+  Popup,
+  Source,
+} from "react-map-gl";
 import { TOKEN } from "./Geocoder";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { MdOutlineSensors } from "react-icons/md";
-import { isToday } from "date-fns";
-import axios from "axios";
 
+import { MdOutlineSensors } from "react-icons/md";
 import { useSensorData } from "../contextProviders/sensorDataContext";
-import { DataContext } from "../contextProviders/DataContext";
 import { StationContext } from "../contextProviders/StationContext";
+import { DataContext } from "../contextProviders/DataContext";
+import { isToday, parseISO, format, parse } from "date-fns";
 import { formatLastSeen } from "../components/dateFormatter";
 
-const API_BASE = process.env.REACT_APP_API_BASE;
-
-function toNum(n) {
-  const x = typeof n === "string" ? parseFloat(n) : n;
-  return Number.isFinite(x) ? x : null;
-}
-const asString = (v) => (v == null ? "" : String(v));
-
-const AppMap = ({ mapRef }) => {
-  // View and UI state
-  const [viewState, setViewState] = useState({
-    latitude: -26.19333,
-    longitude: 27.826879,
-    zoom: 9,
+const AppMap = ({
+  mapRef,
+  polygonCord,
+  layerColor,
+  initialLatitude = -26.19333,
+  initialLongitude = 27.826879,
+  initialZoom = 9,
+  filterStations, // optional (station) => boolean
+}) => {
+  const [newPlace, setNewPlace] = useState(null);
+  const [viewPort, setViewPort] = useState({
+    latitude: initialLatitude,
+    longitude: initialLongitude,
+    zoom: initialZoom,
   });
+
+  const [activeSensor, setActiveSensor] = useState("");
+
   const [selectedMarker, setSelectedMarker] = useState(null);
 
-  // Contexts
-  const { stations, loading: stationsLoading, error: stationsError } = useContext(StationContext);
-  const { setSelectedSensor, setSelectedPeriod, selectedSensor } = useSensorData();
-  const { fetchNodeData } = useContext(DataContext);
+  const {
+    data,
+    selectedSensor,
+    selectedPeriod,
+    setSelectedSensor,
+    setSelectedPeriod,
+    fetchData,
+  } = useSensorData();
 
-  // My membership
+  const { nodeData, setNodeData, fetchNodeData } = useContext(DataContext);
 
-  // 1) Fetch "mine" from /me/sensors and filter the StationContext list
- 
-
-  // 3) Keep data refreshed when selected changes
   useEffect(() => {
-    if (!selectedSensor) return;
-    const st = stations.find((s) => asString(s._id) === asString(selectedSensor));
+    const station = stations.find(
+      (station) => station["_id"] === selectedSensor
+    );
+
     setSelectedPeriod("Today");
-    if (st) fetchNodeData(st._id, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // setFilteredData([]);
+
+    if (station) {
+      fetchNodeData(station._id, 1);
+      console.log("station found baba");
+    } else {
+      console.log("station not found");
+    }
   }, [selectedSensor]);
 
-  /*const getBackgroundColor = (lastSeen) => {
-    if (!lastSeen) return "#ccc8c8";
-    try {
-      const dt = new Date(lastSeen);
-      return isToday(dt) ? "#00FF00" : "#ccc8c8";
-    } catch {
-      return "#ccc8c8";
-    }
-  };*/
+  const { stations: allStations, loading, error } = useContext(StationContext);
+  const stations = filterStations ? allStations.filter(filterStations) : allStations;
 
   const getBackgroundColor = (lastSeen) => {
-    if (!lastSeen) return "#ccc8c8";
-
-    try {
-      const now = new Date();
-      const dt = new Date(lastSeen);
-      const diffMinutes = (now - dt) / (1000 * 60);
-
-      return diffMinutes <= 60 ? "#00FF00" : "#ccc8c8";
-    } catch {
-      return "#ccc8c8";
-    }
+    const date = lastSeen;
+    return date && isToday(date) ? "#00FF00" : "#ccc8c8";
   };
 
-  if (stationsLoading) return <div>Loading map…</div>;
-  if (stationsError) return <div>Error: {stationsError?.message || stationsError}</div>;
-  if (!stations.length) return <div>No stations for this user.</div>;
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  if (!stations || stations.length === 0)
+    return <div>No stations available</div>;
 
   return (
     <ReactMapGL
       ref={mapRef}
       mapboxAccessToken={TOKEN}
-      initialViewState={viewState}
-      onMove={(evt) => setViewState(evt.viewState)}
+      initialViewState={viewPort}
+      onViewportChange={(viewport) => setViewPort(viewport)}
       mapStyle="mapbox://styles/mapbox/light-v11"
-      transitionDuration={200}
-      attributionControl={false}
-    >
-      {stations.map((marker) => (
-        <Marker key={asString(marker._id)} latitude={marker.latitude} longitude={marker.longitude}>
+      transitionDuration="200"
+      attributionControl={false}>
+      {/* Static markers */}
+      {stations.map((marker, index) => (
+        <Marker
+          key={index}
+          latitude={marker.latitude} // Corrected latitude and longitude properties
+          longitude={marker.longitude}>
           <div
             onClick={() => {
               setSelectedSensor(marker._id);
-              setViewState((prev) => ({
-                ...prev,
-                latitude: marker.latitude,
-                longitude: marker.longitude,
-                zoom: 14,
+
+              setViewPort((prevViewPort) => ({
+                ...prevViewPort,
+                latitude: marker["latitude"],
+                longitude: marker["longitude"],
+                zoom: 30,
               }));
             }}
             onMouseOver={() => setSelectedMarker(marker)}
@@ -103,12 +107,12 @@ const AppMap = ({ mapRef }) => {
             style={{
               cursor: "pointer",
               background: getBackgroundColor(marker.lastSeen),
+
+              // background: "#00FF00",
               paddingLeft: "0.25rem",
               paddingRight: "0.25rem",
               borderRadius: "50%",
-            }}
-            title={marker.name || "Station"}
-          >
+            }}>
             <MdOutlineSensors />
           </div>
         </Marker>
@@ -119,26 +123,28 @@ const AppMap = ({ mapRef }) => {
           latitude={selectedMarker.latitude}
           longitude={selectedMarker.longitude}
           onClose={() => setSelectedMarker(null)}
-          closeButton={false}
-        >
+          closeButton={false}>
           <div style={{ textAlign: "left" }}>
-            <strong>Station Name:</strong> {selectedMarker.name || "—"} <br />
-            <strong>Description:</strong> {selectedMarker.description || "—"} <br />
-            <strong>Province:</strong> {selectedMarker.province || "—"} <br />
-            <strong>City:</strong> {selectedMarker.city || "—"} <br />
-            <strong>Last Seen:</strong>{" "}
-            {selectedMarker.lastSeen ? formatLastSeen(selectedMarker.lastSeen) : "No data"} <br />
-            <strong>Latitude:</strong> {selectedMarker.latitude} <br />
-            <strong>Longitude:</strong> {selectedMarker.longitude}
+            <strong>Station Name:</strong> {selectedMarker.name} <br />
+            <strong>Description:</strong> {selectedMarker.description} <br />
+            <strong>Province:</strong> {selectedMarker.province} <br />
+            <strong>City:</strong> {selectedMarker.city} <br />
+            <strong>Last Seen: </strong>{" "}
+            {selectedMarker.lastSeen
+              ? formatLastSeen(selectedMarker.lastSeen)
+              : "No data"}{" "}
+            <br />
+            <strong>Latitude: </strong> {selectedMarker.latitude} <br />
+            <strong>Longitude: </strong> {selectedMarker.longitude}
           </div>
         </Popup>
       )}
 
+      {/* <NavigationControl position="bottom-right" /> */}
       <div style={{ position: "absolute", right: 10, top: 10 }}>
         <NavigationControl />
       </div>
     </ReactMapGL>
   );
 };
-
 export default AppMap;
