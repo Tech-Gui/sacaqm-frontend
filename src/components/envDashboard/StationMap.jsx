@@ -187,7 +187,7 @@ function getLightweightSmokeGeoJSON() {
   };
 }
 
-export default function StationMap({ activeAlerts = [], onSelectAlertStation, onOpenAlertList }) {
+export default function StationMap({ activeAlerts = [], onSelectAlertStation, onOpenAlertList, onViewChange, flyToRegion }) {
   const { stations, loading } = useContext(StationContext);
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -201,6 +201,7 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
   
   // Default: NO contour plot on initial load (starts directly in Station Pins mode)
   const [showContour, setShowContour] = useState(false);
+  
   
   // Smoke plume toggle state (can be turned ON or OFF via button)
   const [showSmoke, setShowSmoke] = useState(true);
@@ -219,6 +220,15 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
     };
     return () => { delete window.__sacaqmOpenAlertStory; };
   }, [stations, onSelectAlertStation]);
+
+  useEffect(() => {
+    if (!map.current || !flyToRegion) return;
+    map.current.flyTo({
+      center: flyToRegion.center,
+      zoom: flyToRegion.zoom,
+      duration: 2000,
+    });
+  }, [flyToRegion]);
 
   // Check if a station has an active alert
   const checkIsAlerted = useCallback((station) => {
@@ -400,13 +410,20 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/light-v11",
       center: [27.7, -26.4],
-      zoom: 9.5,
+      zoom: 8,          // was 9.5 — lower number = zoomed out = see more area
       attributionControl: false,
     });
-
+    
     map.current.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
     map.current.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
-
+    map.current.on("move", () => {
+      if (onViewChange && map.current) {
+        onViewChange({
+          center: map.current.getCenter(),
+          zoom: map.current.getZoom(),
+        });
+      }
+    });
     map.current.on("load", () => {
       try {
         map.current.setPaintProperty("water", "fill-color", "#dbeafe");

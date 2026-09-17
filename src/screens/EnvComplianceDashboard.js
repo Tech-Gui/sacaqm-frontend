@@ -481,6 +481,7 @@ import ExceedancesSeverityChart from "../components/envDashboard/ExceedancesSeve
 import StationMap from "../components/envDashboard/StationMap";
 import generateReport from "../utils/generateReport";
 import AlertsPanel from "../components/envDashboard/AlertsPanel";
+import BackgroundMap from "../components/envDashboard/BackgroundMap";
 
 const BASE = process.env.REACT_APP_API_BASE;
 
@@ -494,6 +495,12 @@ const FORECAST_DAY_LABEL = (() => {
   const d = new Date(); d.setDate(d.getDate() + 1);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 })();
+const REGIONS = [
+  { key: "za", name: "South Africa", flag: "📍", center: [28.05, -26.20], zoom: 10, blurb: "Johannesburg air quality network" },
+  { key: "ch", name: "Switzerland", flag: "📍", center: [6.14, 46.20], zoom: 11, blurb: "Geneva air quality network" },
+  { key: "ca", name: "Canada", flag: "📍", center: [-106.35, 56.13], zoom: 3.5, blurb: "Canada air quality network" },
+  { key: "uk", name: "United Kingdom", flag: "📍", center: [-2.0, 54.0],   zoom: 5.5, blurb: "Leeds Sensors" },
+];
 
 function formatDate(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -608,6 +615,8 @@ export default function EnvComplianceDashboard() {
   const [externalDrawerOpen, setExternalDrawerOpen] = useState(false);
   const [selectedStationAlert, setSelectedStationAlert] = useState(null);
   const [initialDrawerView, setInitialDrawerView] = useState("detail");
+  const [mapView, setMapView] = useState(null);
+  const [activeRegion, setActiveRegion] = useState(null);
 
   const sensorOptions = (stations || []).flatMap(st =>
     (st.sensorIds || []).map(sid => ({ id: sid, label: st.sensorIds.length === 1 ? st.name : `${st.name} – ${sid}` }))
@@ -875,7 +884,10 @@ export default function EnvComplianceDashboard() {
       <Box sx={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', background: `radial-gradient(280px circle at var(--mouse-x,50%) var(--mouse-y,50%),rgba(59,130,246,0.22),transparent 70%),radial-gradient(500px circle at var(--mouse-x,50%) var(--mouse-y,50%),rgba(99,102,241,0.12),transparent 70%),radial-gradient(800px circle at var(--mouse-x,50%) var(--mouse-y,50%),rgba(14,165,233,0.07),transparent 70%)`, transition: 'background 0.08s ease' }} />
       <Box sx={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0, '@keyframes float': { '0%,100%': { transform: 'translate(0,0) scale(1)' }, '33%': { transform: 'translate(30px,-30px) scale(1.1)' }, '66%': { transform: 'translate(-20px,20px) scale(0.9)' } }, '& > div': { position: 'absolute', borderRadius: '50%', filter: 'blur(80px)', opacity: 0.3, animation: 'float 20s ease-in-out infinite' }, '& > div:nth-of-type(1)': { width: '400px', height: '400px', background: 'rgba(59,130,246,0.4)', top: '10%', left: '10%' }, '& > div:nth-of-type(2)': { width: '350px', height: '350px', background: 'rgba(99,102,241,0.3)', top: '60%', right: '10%', animationDelay: '7s' }, '& > div:nth-of-type(3)': { width: '300px', height: '300px', background: 'rgba(14,165,233,0.3)', bottom: '10%', left: '40%', animationDelay: '14s' } }}><div /><div /><div /></Box>
       <Box sx={{ position: 'fixed', inset: 0, backgroundImage: `linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px)`, backgroundSize: '50px 50px', pointerEvents: 'none', zIndex: 0 }} />
-
+      {/* Live decorative background map — non-interactive */}
+      <Box aria-hidden sx={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', opacity: 0.6, filter: 'blur(1px)' }}>
+        <BackgroundMap view={mapView} />
+      </Box>
       <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1 }}>
         <Paper sx={filterBarSx}>
           <Grid container spacing={3} alignItems="center">
@@ -1001,27 +1013,62 @@ export default function EnvComplianceDashboard() {
                 </Box>
               </Box>
             )}
-
-            <Box sx={{ mb: 3 }}>
-              <StationMap
-                activeAlerts={activeAlerts}
-                onOpenAlertList={() => {
-                  setInitialDrawerView("list");
-                  setExternalDrawerOpen(true);
+            <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+              {REGIONS.map((r) => {
+                const active = activeRegion?.key === r.key;
+                return (
+                  <Box
+                    key={r.key}
+                    onClick={() => setActiveRegion(r)}
+                    sx={{
+                      flex: '1 1 200px', cursor: 'pointer', p: 2.5, borderRadius: 3,
+                      background: active ? 'linear-gradient(135deg,#3b82f6,#6366f1)' : 'rgba(255,255,255,0.8)',
+                      backdropFilter: 'blur(10px)',
+                      border: active ? '2px solid #3b82f6' : '2px solid rgba(59,130,246,0.15)',
+                      boxShadow: active ? '0 8px 24px rgba(59,130,246,0.35)' : '0 4px 16px rgba(59,130,246,0.08)',
+                      transition: 'all 0.25s ease',
+                      '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(59,130,246,0.25)' },
+                    }}
+                  >
+                    <Box sx={{ fontSize: '2rem', lineHeight: 1, mb: 1 }}>{r.flag}</Box>
+                    <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: active ? 'white' : '#1e293b' }}>{r.name}</Typography>
+                    <Typography sx={{ fontSize: '0.78rem', color: active ? 'rgba(255,255,255,0.85)' : '#64748b', mt: 0.3 }}>{r.blurb}</Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+            <Box sx={{ mb: 3, position: 'relative', zIndex: 1 }}>
+              <Paper
+                sx={{
+                  borderRadius: 4,
+                  overflow: 'hidden',
+                  background: 'rgba(255,255,255,0.85)',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 8px 32px rgba(59,130,246,0.15)',
                 }}
-                onSelectAlertStation={(st) => {
-                  setSelectedStationAlert({
-                    stationId: st._id,
-                    stationName: st.name,
-                    city: st.city,
-                    province: st.province,
-                    value: st.pm25Val || 142.6,
-                    threshold: 60.0,
-                    confidence: 92,
-                  });
-                  setExternalDrawerOpen(true);
-                }}
-              />
+              >
+                <StationMap
+                  activeAlerts={activeAlerts}
+                  onViewChange={setMapView}
+                  onOpenAlertList={() => {
+                    setInitialDrawerView("list");
+                    setExternalDrawerOpen(true);
+                  }}
+                  flyToRegion={activeRegion}
+                  onSelectAlertStation={(st) => {
+                    setSelectedStationAlert({
+                      stationId: st._id,
+                      stationName: st.name,
+                      city: st.city,
+                      province: st.province,
+                      value: st.pm25Val || 142.6,
+                      threshold: 60.0,
+                      confidence: 92,
+                    });
+                    setExternalDrawerOpen(true);
+                  }}
+                />
+              </Paper>
             </Box>
 
             <Grid container spacing={3} sx={{ mb: 3 }}><Grid item xs={12}><Box sx={fadeIn(0)}>
