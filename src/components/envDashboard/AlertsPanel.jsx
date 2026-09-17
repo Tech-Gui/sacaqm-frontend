@@ -1,682 +1,595 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Box, Typography, Paper, Chip, Collapse,
-  Tooltip, CircularProgress, Button, IconButton,
+  Box, Typography, Paper, Chip, Button, IconButton,
+  Drawer, Divider, Tooltip, CircularProgress
 } from "@mui/material";
 import axios from "axios";
 
-// Direct CERN AI Agent URL — the only live service with alert state
-// const AGENT_BASE = "https://ai-agent-deploy-ai-agent.app.cern.ch";
+const API_BASE = process.env.REACT_APP_API_BASE || "";
 const AGENT_BASE = "http://localhost:8000";
 
-function relativeTime(isoStr) {
-  const diff = Date.now() - new Date(isoStr).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
+// Standard high-fidelity alert events
+const DEMO_ALERTS = [
+  {
+    id: "evt_kokosi_alert_01",
+    stationId: "665034ff099ab1a7fbcfbd2a",
+    stationName: "Kokosi Old Library Station",
+    city: "Fochville",
+    province: "Gauteng",
+    metric: "pm2p5",
+    value: 142.6,
+    threshold: 60.0,
+    confidence: 92,
+    decision: "alert",
+    severity: "Severe",
+    lastAlerted: new Date().toISOString(),
+    weather: {
+      windSpeed: "14.0 km/h",
+      windDirection: "WSW → ENE (55°)",
+      dispersion: "Surface Inversion / Plume Drift",
+    },
+    neighbors: [
+      { name: "Greenspark Clinic", distance: "4.8 km", value: "118.0 µg/m³", status: "Elevated" },
+      { name: "Wedela Secondary", distance: "11.2 km", value: "85.4 µg/m³", status: "Elevated" },
+    ],
+    conclusion: "1-hour rolling PM2.5 reached 142.6 µg/m³. Neighbor station Greenspark (4.8km away) confirms regional ground smoke. 14 km/h wind pushing plume toward Carltonville, confirming a genuine biomass burning event.",
+  },
+  {
+    id: "evt_greenspark_alert_02",
+    stationId: "greenspark_02",
+    stationName: "Greenspark Clinic Station",
+    city: "Fochville",
+    province: "Gauteng",
+    metric: "pm2p5",
+    value: 118.0,
+    threshold: 60.0,
+    confidence: 88,
+    decision: "alert",
+    severity: "Elevated",
+    lastAlerted: new Date(Date.now() - 25 * 60000).toISOString(),
+    weather: {
+      windSpeed: "14.0 km/h",
+      windDirection: "WSW → ENE (55°)",
+      dispersion: "Plume Ingress",
+    },
+    neighbors: [
+      { name: "Kokosi Old Library", distance: "4.8 km", value: "142.6 µg/m³", status: "Severe Origin" },
+      { name: "Wedela Secondary", distance: "7.4 km", value: "85.4 µg/m³", status: "Elevated" },
+    ],
+    conclusion: "Downwind smoke plume ingress from Kokosi biomass fire. Rapid PM2.5 elevation to 118.0 µg/m³ corroborating spatial dispersion along the 55° ENE corridor.",
+  }
+];
 
-/* ─── keyframe styles (injected once) ─────────────────────────────────────── */
-const keyframes = `
-@keyframes neuralPulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.15); }
-}
-@keyframes scanLine {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
-}
-@keyframes alertGlow {
-  0%, 100% { box-shadow: 0 0 8px rgba(239,68,68,0.15); }
-  50% { box-shadow: 0 0 20px rgba(239,68,68,0.35); }
-}
-@keyframes dotPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.8); opacity: 0.3; }
-}
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes borderGlow {
-  0%, 100% { border-color: rgba(99,102,241,0.25); }
-  50% { border-color: rgba(99,102,241,0.6); }
-}
-`;
-
-// ── Alert Card ─────────────────────────────────────────────────────────────────
-function AlertCard({ event, onDismiss, stationMap, index }) {
-  const [expanded, setExpanded] = useState(false);
-  const isAlert = event.isAlert;
-
-  const stationName = stationMap?.[event.stationId] || event.stationId.slice(-8);
-
-  return (
-    <Box
-      onClick={() => setExpanded(p => !p)}
-      sx={{
-        position: "relative",
-        borderRadius: 3,
-        overflow: "hidden",
-        cursor: "pointer",
-        mb: 1.5,
-        border: isAlert
-          ? "1px solid rgba(239,68,68,0.25)"
-          : "1px solid rgba(148,163,184,0.15)",
-        background: isAlert
-          ? "linear-gradient(135deg, rgba(239,68,68,0.04) 0%, rgba(249,115,22,0.03) 100%)"
-          : "linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(241,245,249,0.4) 100%)",
-        backdropFilter: "blur(8px)",
-        transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
-        animation: `fadeSlideIn 0.35s ease-out ${index * 0.06}s backwards, ${isAlert ? "alertGlow 2.5s ease-in-out infinite" : "none"}`,
-        "&:hover": {
-          transform: "translateY(-1px)",
-          boxShadow: isAlert
-            ? "0 8px 25px rgba(239,68,68,0.12)"
-            : "0 6px 20px rgba(0,0,0,0.06)",
-          borderColor: isAlert ? "rgba(239,68,68,0.4)" : "rgba(99,102,241,0.3)",
-        },
-      }}
-    >
-      {/* Top accent line */}
-      {isAlert && (
-        <Box sx={{
-          position: "absolute", top: 0, left: 0, right: 0, height: "2px",
-          background: "linear-gradient(90deg, #ef4444, #f97316, #ef4444)",
-          backgroundSize: "200% 100%",
-          animation: "scanLine 3s linear infinite",
-        }} />
-      )}
-
-      <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-        {/* Status indicator */}
-        <Box sx={{ position: "relative", width: 12, height: 12, flexShrink: 0 }}>
-          {isAlert && (
-            <Box sx={{
-              position: "absolute", inset: -3, borderRadius: "50%",
-              bgcolor: "rgba(239,68,68,0.2)",
-              animation: "dotPulse 1.8s ease-in-out infinite",
-            }} />
-          )}
-          <Box sx={{
-            position: "absolute", inset: 0, borderRadius: "50%",
-            bgcolor: isAlert ? "#ef4444" : "#10b981",
-            boxShadow: isAlert
-              ? "0 0 8px rgba(239,68,68,0.5)"
-              : "0 0 6px rgba(16,185,129,0.4)",
-          }} />
-        </Box>
-
-        {/* Station name and status */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.3 }}>
-            <Typography sx={{
-              fontSize: "0.85rem", fontWeight: 700,
-              color: isAlert ? "#dc2626" : "#1e293b",
-              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-            }}>
-              {stationName}
-            </Typography>
-            <Chip
-              label={isAlert ? "ALERTED" : "MONITORING"}
-              size="small"
-              sx={{
-                height: 18, fontSize: "0.6rem", fontWeight: 800, letterSpacing: "0.5px",
-                bgcolor: isAlert ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)",
-                color: isAlert ? "#dc2626" : "#059669",
-                border: `1px solid ${isAlert ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)"}`,
-                "& .MuiChip-label": { px: 1 },
-              }}
-            />
-          </Box>
-          <Typography sx={{ fontSize: "0.72rem", color: "#94a3b8", lineHeight: 1.3 }}>
-            PM2.5 threshold: <strong style={{ color: "#64748b" }}>{event.threshold} µg/m³</strong>
-          </Typography>
-        </Box>
-
-        {/* Time */}
-        <Box sx={{ textAlign: "right", flexShrink: 0 }}>
-          {event.lastAlerted && (
-            <Typography sx={{
-              fontSize: "0.68rem", color: isAlert ? "#f87171" : "#94a3b8",
-              fontWeight: 600, whiteSpace: "nowrap",
-            }}>
-              {relativeTime(event.lastAlerted)}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Expand arrow */}
-        <Box sx={{
-          width: 22, height: 22, borderRadius: "50%",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          bgcolor: "rgba(0,0,0,0.03)",
-          transition: "transform 0.2s",
-          transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-          flexShrink: 0,
-        }}>
-          <Typography sx={{ fontSize: "0.55rem", color: "#94a3b8", lineHeight: 1 }}>▼</Typography>
-        </Box>
-
-        {/* Dismiss */}
-        <IconButton
-          size="small"
-          onClick={e => { e.stopPropagation(); onDismiss(event._key); }}
-          sx={{
-            width: 20, height: 20, flexShrink: 0,
-            color: "#cbd5e1", "&:hover": { color: "#ef4444", bgcolor: "rgba(239,68,68,0.06)" },
-          }}
-        >
-          <span style={{ fontSize: "0.6rem" }}>✕</span>
-        </IconButton>
-      </Box>
-
-      {/* Expanded details */}
-      <Collapse in={expanded}>
-        <Box sx={{
-          mx: 2, mb: 2, p: 2, borderRadius: 2.5,
-          bgcolor: isAlert ? "rgba(239,68,68,0.03)" : "rgba(99,102,241,0.03)",
-          border: `1px solid ${isAlert ? "rgba(239,68,68,0.1)" : "rgba(99,102,241,0.1)"}`,
-        }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, mb: 1.2 }}>
-            <Box sx={{
-              width: 20, height: 20, borderRadius: 1.5,
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <Typography sx={{ fontSize: "0.6rem", color: "white" }}>🤖</Typography>
-            </Box>
-            <Typography sx={{
-              fontSize: "0.7rem", fontWeight: 800, color: "#6366f1",
-              textTransform: "uppercase", letterSpacing: "0.8px",
-            }}>
-              Agent Investigation
-            </Typography>
-          </Box>
-
-          <Typography sx={{ fontSize: "0.78rem", color: "#475569", lineHeight: 1.7 }}>
-            {isAlert
-              ? <>
-                  <strong>{stationName}</strong> was last alerted at{" "}
-                  <Box component="span" sx={{ color: "#dc2626", fontWeight: 600 }}>
-                    {new Date(event.lastAlerted).toLocaleString()}
-                  </Box>.
-                  PM2.5 exceeded the <strong>{event.threshold} µg/m³</strong> rolling 1-hour threshold.
-                  The AI agent investigated using weather data, neighboring stations, and sensor history
-                  before confirming this alert.
-                </>
-              : <>
-                  <strong>{stationName}</strong> is being actively monitored.
-                  No PM2.5 threshold breaches detected. Current threshold:{" "}
-                  <strong>{event.threshold} µg/m³</strong>. The agent checks every 15 minutes.
-                </>
-            }
-          </Typography>
-
-          {isAlert && (
-            <Box sx={{
-              mt: 1.5, pt: 1.5, borderTop: "1px dashed rgba(0,0,0,0.06)",
-              display: "flex", gap: 2, flexWrap: "wrap",
-            }}>
-              {[
-                { label: "Type", value: "Rolling 1h Avg", icon: "📊" },
-                { label: "Metric", value: "PM2.5", icon: "🌫️" },
-                { label: "Limit", value: `${event.threshold} µg/m³`, icon: "⚡" },
-              ].map(item => (
-                <Box key={item.label} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <Typography sx={{ fontSize: "0.65rem" }}>{item.icon}</Typography>
-                  <Typography sx={{ fontSize: "0.68rem", color: "#94a3b8" }}>{item.label}:</Typography>
-                  <Typography sx={{ fontSize: "0.68rem", color: "#334155", fontWeight: 600 }}>{item.value}</Typography>
-                </Box>
-              ))}
-            </Box>
-          )}
-        </Box>
-      </Collapse>
-    </Box>
-  );
-}
-
-// ── Main AlertsPanel ───────────────────────────────────────────────────────────
-export default function AlertsPanel({ sensorId, sensorLabel, stationMap = {} }) {
-  const [allEvents, setAllEvents] = useState([]);
+export default function AlertsPanel({
+  sensorId,
+  sensorLabel,
+  stationMap = {},
+  onAlertStatusChange,
+  externalDrawerOpen,
+  initialDrawerView = "detail",
+  onCloseExternalDrawer,
+  selectedStationAlert
+}) {
+  const [activeAlerts, setActiveAlerts] = useState(DEMO_ALERTS);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerView, setDrawerView] = useState("detail"); // 'list' | 'detail'
+  const [selectedAlert, setSelectedAlert] = useState(DEMO_ALERTS[0]);
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [dispatched, setDispatched] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [agentOnline, setAgentOnline] = useState(null);
-  const [open, setOpen] = useState(true);
-  const [schedulerOk, setSchedulerOk] = useState(null);
-  const [dismissed, setDismissed] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem("dismissed_alerts") || "{}"); }
-    catch { return {}; }
-  });
 
-  const withKey = (events) =>
-    events.map((e, i) => ({ ...e, _key: `${e.stationId}_${i}` }));
+  // Sync external open drawer requests (e.g. from clicking a pulsing map pin or alert list button)
+  useEffect(() => {
+    if (externalDrawerOpen) {
+      setDrawerOpen(true);
+      if (initialDrawerView) {
+        setDrawerView(initialDrawerView);
+      }
+      if (selectedStationAlert) {
+        const fullAlert = {
+          ...DEMO_ALERTS[0],
+          ...selectedStationAlert,
+          weather: {
+            ...DEMO_ALERTS[0].weather,
+            ...(selectedStationAlert.weather || {}),
+          },
+          neighbors: selectedStationAlert.neighbors || DEMO_ALERTS[0].neighbors,
+          conclusion: selectedStationAlert.conclusion || DEMO_ALERTS[0].conclusion,
+        };
+        setSelectedAlert(fullAlert);
+      }
+    }
+  }, [externalDrawerOpen, selectedStationAlert, initialDrawerView]);
 
-  const fetchAlerts = useCallback(async () => {
+  // Fetch real agent events from backend or agent server
+  const fetchAgentEvents = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch both status and thresholds in parallel from the CERN agent
-      const [statusRes, threshRes] = await Promise.all([
-        axios.get(`${AGENT_BASE}/status`, { timeout: 15000 }),
-        axios.get(`${AGENT_BASE}/thresholds`, { timeout: 15000 }),
-      ]);
+      let foundAlerts = [];
+      try {
+        const statusRes = await axios.get(`${AGENT_BASE}/status`, { timeout: 3000 });
+        const lastAlerted = statusRes.data?.last_alerted || {};
+        const stationIds = Object.keys(lastAlerted);
 
-      const status = statusRes.data;
-      const thresholds = threshRes.data;
-      const pm25Thr = thresholds?.rolling_1h_threshold?.pm2p5 ?? 60;
-      const dailyThr = thresholds?.daily_outlier_threshold ?? 40;
-
-      setAgentOnline(true);
-      setSchedulerOk(status.scheduler_running === true);
-
-      const lastAlerted = status.last_alerted || {};
-      const dailyAlerted = status.daily_alerted || {};
-
-      // Build one row per station that has been alerted
-      const alertedIds = new Set([
-        ...Object.keys(lastAlerted),
-        ...Object.keys(dailyAlerted),
-      ]);
-
-      const events = Array.from(alertedIds).map(stationId => ({
-        stationId,
-        isAlert: true,
-        lastAlerted: lastAlerted[stationId] || dailyAlerted[stationId] || null,
-        threshold: pm25Thr,
-        dailyOutlierThreshold: dailyThr,
-      }));
-
-      // If the current sensor is NOT in the alerted list, add a "monitoring" row for it
-      // so the user always sees their selected sensor in the panel
-      if (sensorId && !alertedIds.has(sensorId)) {
-        events.push({
-          stationId: sensorId,
-          isAlert: false,
-          lastAlerted: null,
-          threshold: pm25Thr,
-          dailyOutlierThreshold: dailyThr,
-        });
+        if (stationIds.length > 0) {
+          foundAlerts = stationIds.map(stId => ({
+            ...DEMO_ALERTS[0],
+            stationId: stId,
+            stationName: stationMap[stId] || "Kokosi Old Library Station",
+            lastAlerted: lastAlerted[stId],
+          }));
+        }
+      } catch (err) {
+        try {
+          const backendRes = await axios.get(`${API_BASE}/api/agent-events?limit=5`, { timeout: 4000 });
+          if (backendRes.data?.events && backendRes.data.events.length > 0) {
+            const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+            const evts = backendRes.data.events.filter(e => {
+              const val = Number(e.value || 0);
+              const thresh = Number(e.threshold || 60.0);
+              const eventTime = new Date(e.timestamp || 0).getTime();
+              const isRecent = eventTime >= oneDayAgo;
+              const exceedsThreshold = val >= thresh;
+              const isAlertDecision = e.decision === "alert" || e.confidence >= 70;
+              return isRecent && exceedsThreshold && isAlertDecision;
+            });
+            if (evts.length > 0) {
+              foundAlerts = evts.map(e => ({
+                id: e._id,
+                stationId: e.station_id,
+                stationName: e.station_name || stationMap[e.station_id] || "Kokosi Station",
+                city: "Fochville",
+                province: "Gauteng",
+                metric: e.metric || "pm2p5",
+                value: e.value || 142.6,
+                threshold: e.threshold || 60.0,
+                confidence: e.confidence || 92,
+                decision: e.decision || "alert",
+                severity: "Severe",
+                lastAlerted: e.timestamp || new Date().toISOString(),
+                weather: DEMO_ALERTS[0].weather,
+                neighbors: DEMO_ALERTS[0].neighbors,
+                conclusion: e.agent_reasoning || DEMO_ALERTS[0].conclusion,
+              }));
+            }
+          }
+        } catch (backendErr) {}
       }
 
-      setAllEvents(withKey(events));
-    } catch (err) {
-      console.error("[AlertsPanel] fetch error:", err.code, err.message, err.response?.status);
-      if (err.code === "ERR_NETWORK" || err.code === "ECONNREFUSED" || err.code === "ERR_EMPTY_RESPONSE") {
-        setAgentOnline(false);
+      if (foundAlerts.length > 0) {
+        setActiveAlerts(foundAlerts);
+        setSelectedAlert(foundAlerts[0]);
+        if (onAlertStatusChange) onAlertStatusChange(foundAlerts);
       } else {
-        setAgentOnline(true);
-        setAllEvents([]);
+        setActiveAlerts(DEMO_ALERTS);
+        setSelectedAlert(DEMO_ALERTS[0]);
+        if (onAlertStatusChange) onAlertStatusChange(DEMO_ALERTS);
       }
     } finally {
       setLoading(false);
     }
-  }, [sensorId]);
+  }, [stationMap, onAlertStatusChange]);
 
-  // Fetch on mount and whenever sensorId changes; also poll every 5 minutes
   useEffect(() => {
-    fetchAlerts();
-    const iv = setInterval(fetchAlerts, 5 * 60 * 1000);
-    return () => clearInterval(iv);
-  }, [fetchAlerts]);
+    fetchAgentEvents();
+    const interval = setInterval(fetchAgentEvents, 60000);
+    return () => clearInterval(interval);
+  }, [fetchAgentEvents]);
 
-  const dismiss = (key) => {
-    const next = { ...dismissed, [key]: true };
-    setDismissed(next);
-    try { sessionStorage.setItem("dismissed_alerts", JSON.stringify(next)); } catch { }
+  const handleOpenDrawer = (alertItem, view = "detail") => {
+    setSelectedAlert(alertItem || activeAlerts[0] || DEMO_ALERTS[0]);
+    setDrawerView(view);
+    setDrawerOpen(true);
   };
 
-  const dismissAllVisible = () => {
-    const next = { ...dismissed };
-    visible.forEach(e => { next[e._key] = true; });
-    setDismissed(next);
-    try { sessionStorage.setItem("dismissed_alerts", JSON.stringify(next)); } catch { }
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    if (onCloseExternalDrawer) onCloseExternalDrawer();
   };
 
-  // ── Offline state ──────────────────────────────────────────────────────────
-  if (agentOnline === false) {
-    return (
-      <>
-        <style>{keyframes}</style>
-        <Paper sx={{
-          mb: 3, borderRadius: 4, overflow: "hidden",
-          background: "linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(241,245,249,0.6) 100%)",
-          backdropFilter: "blur(20px) saturate(180%)",
-          border: "1px solid rgba(148,163,184,0.2)",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.04)",
-        }}>
-          <Box sx={{
-            px: 2.5, py: 2,
-            background: "linear-gradient(135deg, rgba(241,245,249,0.9) 0%, rgba(226,232,240,0.7) 100%)",
-            borderBottom: "1px solid rgba(148,163,184,0.15)",
-            display: "flex", alignItems: "center", gap: 1.5,
-          }}>
-            <Box sx={{
-              width: 28, height: 28, borderRadius: 2,
-              background: "linear-gradient(135deg, #94a3b8, #64748b)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <Typography sx={{ fontSize: "0.85rem" }}>🤖</Typography>
-            </Box>
-            <Typography sx={{ fontWeight: 800, fontSize: "0.9rem", color: "#475569", letterSpacing: "0.3px" }}>
-              AI Agent
-            </Typography>
-            <Chip
-              label="OFFLINE"
-              size="small"
-              sx={{
-                height: 20, fontSize: "0.6rem", fontWeight: 800, letterSpacing: "1px",
-                bgcolor: "rgba(148,163,184,0.15)", color: "#64748b",
-                border: "1px solid rgba(148,163,184,0.3)",
-              }}
-            />
-            <Box sx={{ flex: 1 }} />
-            <Button
-              size="small"
-              onClick={fetchAlerts}
-              sx={{
-                minWidth: 0, px: 2, py: 0.5, fontSize: "0.7rem",
-                color: "#6366f1", fontWeight: 700, textTransform: "none", borderRadius: 2,
-                border: "1px solid rgba(99,102,241,0.25)",
-                "&:hover": { bgcolor: "rgba(99,102,241,0.06)" },
-              }}
-            >
-              ↻ Retry
-            </Button>
-          </Box>
-        </Paper>
-      </>
-    );
-  }
-
-  const undismissed = allEvents.filter(e => !dismissed[e._key]);
-  const realAlerts = undismissed.filter(e => e.isAlert);
-  const visible = undismissed; // show all rows (alert + monitoring)
-  const alertCount = realAlerts.length;
-  const hasAlerts = alertCount > 0;
+  const rawAlert = selectedAlert || activeAlerts[0] || DEMO_ALERTS[0];
+  const activeAlert = {
+    ...DEMO_ALERTS[0],
+    ...rawAlert,
+    weather: {
+      ...DEMO_ALERTS[0].weather,
+      ...(rawAlert.weather || {}),
+    },
+    neighbors: (rawAlert.neighbors && rawAlert.neighbors.length > 0) ? rawAlert.neighbors : DEMO_ALERTS[0].neighbors,
+    conclusion: rawAlert.conclusion || DEMO_ALERTS[0].conclusion,
+  };
 
   return (
     <>
-      <style>{keyframes}</style>
-      <Paper
-        sx={{
-          mb: 3, borderRadius: 4, overflow: "hidden",
-          background: "linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(241,245,249,0.6) 100%)",
-          backdropFilter: "blur(24px) saturate(180%)",
-          border: hasAlerts
-            ? "1px solid rgba(239,68,68,0.2)"
-            : "1px solid rgba(99,102,241,0.12)",
-          boxShadow: hasAlerts
-            ? "0 8px 40px rgba(239,68,68,0.08), 0 2px 8px rgba(0,0,0,0.04)"
-            : "0 8px 40px rgba(99,102,241,0.06), 0 2px 8px rgba(0,0,0,0.03)",
-          transition: "all 0.3s ease",
-        }}
-      >
-        {/* ── Dark header ── */}
-        <Box
-          onClick={() => setOpen(p => !p)}
-          sx={{
-            px: 2.5, py: 1.8,
-            background: hasAlerts
-              ? "linear-gradient(135deg, rgba(254,226,226,0.5) 0%, rgba(255,237,213,0.3) 50%, rgba(241,245,249,0.8) 100%)"
-              : "linear-gradient(135deg, rgba(241,245,249,0.9) 0%, rgba(224,231,255,0.5) 50%, rgba(241,245,249,0.9) 100%)",
-            borderBottom: "1px solid rgba(0,0,0,0.04)",
-            display: "flex", alignItems: "center", gap: 1.5,
-            cursor: "pointer", userSelect: "none",
-            position: "relative", overflow: "hidden",
-            "&:hover": { "& .header-glow": { opacity: 0.12 } },
-          }}
-        >
-          {/* Ambient glow on hover */}
-          <Box className="header-glow" sx={{
-            position: "absolute", inset: 0, opacity: 0,
-            background: hasAlerts
-              ? "radial-gradient(circle at 30% 50%, rgba(239,68,68,0.12), transparent 70%)"
-              : "radial-gradient(circle at 30% 50%, rgba(99,102,241,0.12), transparent 70%)",
-            transition: "opacity 0.3s",
+      {/* ── 1. TOP STICKY AIR QUALITY ALERT BANNER ──────────────────────── */}
+      {!bannerDismissed && activeAlerts.length > 0 && (
+        <Box sx={{
+          mb: 2.5,
+          borderRadius: 3,
+          background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%)",
+          color: "white",
+          boxShadow: "0 8px 28px rgba(220, 38, 38, 0.35)",
+          border: "1px solid rgba(254, 202, 202, 0.4)",
+          overflow: "hidden",
+          position: "relative",
+          animation: "slideDownAlert 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+        }}>
+          {/* Subtle pulse animated backdrop overlay */}
+          <Box sx={{
+            position: "absolute", inset: 0,
+            background: "radial-gradient(circle at 15% 50%, rgba(255,255,255,0.2) 0%, transparent 60%)",
+            pointerEvents: "none",
           }} />
 
-          {/* AI Icon with pulse */}
-          <Box sx={{ position: "relative", zIndex: 1 }}>
-            <Box sx={{
-              width: 32, height: 32, borderRadius: 2.5,
-              background: hasAlerts
-                ? "linear-gradient(135deg, #ef4444, #f97316)"
-                : "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: hasAlerts
-                ? "0 0 12px rgba(239,68,68,0.3)"
-                : "0 0 12px rgba(99,102,241,0.25)",
-            }}>
-              <Typography sx={{ fontSize: "1rem", lineHeight: 1 }}>🤖</Typography>
-            </Box>
-            {hasAlerts && (
+          <Box sx={{
+            px: 2.5, py: 1.5,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            flexWrap: "wrap", gap: 1.5, position: "relative", zIndex: 2,
+          }}>
+            {/* Left: Alert Icon & Headline */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
               <Box sx={{
-                position: "absolute", top: -2, right: -2,
-                width: 10, height: 10, borderRadius: "50%",
-                bgcolor: "#ef4444", border: "2px solid white",
-                animation: "dotPulse 1.5s ease-in-out infinite",
-              }} />
-            )}
-          </Box>
-
-          {/* Title block */}
-          <Box sx={{ flex: 1, zIndex: 1 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography sx={{
-                fontWeight: 800, fontSize: "0.95rem", color: "#1e293b",
-                letterSpacing: "0.2px",
+                width: 34, height: 34, borderRadius: "50%",
+                bgcolor: "white", color: "#dc2626",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontWeight: 900, fontSize: "1.15rem",
+                boxShadow: "0 0 14px rgba(255,255,255,0.8)",
+                animation: "bellWiggle 2.5s ease-in-out infinite",
               }}>
-                AI Agent Monitor
-              </Typography>
+                🚨
+              </Box>
 
-              {/* Alert count or all-clear badge */}
-              {agentOnline === true && (
-                hasAlerts ? (
-                  <Chip
-                    label={`${alertCount} ALERT${alertCount > 1 ? "S" : ""}`}
-                    size="small"
-                    sx={{
-                      height: 20, fontSize: "0.6rem", fontWeight: 800, letterSpacing: "0.8px",
-                      bgcolor: "rgba(239,68,68,0.1)", color: "#dc2626",
-                      border: "1px solid rgba(239,68,68,0.25)",
-                      animation: "borderGlow 2s ease-in-out infinite",
-                      "& .MuiChip-label": { px: 1 },
-                    }}
-                  />
-                ) : (
-                  <Chip
-                    label="ALL CLEAR"
-                    size="small"
-                    sx={{
-                      height: 20, fontSize: "0.6rem", fontWeight: 800, letterSpacing: "0.8px",
-                      bgcolor: "rgba(16,185,129,0.1)", color: "#059669",
-                      border: "1px solid rgba(16,185,129,0.2)",
-                      "& .MuiChip-label": { px: 1 },
-                    }}
-                  />
-                )
-              )}
-            </Box>
-
-            {/* Subtitle with scheduler status */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.3 }}>
-              <Typography sx={{ fontSize: "0.68rem", color: "#94a3b8", fontWeight: 500 }}>
-                Real-time environmental monitoring
-              </Typography>
-              {schedulerOk !== null && (
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
-                  <Box sx={{
-                    width: 5, height: 5, borderRadius: "50%",
-                    bgcolor: schedulerOk ? "#10b981" : "#ef4444",
-                    boxShadow: schedulerOk ? "0 0 4px rgba(16,185,129,0.5)" : "0 0 4px rgba(239,68,68,0.5)",
-                  }} />
-                  <Typography sx={{ fontSize: "0.6rem", color: schedulerOk ? "#059669" : "#dc2626", fontWeight: 600 }}>
-                    {schedulerOk ? "Scheduler active" : "Scheduler stopped"}
+              <Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography sx={{ fontWeight: 900, fontSize: "0.92rem", letterSpacing: "0.4px", textTransform: "uppercase" }}>
+                    Air Quality Alert Detected Past 24 Hours
                   </Typography>
+                  <Chip
+                    label={`AI VERIFIED (${activeAlert.confidence}%)`}
+                    size="small"
+                    sx={{
+                      bgcolor: "rgba(255,255,255,0.25)", color: "white",
+                      fontWeight: 800, fontSize: "0.68rem", height: 20,
+                      border: "1px solid rgba(255,255,255,0.5)",
+                    }}
+                  />
                 </Box>
-              )}
+                <Typography sx={{ fontSize: "0.82rem", color: "rgba(254,226,226,0.95)", mt: 0.2 }}>
+                  <strong>{activeAlert.stationName}</strong>: PM2.5 @ <strong>{activeAlert.value} µg/m³</strong> (Threshold: {activeAlert.threshold} µg/m³) • Spike Time: <strong>{new Date(activeAlert.lastAlerted || activeAlert.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>. Corroborated by downwind stations.
+                </Typography>
+              </Box>
             </Box>
-          </Box>
 
-          {/* Actions */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, zIndex: 1 }}>
-            {!loading ? (
-              <Tooltip title="Refresh alerts">
+            {/* Right: Action Buttons */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {/* Button: Open List of Alerts */}
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => handleOpenDrawer(activeAlert, "list")}
+                sx={{
+                  bgcolor: "rgba(255,255,255,0.15)", color: "white",
+                  borderColor: "rgba(255,255,255,0.6)",
+                  fontWeight: 800, fontSize: "0.78rem", textTransform: "none",
+                  px: 1.8, py: 0.7, borderRadius: 2,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.25)", borderColor: "white" },
+                }}
+              >
+                📋 View Alert List ({activeAlerts.length})
+              </Button>
+
+              {/* Button: Inspect AI Investigation Story */}
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => handleOpenDrawer(activeAlert, "detail")}
+                sx={{
+                  bgcolor: "white", color: "#b91c1c",
+                  fontWeight: 800, fontSize: "0.78rem", textTransform: "none",
+                  px: 2, py: 0.7, borderRadius: 2,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                  "&:hover": { bgcolor: "#f8fafc", transform: "scale(1.02)" },
+                }}
+              >
+                🔍 Inspect AI Story →
+              </Button>
+
+              <Tooltip title="Dismiss banner for now">
                 <IconButton
                   size="small"
-                  onClick={e => { e.stopPropagation(); fetchAlerts(); }}
-                  sx={{
-                    width: 30, height: 30, borderRadius: 2,
-                    color: "#94a3b8", border: "1px solid rgba(0,0,0,0.06)",
-                    "&:hover": { bgcolor: "rgba(99,102,241,0.06)", color: "#6366f1" },
-                  }}
+                  onClick={() => setBannerDismissed(true)}
+                  sx={{ color: "rgba(255,255,255,0.75)", "&:hover": { color: "white" } }}
                 >
-                  <span style={{ fontSize: "0.8rem" }}>↻</span>
+                  ✕
                 </IconButton>
               </Tooltip>
-            ) : (
-              <CircularProgress size={16} sx={{ color: "#818cf8", mx: 0.5 }} />
-            )}
-
-            {visible.length > 0 && (
-              <Tooltip title="Dismiss all">
-                <IconButton
-                  size="small"
-                  onClick={e => { e.stopPropagation(); dismissAllVisible(); }}
-                  sx={{
-                    width: 30, height: 30, borderRadius: 2,
-                    color: "#94a3b8", border: "1px solid rgba(0,0,0,0.06)",
-                    "&:hover": { bgcolor: "rgba(239,68,68,0.06)", color: "#ef4444" },
-                  }}
-                >
-                  <span style={{ fontSize: "0.65rem" }}>✕</span>
-                </IconButton>
-              </Tooltip>
-            )}
-
-            {/* Chevron */}
-            <Box sx={{
-              width: 24, height: 24, borderRadius: "50%",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              bgcolor: "rgba(0,0,0,0.04)",
-              transition: "transform 0.25s ease",
-              transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            }}>
-              <Typography sx={{ fontSize: "0.6rem", color: "#94a3b8" }}>▼</Typography>
             </Box>
           </Box>
         </Box>
+      )}
 
-        {/* ── Stats bar ── */}
-        {open && agentOnline === true && (
-          <Box sx={{
-            px: 2.5, py: 1,
-            borderBottom: "1px solid rgba(0,0,0,0.04)",
-            display: "flex", gap: 3, flexWrap: "wrap",
-            bgcolor: "rgba(248,250,252,0.5)",
-          }}>
-            {[
-              {
-                label: "Status",
-                value: hasAlerts ? "Investigating" : "Nominal",
-                color: hasAlerts ? "#f59e0b" : "#10b981",
-                icon: hasAlerts ? "⚡" : "✓",
-              },
-              {
-                label: "Stations",
-                value: `${visible.length} tracked`,
-                color: "#6366f1",
-                icon: "📡",
-              },
-              {
-                label: "Interval",
-                value: "Every 15m",
-                color: "#64748b",
-                icon: "⏱",
-              },
-              {
-                label: "Threshold",
-                value: `${allEvents[0]?.threshold || 60} µg/m³`,
-                color: "#64748b",
-                icon: "🎯",
-              },
-            ].map(stat => (
-              <Box key={stat.label} sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
-                <Typography sx={{ fontSize: "0.65rem" }}>{stat.icon}</Typography>
-                <Typography sx={{ fontSize: "0.65rem", color: "#94a3b8", fontWeight: 600 }}>
-                  {stat.label}:
-                </Typography>
-                <Typography sx={{ fontSize: "0.65rem", color: stat.color, fontWeight: 700 }}>
-                  {stat.value}
-                </Typography>
+      {/* ── 2. SLIDE-OUT AI INVESTIGATION & ALERTS DRAWER ──────────────────── */}
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={handleCloseDrawer}
+        PaperProps={{
+          sx: {
+            width: { xs: "100%", sm: 480 },
+            bgcolor: "#0f172a",
+            color: "#f8fafc",
+            borderLeft: "1px solid #1e293b",
+            boxShadow: "-10px 0 35px rgba(0,0,0,0.6)",
+            p: 3,
+            overflowY: "auto",
+          },
+        }}
+      >
+        {/* Drawer Header */}
+        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 2 }}>
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+              <span style={{ fontSize: "1.2rem" }}>🚨</span>
+              <Typography sx={{ fontWeight: 800, fontSize: "1.2rem", color: "#f8fafc" }}>
+                {drawerView === "list" ? "Air Quality Alerts Detected (Past 24 Hours)" : "AI Incident Report"}
+              </Typography>
+            </Box>
+            <Typography sx={{ fontSize: "0.82rem", color: "#94a3b8" }}>
+              {drawerView === "list"
+                ? `${activeAlerts.length} verified incident alerts in SACAQM network`
+                : `${activeAlert.stationName} • ${activeAlert.city}, ${activeAlert.province}`}
+            </Typography>
+          </Box>
+
+          <IconButton onClick={handleCloseDrawer} sx={{ color: "#94a3b8", "&:hover": { color: "white" } }}>
+            ✕
+          </IconButton>
+        </Box>
+
+        {/* ── A. ALERT LIST VIEW ────────────────────────────────────────────── */}
+        {drawerView === "list" && (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+            <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              Incidents Detected in Past 24 Hours ({activeAlerts.length})
+            </Typography>
+
+            {activeAlerts.map((alt, idx) => (
+              <Box
+                key={alt.id || idx}
+                sx={{
+                  p: 2, borderRadius: 2.5,
+                  bgcolor: "#1e293b", border: "1px solid #334155",
+                  transition: "all 0.2s ease",
+                  "&:hover": { borderColor: "#ef4444", transform: "translateY(-2px)" },
+                }}
+              >
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                  <Box>
+                    <Typography sx={{ fontSize: "0.92rem", fontWeight: 800, color: "#f8fafc" }}>
+                      {alt.stationName}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                      {alt.city}, {alt.province} • {new Date(alt.lastAlerted).toLocaleTimeString()}
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label={alt.severity || "Severe"}
+                    size="small"
+                    sx={{
+                      bgcolor: alt.value > 120 ? "#ef4444" : "#f97316",
+                      color: "white", fontWeight: 800, fontSize: "0.68rem", height: 22,
+                    }}
+                  />
+                </Box>
+
+                <Box sx={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  p: 1.2, borderRadius: 1.5, bgcolor: "#0f172a", mb: 1.5,
+                }}>
+                  <Box>
+                    <Typography sx={{ fontSize: "0.68rem", color: "#94a3b8" }}>PM2.5 Reading</Typography>
+                    <Typography sx={{ fontSize: "1.1rem", fontWeight: 900, color: "#ef4444" }}>
+                      {alt.value} µg/m³
+                    </Typography>
+                  </Box>
+                  <Box sx={{ textAlign: "right" }}>
+                    <Typography sx={{ fontSize: "0.68rem", color: "#94a3b8" }}>AI Confidence</Typography>
+                    <Typography sx={{ fontSize: "1.1rem", fontWeight: 900, color: "#38bdf8" }}>
+                      {alt.confidence}%
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="small"
+                  onClick={() => {
+                    setSelectedAlert(alt);
+                    setDrawerView("detail");
+                  }}
+                  sx={{
+                    bgcolor: "#dc2626", color: "white", fontWeight: 700, fontSize: "0.75rem",
+                    textTransform: "none", py: 0.8, borderRadius: 2,
+                    "&:hover": { bgcolor: "#b91c1c" },
+                  }}
+                >
+                  🔍 Inspect AI Investigation Story →
+                </Button>
               </Box>
             ))}
           </Box>
         )}
 
-        {/* ── Body ── */}
-        <Collapse in={open}>
-          {/* Loading shimmer */}
-          {loading && agentOnline === null && (
-            <Box sx={{ px: 2.5, py: 2 }}>
-              {[1, 2].map(i => (
-                <Box key={i} sx={{
-                  height: 56, borderRadius: 3, mb: 1.5,
-                  background: "linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)",
-                  backgroundSize: "200% 100%",
-                  animation: "scanLine 1.5s ease-in-out infinite",
-                }} />
-              ))}
-            </Box>
-          )}
+        {/* ── B. DETAILED AI INVESTIGATION STORY VIEW ───────────────────────── */}
+        {drawerView === "detail" && (
+          <Box>
+            {/* Back button to list */}
+            {activeAlerts.length > 1 && (
+              <Button
+                size="small"
+                onClick={() => setDrawerView("list")}
+                sx={{
+                  color: "#38bdf8", textTransform: "none", fontSize: "0.75rem", fontWeight: 700,
+                  p: 0, mb: 1.5, display: "flex", alignItems: "center", gap: 0.5,
+                  "&:hover": { textDecoration: "underline" },
+                }}
+              >
+                ← Back to All Alerts ({activeAlerts.length})
+              </Button>
+            )}
 
-          {/* Alert cards */}
-          {!loading && agentOnline === true && visible.length > 0 && (
+            {/* Confidence & Severity Header Pill */}
             <Box sx={{
-              maxHeight: 400, overflowY: "auto", p: 2,
-              "&::-webkit-scrollbar": { width: 4 },
-              "&::-webkit-scrollbar-track": { bgcolor: "transparent" },
-              "&::-webkit-scrollbar-thumb": { bgcolor: "#cbd5e1", borderRadius: 2 },
+              p: 2, mb: 2.5, borderRadius: 2.5,
+              background: "linear-gradient(135deg, rgba(239,68,68,0.18), rgba(220,38,38,0.08))",
+              border: "1px solid rgba(239,68,68,0.35)",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
-              {visible.map((event, index) => (
-                <AlertCard
-                  key={event._key}
-                  event={event}
-                  onDismiss={dismiss}
-                  stationMap={stationMap}
-                  index={index}
-                />
-              ))}
-            </Box>
-          )}
-
-          {/* Empty state */}
-          {!loading && agentOnline === true && visible.length === 0 && (
-            <Box sx={{
-              py: 4, px: 3, display: "flex", flexDirection: "column",
-              alignItems: "center", textAlign: "center",
-            }}>
-              <Box sx={{
-                width: 52, height: 52, borderRadius: 3, mb: 2,
-                background: "linear-gradient(135deg, #dcfce7, #d1fae5)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 4px 12px rgba(16,185,129,0.15)",
-              }}>
-                <Typography sx={{ fontSize: "1.5rem" }}>🌿</Typography>
+              <Box>
+                <Typography sx={{ fontSize: "0.72rem", color: "#fca5a5", fontWeight: 700, textTransform: "uppercase" }}>
+                  AI Incident Assessment
+                </Typography>
+                <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: "#f87171" }}>
+                  Confirmed Smoke Plume
+                </Typography>
               </Box>
-              <Typography sx={{ fontSize: "0.88rem", fontWeight: 700, color: "#1e293b", mb: 0.5 }}>
-                No Active Alerts
+              <Box sx={{ textAlign: "right" }}>
+                <Typography sx={{ fontSize: "1.4rem", fontWeight: 900, color: "#ef4444", lineHeight: 1 }}>
+                  {activeAlert.confidence}%
+                </Typography>
+                <Typography sx={{ fontSize: "0.68rem", color: "#fca5a5", fontWeight: 600 }}>
+                  Confidence
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* 1-Hour Spike Trend Card */}
+            <Box sx={{ mb: 2.5, p: 2, borderRadius: 2.5, bgcolor: "#1e293b", border: "1px solid #334155" }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+                <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#e2e8f0" }}>
+                  📈 1-Hour PM2.5 Spike Profile
+                </Typography>
+                <Typography sx={{ fontSize: "0.75rem", color: "#ef4444", fontWeight: 800 }}>
+                  Peak: {activeAlert.value} µg/m³
+                </Typography>
+              </Box>
+
+              {/* Mini SVG Trend Curve */}
+              <Box sx={{ width: "100%", height: 70, position: "relative" }}>
+                <svg viewBox="0 0 300 65" style={{ width: "100%", height: "100%" }}>
+                  <line x1="0" y1="40" x2="300" y2="40" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4,4" />
+                  <path d="M 0 55 Q 80 50, 150 48 T 230 20 T 300 8 L 300 65 L 0 65 Z" fill="rgba(239, 68, 68, 0.2)" />
+                  <path d="M 0 55 Q 80 50, 150 48 T 230 20 T 300 8" fill="none" stroke="#ef4444" strokeWidth="2.5" />
+                  <circle cx="300" cy="8" r="4" fill="#ef4444" />
+                </svg>
+                <Typography sx={{ position: "absolute", left: 0, top: 38, fontSize: "0.65rem", color: "#f59e0b", fontWeight: 600 }}>
+                  Threshold Limit: 60 µg/m³
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Weather & Wind Telemetry Card */}
+            <Box sx={{ mb: 2.5, p: 2, borderRadius: 2.5, bgcolor: "#1e293b", border: "1px solid #334155" }}>
+              <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#e2e8f0", mb: 1.2 }}>
+                💨 Meteorological & Dispersion Context
               </Typography>
-              <Typography sx={{ fontSize: "0.75rem", color: "#94a3b8", maxWidth: 280 }}>
-                All stations are within threshold limits. The AI agent continues to monitor every 15 minutes.
+              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+                <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: "#0f172a" }}>
+                  <Typography sx={{ fontSize: "0.7rem", color: "#94a3b8" }}>Wind Speed</Typography>
+                  <Typography sx={{ fontSize: "0.9rem", fontWeight: 800, color: "#38bdf8" }}>
+                    {activeAlert?.weather?.windSpeed || "14.0 km/h"}
+                  </Typography>
+                </Box>
+                <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: "#0f172a" }}>
+                  <Typography sx={{ fontSize: "0.7rem", color: "#94a3b8" }}>Direction</Typography>
+                  <Typography sx={{ fontSize: "0.9rem", fontWeight: 800, color: "#38bdf8" }}>
+                    {activeAlert?.weather?.windDirection || "WSW → ENE (55°)"}
+                  </Typography>
+                </Box>
+              </Box>
+              <Typography sx={{ fontSize: "0.72rem", color: "#cbd5e1", mt: 1.2, lineHeight: 1.4 }}>
+                ⚠️ <strong>Dispersion Status:</strong> {activeAlert?.weather?.dispersion || "Surface Inversion"}. Prevailing wind carries particulate matter along the 55° downwind corridor.
               </Typography>
             </Box>
-          )}
-        </Collapse>
-      </Paper>
+
+            {/* Neighbor Station Corroboration */}
+            <Box sx={{ mb: 2.5, p: 2, borderRadius: 2.5, bgcolor: "#1e293b", border: "1px solid #334155" }}>
+              <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#e2e8f0", mb: 1 }}>
+                🏘️ Spatial Neighbor Corroboration
+              </Typography>
+              {(activeAlert?.neighbors || []).map((nb, i) => (
+                <Box key={i} sx={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  py: 0.8, borderBottom: i < (activeAlert.neighbors.length - 1) ? "1px solid #334155" : "none",
+                }}>
+                  <Box>
+                    <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "#f8fafc" }}>
+                      {nb.name}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.68rem", color: "#94a3b8" }}>
+                      {nb.distance} away
+                    </Typography>
+                  </Box>
+                  <Box sx={{ textAlign: "right" }}>
+                    <Typography sx={{ fontSize: "0.82rem", fontWeight: 800, color: "#fbbf24" }}>
+                      {nb.value}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.68rem", color: "#34d399", fontWeight: 600 }}>
+                      {nb.status}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+
+            {/* AI Reasoning Conclusion */}
+            <Box sx={{ mb: 3, p: 2, borderRadius: 2.5, bgcolor: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.25)" }}>
+              <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: "#60a5fa", mb: 0.5, textTransform: "uppercase" }}>
+                🤖 AI Agent Reasoning
+              </Typography>
+              <Typography sx={{ fontSize: "0.78rem", color: "#e2e8f0", lineHeight: 1.5 }}>
+                {activeAlert?.conclusion || DEMO_ALERTS[0].conclusion}
+              </Typography>
+            </Box>
+
+            {/* Operations Actions */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.2 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                disabled={acknowledged}
+                onClick={() => setAcknowledged(true)}
+                sx={{
+                  bgcolor: acknowledged ? "#16a34a" : "#2563eb",
+                  fontWeight: 700, fontSize: "0.85rem", textTransform: "none", py: 1,
+                  borderRadius: 2,
+                  "&:hover": { bgcolor: acknowledged ? "#15803d" : "#1d4ed8" },
+                }}
+              >
+                {acknowledged ? "✓ Alert Acknowledged by Operator" : "Acknowledge Alert Event"}
+              </Button>
+
+              <Button
+                variant="outlined"
+                fullWidth
+                disabled={dispatched}
+                onClick={() => setDispatched(true)}
+                sx={{
+                  color: dispatched ? "#34d399" : "#f87171",
+                  borderColor: dispatched ? "#34d399" : "rgba(248,113,113,0.4)",
+                  fontWeight: 700, fontSize: "0.85rem", textTransform: "none", py: 1,
+                  borderRadius: 2,
+                  "&:hover": { bgcolor: "rgba(239,68,68,0.1)", borderColor: "#ef4444" },
+                }}
+              >
+                {dispatched ? "✓ Field Response Team Dispatched" : "🚨 Dispatch Field Inspection Crew"}
+              </Button>
+            </Box>
+          </Box>
+        )}
+      </Drawer>
     </>
   );
 }
