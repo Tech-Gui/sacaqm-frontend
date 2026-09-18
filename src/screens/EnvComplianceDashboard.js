@@ -496,10 +496,8 @@ const FORECAST_DAY_LABEL = (() => {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 })();
 const REGIONS = [
-  { key: "za", name: "South Africa", flag: "📍", center: [28.05, -26.20], zoom: 10, blurb: "Johannesburg air quality network" },
-  { key: "ch", name: "Switzerland", flag: "📍", center: [6.14, 46.20], zoom: 11, blurb: "Geneva air quality network" },
-  { key: "ca", name: "Canada", flag: "📍", center: [-106.35, 56.13], zoom: 3.5, blurb: "Canada air quality network" },
-  { key: "uk", name: "United Kingdom", flag: "📍", center: [-2.0, 54.0],   zoom: 5.5, blurb: "Leeds Sensors" },
+  { key: "za", name: "South Africa", flag: "📍", center: [28.05, -26.20], zoom: 10 },
+  { key: "uk", name: "United Kingdom", flag: "📍", center: [-2.0, 54.0],   zoom: 5.5 },
 ];
 
 function formatDate(d) {
@@ -1032,7 +1030,7 @@ export default function EnvComplianceDashboard() {
                   >
                     <Box sx={{ fontSize: '2rem', lineHeight: 1, mb: 1 }}>{r.flag}</Box>
                     <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: active ? 'white' : '#1e293b' }}>{r.name}</Typography>
-                    <Typography sx={{ fontSize: '0.78rem', color: active ? 'rgba(255,255,255,0.85)' : '#64748b', mt: 0.3 }}>{r.blurb}</Typography>
+                    
                   </Box>
                 );
               })}

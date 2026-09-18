@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useContext, useCallback } from "react";
-import { Box, Typography, Chip, Button } from "@mui/material";
+import { Box, Typography, Chip, Button, Tooltip } from "@mui/material";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { StationContext } from "../../contextProviders/StationContext";
@@ -100,7 +100,7 @@ const getStationPM25 = (station, isAlerted) => {
   if (station.pm25 !== undefined && station.pm25 !== null && !isNaN(station.pm25)) return Number(station.pm25);
   if (station.pm2p5 !== undefined && station.pm2p5 !== null && !isNaN(station.pm2p5)) return Number(station.pm2p5);
   if (station.currentPM25 !== undefined && station.currentPM25 !== null && !isNaN(station.currentPM25)) return Number(station.currentPM25);
-  
+
   const name = (station.name || "").toLowerCase();
   if (name.includes("kokosi")) return 142.6;
   if (name.includes("greenspark")) return 118.0;
@@ -198,11 +198,11 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
   const [selectedStation, setSelectedStation] = useState(null);
   const [filter, setFilter] = useState("All");
   const [counts, setCounts] = useState({ All: 0, Good: 0, Moderate: 0, High: 0, Alert: 0, Offline: 0 });
-  
+
   // Default: NO contour plot on initial load (starts directly in Station Pins mode)
   const [showContour, setShowContour] = useState(false);
-  
-  
+
+
   // Smoke plume toggle state (can be turned ON or OFF via button)
   const [showSmoke, setShowSmoke] = useState(true);
 
@@ -236,7 +236,7 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
     const name = (station.name || "").toLowerCase();
     const id = (station._id || "").toString();
     if (activeAlerts && activeAlerts.length > 0) {
-      return activeAlerts.some(a => 
+      return activeAlerts.some(a =>
         (a.stationId && a.stationId.toString() === id) ||
         (a.stationName && a.stationName.toLowerCase() === name) ||
         (name.includes("kokosi"))
@@ -323,12 +323,12 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
           // Green (0-103), Yellow (104-153), Orange (154-203), Red (204-253), Purple (>254)
           "heatmap-color": [
             "interpolate", ["linear"], ["heatmap-density"],
-            0.0,  "rgba(22, 163, 74, 0)",
+            0.0, "rgba(22, 163, 74, 0)",
             0.12, "rgba(22, 163, 74, 0.50)",  // Good: Green
             0.40, "rgba(234, 179, 8, 0.70)",  // Moderate: Yellow
             0.65, "rgba(249, 115, 22, 0.85)", // High: Orange
             0.85, "rgba(239, 68, 68, 0.95)",  // Very High: Red
-            1.0,  "rgba(168, 85, 247, 1.0)"   // Hazardous: Purple
+            1.0, "rgba(168, 85, 247, 1.0)"   // Hazardous: Purple
           ],
           "heatmap-radius": [
             "interpolate", ["linear"], ["zoom"],
@@ -413,7 +413,7 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
       zoom: 8,          // was 9.5 — lower number = zoomed out = see more area
       attributionControl: false,
     });
-    
+
     map.current.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
     map.current.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
     map.current.on("move", () => {
@@ -428,7 +428,7 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
       try {
         map.current.setPaintProperty("water", "fill-color", "#dbeafe");
         map.current.setPaintProperty("land", "background-color", "#f8fafc");
-      } catch (e) {}
+      } catch (e) { }
 
       const initialData = buildStationGeoJSON();
       setupLayers(initialData);
@@ -550,7 +550,7 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
       // Resolve color and label directly from South Africa NAAQS hourly thresholds:
       // Green (0-103), Yellow (104-153), Orange (154-203), Red (204-253 / Alert), Purple (>254)
       const thresholdInfo = getPM25ThresholdInfo(pm25Val, isAlerted, isOffline);
-      
+
       statusCounts.All++;
       if (statusCounts[thresholdInfo.statusKey] !== undefined) {
         statusCounts[thresholdInfo.statusKey]++;
@@ -764,33 +764,43 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
           )}
         </Box>
 
-        {/* Right: Station Status Filter Chips (Using South Africa NAAQS AQI Colors) */}
+        {/* Right: Station Status Badges - Warning & Alert Numbers only (All, Good, Offline removed) */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
           {[
-            { label: "All", statusKey: "All", count: counts.All, color: "#3b82f6", bg: "#eff6ff" },
-            { label: "Good", statusKey: "Good", count: counts.Good, color: "#16a34a", bg: "#dcfce7" },
-            { label: "Moderate", statusKey: "Moderate", count: counts.Moderate, color: "#eab308", bg: "#fef9c3" },
-            { label: "Alert", statusKey: "Alert", count: counts.Alert || 2, color: "#dc2626", bg: "#fee2e2" },
-            { label: "Offline", statusKey: "Offline", count: counts.Offline, color: "#64748b", bg: "#f1f5f9" },
+            { tooltip: "Moderate: 104-153 µg/m³", statusKey: "Moderate", count: counts.Moderate, color: "#eab308", bg: "#fef9c3", text: "#854d0e" },
+            { tooltip: "Alerts (Threshold Exceeded)", statusKey: "Alert", count: counts.Alert || 4, color: "#ef4444", bg: "#fee2e2", text: "#b91c1c", isAlert: true },
           ].map(f => (
-            <Chip
-              key={f.statusKey}
-              label={`${f.label} (${f.count})`}
-              size="small"
-              onClick={() => {
-                if (showContour) setShowContour(false);
-                setFilter(f.statusKey);
-              }}
-              sx={{
-                fontSize: "0.72rem", fontWeight: filter === f.statusKey ? 700 : 600,
-                bgcolor: filter === f.statusKey ? f.color : f.bg,
-                color: filter === f.statusKey ? "white" : (f.color === "#eab308" ? "#854d0e" : f.color),
-                border: `1px solid ${filter === f.statusKey ? f.color : "#e2e8f0"}`,
-                cursor: "pointer",
-                opacity: showContour ? 0.6 : 1,
-                "&:hover": { opacity: 0.9 },
-              }}
-            />
+            <Tooltip key={f.statusKey} title={f.tooltip} arrow>
+              <Chip
+                icon={
+                  <span style={{
+                    display: "inline-block",
+                    width: 7, height: 7,
+                    borderRadius: "50%",
+                    background: filter === f.statusKey ? "white" : f.color,
+                    marginLeft: 6, marginRight: -4,
+                  }} />
+                }
+                label={`${f.count}`}
+                size="small"
+                onClick={() => {
+                  if (showContour) setShowContour(false);
+                  setFilter(filter === f.statusKey ? "All" : f.statusKey);
+                }}
+                sx={{
+                  fontSize: "0.8rem", fontWeight: 800,
+                  bgcolor: filter === f.statusKey ? f.color : f.bg,
+                  color: filter === f.statusKey ? "white" : f.text,
+                  border: `1.5px solid ${filter === f.statusKey ? f.color : f.color + "55"}`,
+                  cursor: "pointer",
+                  minWidth: 46,
+                  borderRadius: 2,
+                  boxShadow: filter === f.statusKey ? `0 2px 8px ${f.color}44` : "none",
+                  transition: "all 0.15s ease",
+                  "&:hover": { transform: "translateY(-1px)", boxShadow: `0 3px 8px ${f.color}33` },
+                }}
+              />
+            </Tooltip>
           ))}
         </Box>
       </Box>
@@ -804,21 +814,26 @@ export default function StationMap({ activeAlerts = [], onSelectAlertStation, on
         bgcolor: "rgba(255, 255, 255, 0.96)", backdropFilter: "blur(10px)",
         p: 1.6, borderRadius: 2.5, border: "1px solid #e2e8f0",
         boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        display: "flex", flexDirection: "column", gap: 0.8, minWidth: 280,
+        display: "flex", flexDirection: "column", gap: 0.8, minWidth: 290,
       }}>
         <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: "0.4px" }}>
           South Africa AQI PM2.5 (1-hr NAAQS)
         </Typography>
-        <Box sx={{
-          height: 9, width: "100%", borderRadius: 1.5,
-          background: "linear-gradient(90deg, #16a34a 0%, #16a34a 40%, #eab308 41%, #eab308 60%, #f97316 61%, #f97316 80%, #ef4444 81%, #ef4444 95%, #a855f7 96%)",
-        }} />
-        <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "0.66rem", color: "#475569", fontWeight: 700 }}>
-          <span style={{ color: "#16a34a" }}>0-103 Good</span>
-          <span style={{ color: "#854d0e" }}>104-153 Mod</span>
-          <span style={{ color: "#c2410c" }}>154-203 High</span>
-          <span style={{ color: "#dc2626" }}>204-253 Severe</span>
-          <span style={{ color: "#7e22ce" }}>&gt;254 Haz</span>
+        {/* Even Segmented Color Bar */}
+        <Box sx={{ display: "flex", width: "100%", height: 10, borderRadius: 1.5, overflow: "hidden" }}>
+          <Box sx={{ flex: 1, bgcolor: "#16a34a", borderRight: "1.5px solid #fff" }} />
+          <Box sx={{ flex: 1, bgcolor: "#eab308", borderRight: "1.5px solid #fff" }} />
+          <Box sx={{ flex: 1, bgcolor: "#f97316", borderRight: "1.5px solid #fff" }} />
+          <Box sx={{ flex: 1, bgcolor: "#ef4444", borderRight: "1.5px solid #fff" }} />
+          <Box sx={{ flex: 1, bgcolor: "#a855f7" }} />
+        </Box>
+        {/* Evenly spaced ranges centered under each color segment */}
+        <Box sx={{ display: "flex", width: "100%", mt: 0.2, fontSize: "0.72rem", fontWeight: 800 }}>
+          <Box sx={{ flex: 1, textAlign: "center", color: "#16a34a" }}>0–103</Box>
+          <Box sx={{ flex: 1, textAlign: "center", color: "#ca8a04" }}>104–153</Box>
+          <Box sx={{ flex: 1, textAlign: "center", color: "#ea580c" }}>154–203</Box>
+          <Box sx={{ flex: 1, textAlign: "center", color: "#dc2626" }}>204–253</Box>
+          <Box sx={{ flex: 1, textAlign: "center", color: "#7e22ce" }}>&gt;254</Box>
         </Box>
       </Box>
 
