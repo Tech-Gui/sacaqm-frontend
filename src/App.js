@@ -10,6 +10,7 @@ import MineLogin from "./screens/mine";
 import MineDashboard from "./screens/mineDashboard";
 import PrivateSummaryDashboard from "./screens/PrivateSummaryDashboard";
 import Stations from "./screens/Stations";
+import HotelSummary from "./screens/Hotelsummary"; // NEW
 
 import RequireAuth from "./routes/RequireAuth";
 import { AuthProvider } from "./contextProviders/AuthContext";
@@ -21,6 +22,8 @@ import { StationProvider } from "./contextProviders/StationContext";
 import EnvComplianceDashboard from "./screens/EnvComplianceDashboard";
 
 import PrivateComplianceDashboard from "./screens/PrivateComplianceDashboard";
+import AlertsLeeds from "./screens/AlertsLeeds";
+import HotelCompliance from "./screens/Hotelcompliance"; // NEW
 
 function App() {
   return (
@@ -67,6 +70,30 @@ function App() {
                         <RequireAuth>
                           <PrivateComplianceDashboard />
                         </RequireAuth>
+                      }
+                    />
+                    <Route
+  path="/alerts-leeds"
+  element={
+    
+      <AlertsLeeds />
+    
+  }
+/>
+   <Route
+                      path="/hotel-summary"
+                      element={
+                        <RequireAuth><HotelSummary /></RequireAuth>
+                          
+                        
+                      }
+                      />
+                      <Route
+                      path="/hotel-compliance"
+                      element={
+                        <RequireAuth><HotelCompliance /></RequireAuth>
+                          
+                        
                       }
                     />
                   </Routes>
