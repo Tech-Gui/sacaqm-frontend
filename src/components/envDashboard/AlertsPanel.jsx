@@ -7,7 +7,7 @@ import axios from "axios";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "";
 // Reads your DEPLOYED agent URL from .env. Set REACT_APP_AGENT_BASE there.
-const AGENT_BASE = process.env.REACT_APP_AGENT_BASE;
+const AGENT_BASE = "https://ai-agent-deploy-ai-agent.app.cern.ch";
 
 // Default weather/neighbor shape used to fill gaps in real events (NOT shown as fake alerts)
 const DEFAULT_WEATHER = {
