@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box, Typography, Chip, Button, IconButton,
   Drawer, Tooltip
@@ -7,7 +7,7 @@ import axios from "axios";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "";
 // Reads your DEPLOYED agent URL from .env. Set REACT_APP_AGENT_BASE there.
-const AGENT_BASE = process.env.REACT_APP_AGENT_BASE || "http://localhost:8000";
+const AGENT_BASE = process.env.REACT_APP_AGENT_BASE;
 
 // Default weather/neighbor shape used to fill gaps in real events (NOT shown as fake alerts)
 const DEFAULT_WEATHER = {
@@ -52,73 +52,52 @@ export default function AlertsPanel({
   }, [externalDrawerOpen, selectedStationAlert, initialDrawerView]);
 
   // Fetch real agent events from the deployed agent, then backend as fallback
+    // Fetch real agent investigation events from the deployed agent
   const fetchAgentEvents = useCallback(async () => {
     setLoading(true);
     try {
       let foundAlerts = [];
-
-      // 1. Deployed agent /status
       try {
-        const statusRes = await axios.get(`${AGENT_BASE}/status`, { timeout: 5000 });
-        const lastAlerted = statusRes.data?.last_alerted || {};
-        const stationIds = Object.keys(lastAlerted);
-        if (stationIds.length > 0) {
-          foundAlerts = stationIds.map(stId => ({
-            id: `agent_${stId}`,
-            stationId: stId,
-            stationName: stationMap[stId] || stId,
-            city: "",
-            province: "",
-            metric: "pm2p5",
-            value: null,
-            threshold: 60.0,
-            confidence: null,
-            decision: "alert",
-            severity: "Alert",
-            lastAlerted: lastAlerted[stId],
-            weather: DEFAULT_WEATHER,
-            neighbors: [],
-            conclusion: "",
-          }));
-        }
-      } catch (err) {
-        // 2. Backend /api/agent-events fallback
-        try {
-          const backendRes = await axios.get(`${API_BASE}/api/agent-events?limit=5`, { timeout: 5000 });
-          if (backendRes.data?.events && backendRes.data.events.length > 0) {
-            const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-            const evts = backendRes.data.events.filter(e => {
-              const val = Number(e.value || 0);
-              const thresh = Number(e.threshold || 60.0);
-              const eventTime = new Date(e.timestamp || 0).getTime();
-              const isRecent = eventTime >= oneDayAgo;
-              const exceedsThreshold = val >= thresh;
-              const isAlertDecision = e.decision === "alert" || e.confidence >= 70;
-              return isRecent && exceedsThreshold && isAlertDecision;
-            });
-            foundAlerts = evts.map(e => ({
+        const res = await axios.get(`${AGENT_BASE}/api/events`, {
+          params: { limit: 50 },
+          timeout: 30000,
+        });
+        const events = res.data?.events || [];
+        console.log("AGENT RAW EVENTS:", events.length, events);
+        const oneDayAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+        foundAlerts = events
+          .filter(e => {
+            const decisionOk = e.decision === "alert";
+            const t = new Date((e.timestamp || "").replace(" ", "T") + "Z").getTime();
+            const timeOk = !isNaN(t) && t >= oneDayAgo;
+            console.log("EVENT:", e.station_name, "| decision:", e.decision, "| decisionOk:", decisionOk, "| timestamp:", e.timestamp, "| timeOk:", timeOk);
+            return decisionOk && timeOk;
+          })
+          .map(e => {
+            const ts = (e.timestamp || "").replace(" ", "T") + "Z";
+            return {
               id: e._id,
               stationId: e.station_id,
               stationName: e.station_name || stationMap[e.station_id] || e.station_id,
-              city: e.city || "",
-              province: e.province || "",
+              city: "",
+              province: "",
               metric: e.metric || "pm2p5",
-              value: e.value,
-              threshold: e.threshold || 60.0,
-              confidence: e.confidence,
-              decision: e.decision || "alert",
-              severity: e.severity || "Severe",
-              lastAlerted: e.timestamp || new Date().toISOString(),
-              weather: { ...DEFAULT_WEATHER, ...(e.weather || {}) },
-              neighbors: e.neighbors || [],
-              conclusion: e.agent_reasoning || e.conclusion || "",
-            }));
-          }
-        } catch (backendErr) {
-          // both sources failed — leave foundAlerts empty
-        }
+              value: e.value != null ? Number(e.value) : null,
+              threshold: 60.0,
+              confidence: e.confidence != null ? e.confidence : null,
+              decision: e.decision,
+              severity: e.value > 90 ? "Severe" : e.value > 75 ? "High" : "Elevated",
+              lastAlerted: ts,
+              weather: DEFAULT_WEATHER,   // agent embeds weather in the conclusion text
+              neighbors: [],              // agent embeds neighbors in the conclusion text
+              conclusion: e.conclusion || "",
+            };
+          });
+      } catch (err) {
+        console.warn("Agent /api/events fetch failed:", err.message);
       }
-
+      console.log("FILTERED ALERTS:", foundAlerts.length, foundAlerts);
       setActiveAlerts(foundAlerts);
       setSelectedAlert(foundAlerts[0] || null);
       if (onAlertStatusChange) onAlertStatusChange(foundAlerts);
@@ -127,11 +106,18 @@ export default function AlertsPanel({
     }
   }, [stationMap, onAlertStatusChange]);
 
+    // Keep the latest fetch function in a ref so the interval always calls
+  // the current one, without the effect re-running every render.
+  const fetchRef = useRef(fetchAgentEvents);
+  useEffect(() => { fetchRef.current = fetchAgentEvents; }, [fetchAgentEvents]);
+
   useEffect(() => {
-    fetchAgentEvents();
-    const interval = setInterval(fetchAgentEvents, 60000);
+    fetchRef.current();                         // run once on mount
+    const interval = setInterval(() => fetchRef.current(), 60000);
     return () => clearInterval(interval);
-  }, [fetchAgentEvents]);
+  }, []);                                        // empty deps → runs once, no loop
+
+  
 
   const handleOpenDrawer = (alertItem, view = "detail") => {
     setSelectedAlert(alertItem || activeAlerts[0] || null);
