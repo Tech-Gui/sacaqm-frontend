@@ -7,7 +7,7 @@ import axios from "axios";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "";
 // Reads your DEPLOYED agent URL from .env. Set REACT_APP_AGENT_BASE there.
-const AGENT_BASE = process.env.REACT_APP_AGENT_BASE;
+const AGENT_BASE = "https://ai-agent-deploy-ai-agent.app.cern.ch";
 
 // Default weather/neighbor shape used to fill gaps in real events (NOT shown as fake alerts)
 const DEFAULT_WEATHER = {
@@ -59,12 +59,12 @@ export default function AlertsPanel({
       let foundAlerts = [];
       try {
         const res = await axios.get(`${AGENT_BASE}/api/events`, {
-          params: { limit: 50 },
-          timeout: 30000,
+          params: { limit: 5 },
+          timeout: 3000,
         });
         const events = res.data?.events || [];
         console.log("AGENT RAW EVENTS:", events.length, events);
-        const oneDayAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
 
         foundAlerts = events
           .filter(e => {
