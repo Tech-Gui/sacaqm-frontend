@@ -24,6 +24,8 @@ import EnvComplianceDashboard from "./screens/EnvComplianceDashboard";
 import PrivateComplianceDashboard from "./screens/PrivateComplianceDashboard";
 import AlertsLeeds from "./screens/AlertsLeeds";
 import HotelCompliance from "./screens/Hotelcompliance"; // NEW
+import WidgetAccessRoute from "./routes/WidgetAccessRoute";
+import WidgetLogin from "./screens/WidgetLogin";
 
 function App() {
   return (
@@ -44,6 +46,8 @@ function App() {
                     <Route path="/stations" element={<Stations />} />
                     <Route path="/information" element={<Information />} />
                     <Route path="/env-dashboard" element={<EnvComplianceDashboard />} />
+                    <Route path="/news-widgets" element={<WidgetAccessRoute />} />
+                    <Route path="/news-widget-login" element={<WidgetLogin />} />
                     {/* Login (public) */}
                     <Route path="/login" element={<MineLogin />} />
                     <Route path="/test-env" element={<div>TEST OK</div>} />
