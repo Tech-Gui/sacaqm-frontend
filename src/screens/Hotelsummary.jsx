@@ -21,7 +21,7 @@ const HOTEL_READ_KEY = process.env.REACT_APP_HOTEL_READ_KEY;
 const HOURLY_THRESHOLDS = {
   pm10: 190,
   pm25: 103,
-  noise: 85,
+  co2: 1000,
   temperature: 32,
   humidity: 85,
   voc: null,
@@ -73,13 +73,13 @@ const Bar = ({ pct, color }) => (
   </div>
 );
 
-/* ── noise level helper ── */
-const noiseLevel = v => {
+/* ── co2 level helper ── */
+const co2Level = v => {
   if (v == null) return { label: "N/A", color: "#64748b", pct: 0 };
-  if (v < 70) return { label: "Good", color: "#10b981", pct: (v / 70) * 25 };
-  if (v <= 82) return { label: "Moderate", color: "#eab308", pct: 25 + ((v - 70) / 12) * 25 };
-  if (v <= 85) return { label: "High", color: "#f97316", pct: 50 + ((v - 82) / 3) * 25 };
-  if (v <= 105) return { label: "Very High", color: "#ef4444", pct: 75 + ((v - 85) / 20) * 25 };
+  if (v < 800) return { label: "Good", color: "#10b981", pct: (v / 800) * 25 };
+  if (v <= 1000) return { label: "Moderate", color: "#eab308", pct: 25 + ((v - 800) / 200) * 25 };
+  if (v <= 1500) return { label: "High", color: "#f97316", pct: 50 + ((v - 1000) / 500) * 25 };
+  if (v <= 2500) return { label: "Very High", color: "#ef4444", pct: 75 + ((v - 1500) / 1000) * 25 };
   return { label: "Severe", color: "#8b5cf6", pct: 100 };
 };
 /* ── pm10 level helper ── */
@@ -185,11 +185,11 @@ const Card = ({ station, histData, busy, onView }) => {
   const pm = getLatest('pm2p5');
   const tp = getLatest('temperature');
   const pm10 = getLatest('pm10p0');
-  const dba = getLatest('dba');
+  const co2 = getLatest('co2');
   const pl = pm25Level(pm);
   const tl = tempLevel(tp);
   const p10l = pm10Level(pm10);
-  const nl = noiseLevel(dba);
+  const cl = co2Level(co2);
 
   const dailyAvgs = groupReadingsByDay(histData);
   const lastDaily = dailyAvgs.length ? dailyAvgs[dailyAvgs.length - 1] : null;
@@ -197,7 +197,7 @@ const Card = ({ station, histData, busy, onView }) => {
   const hasHourlyAlert = last && (
     (last.pm2p5 != null && last.pm2p5 > HOURLY_THRESHOLDS.pm25) ||
     (last.pm10p0 != null && last.pm10p0 > HOURLY_THRESHOLDS.pm10) ||
-    (last.dba != null && last.dba > HOURLY_THRESHOLDS.noise) ||
+    (last.co2 != null && last.co2 > HOURLY_THRESHOLDS.co2) ||
     (last.temperature != null && (last.temperature > HOURLY_THRESHOLDS.temperature || last.temperature < 15)) ||
     (last.humidity != null && last.humidity > HOURLY_THRESHOLDS.humidity) ||
     (last.voc != null && last.voc > HOURLY_THRESHOLDS.voc) ||
@@ -281,7 +281,7 @@ const Card = ({ station, histData, busy, onView }) => {
             <MiniMetric title="PM 2.5" val={pm} unit="μg/m³" lvl={pl} threshold="103 μg/m³" />
             <MiniMetric title="TEMP" val={tp} unit="°C" lvl={tl} threshold="32°C" />
             <MiniMetric title="PM 10" val={pm10} unit="μg/m³" lvl={p10l} threshold="190 μg/m³" />
-            <MiniMetric title="NOISE" val={dba} unit="dB" lvl={nl} threshold="85 dB" />
+            <MiniMetric title="CO2" val={co2} unit="ppm" lvl={cl} threshold="1000 ppm" />
           </div>
         )}
 
@@ -345,13 +345,13 @@ const groupReadingsByDay = (data) => {
         pm2p5: [],
         pm10p0: [],
         temperature: [],
-        dba: []
+        co2: []
       };
     }
     if (d.pm2p5 != null) groups[dateStr].pm2p5.push(Number(d.pm2p5));
     if (d.pm10p0 != null) groups[dateStr].pm10p0.push(Number(d.pm10p0));
     if (d.temperature != null) groups[dateStr].temperature.push(Number(d.temperature));
-    if (d.dba != null) groups[dateStr].dba.push(Number(d.dba));
+    if (d.co2 != null) groups[dateStr].co2.push(Number(d.co2));
   });
 
   const result = Object.values(groups).map(g => {
@@ -362,7 +362,7 @@ const groupReadingsByDay = (data) => {
       pm2p5: avg(g.pm2p5),
       pm10p0: avg(g.pm10p0),
       temperature: avg(g.temperature),
-      dba: avg(g.dba)
+      co2: avg(g.co2)
     };
   });
 
@@ -480,7 +480,7 @@ export default function HotelSummary() {
     if (last) {
       if ((last.pm2p5 || 0) > HOURLY_THRESHOLDS.pm25) totalHourlyAlerts++;
       if ((last.pm10p0 || 0) > HOURLY_THRESHOLDS.pm10) totalHourlyAlerts++;
-      if ((last.dba || 0) > HOURLY_THRESHOLDS.noise) totalHourlyAlerts++;
+      if ((last.co2 || 0) > HOURLY_THRESHOLDS.co2) totalHourlyAlerts++;
       if (last.temperature != null && (last.temperature > HOURLY_THRESHOLDS.temperature || last.temperature < 15)) totalHourlyAlerts++;
       if ((last.humidity || 0) > HOURLY_THRESHOLDS.humidity) totalHourlyAlerts++;
       if ((last.voc || 0) > HOURLY_THRESHOLDS.voc) totalHourlyAlerts++;
@@ -595,8 +595,8 @@ export default function HotelSummary() {
                     if (last.pm10p0 != null && last.pm10p0 > HOURLY_THRESHOLDS.pm10) {
                       hAlerts.push(`PM10 (${Number(last.pm10p0).toFixed(1)} > ${HOURLY_THRESHOLDS.pm10} µg/m³)`);
                     }
-                    if (last.dba != null && last.dba > HOURLY_THRESHOLDS.noise) {
-                      hAlerts.push(`Noise (${Number(last.dba).toFixed(1)} > ${HOURLY_THRESHOLDS.noise} dBA)`);
+                    if (last.co2 != null && last.co2 > HOURLY_THRESHOLDS.co2) {
+                      hAlerts.push(`CO2 (${Number(last.co2).toFixed(0)} > ${HOURLY_THRESHOLDS.co2} ppm)`);
                     }
                     if (last.temperature != null && (last.temperature > HOURLY_THRESHOLDS.temperature || last.temperature < 15)) {
                       hAlerts.push(`Temp (${Number(last.temperature).toFixed(1)}°C outside 15-${HOURLY_THRESHOLDS.temperature}°C)`);
@@ -741,7 +741,7 @@ export default function HotelSummary() {
                     <div style={{ width: "4px", height: "24px", background: "linear-gradient(180deg,#3b82f6,#6366f1)", borderRadius: "2px" }} />
                     <div>
                       <div style={{ fontSize: "18px", fontWeight: 900, color: "#0f172a", letterSpacing: "-0.3px" }}>Historical Trends</div>
-                      <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>7-day daily data · PM2.5 (WHO 2021) · Temperature (ASHRAE 55) · Noise (NIOSH)</div>
+                      <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>7-day daily data · PM2.5 (WHO 2021) · Temperature (ASHRAE 55) · CO2 (ASHRAE 62.1)</div>
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -773,10 +773,10 @@ export default function HotelSummary() {
                             ]} />
                           </div>
                           <div style={{ background: "#fff", borderRadius: "14px", padding: "14px", border: "1px solid rgba(168,85,247,0.15)" }}>
-                            <div style={{ fontSize: "10px", fontWeight: 800, color: "#64748b", letterSpacing: "1px", marginBottom: "8px" }}>NOISE (dBA)</div>
-                            <SparkLine data={groupReadingsByDay(readings[s._id])} label="dba" color="#a855f7" unit="dB" isDaily={true} thresholds={[
-                              { value: 82, color: "#eab308", label: "Action Level (82dB)" },
-                              { value: 85, color: "#ef4444", label: "Max OEL (85dB)" },
+                            <div style={{ fontSize: "10px", fontWeight: 800, color: "#64748b", letterSpacing: "1px", marginBottom: "8px" }}>CO2 (ppm)</div>
+                            <SparkLine data={groupReadingsByDay(readings[s._id])} label="co2" color="#a855f7" unit="ppm" isDaily={true} thresholds={[
+                              { value: 800, color: "#eab308", label: "Action Level (800ppm)" },
+                              { value: 1000, color: "#ef4444", label: "Max Limit (1000ppm)" },
                             ]} />
                           </div>
                         </div>
