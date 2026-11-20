@@ -42,3 +42,332 @@
   height: 30vh;
   z-index: 1;
 }
+
+.widget-card {
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 180ms ease, transform 180ms ease;
+  background-image: linear-gradient(180deg, rgba(248, 250, 252, 0.44), #fff 34%);
+}
+
+.widget-card:not(.widget-card-bare):hover {
+  box-shadow: 0 13px 32px rgba(15, 23, 42, 0.1) !important;
+  transform: translateY(-1px);
+}
+
+.widget-card-bare {
+  background-image: none;
+}
+
+.aqi-publisher-card:not(.widget-card-bare) {
+  padding: 17px 20px !important;
+  background: #fff !important;
+  border-color: #eadfce !important;
+  box-shadow: 0 5px 16px rgba(30, 41, 59, .07) !important;
+}
+
+.aqi-publisher-brand {
+  display: grid;
+  grid-template-columns: 42px minmax(150px, .9fr) 1px minmax(175px, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid #f0e8dd;
+  margin-bottom: 14px;
+}
+
+.aqi-brand-logo {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e0f5ef, #d9eef7);
+  color: #087b91;
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.aqi-brand-name,
+.aqi-brand-product {
+  display: grid;
+  gap: 2px;
+}
+
+.aqi-brand-name strong {
+  color: #162a3b;
+  font-size: 1.08rem;
+  letter-spacing: -.04em;
+}
+
+.aqi-brand-name small,
+.aqi-brand-product small {
+  color: #657488;
+  font-size: .59rem;
+  line-height: 1.25;
+}
+
+.aqi-brand-divider {
+  width: 1px;
+  height: 34px;
+  background: #e6ddd0;
+}
+
+.aqi-brand-product strong {
+  color: #293343;
+  font-size: .82rem;
+  letter-spacing: .02em;
+}
+
+.aqi-alert-kicker {
+  margin-bottom: 4px;
+  color: #d97706;
+  font-size: .7rem;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.aqi-category-title {
+  margin-bottom: 3px;
+  font-size: 1.25rem;
+  font-weight: 850;
+  letter-spacing: -.025em;
+}
+
+.aq-alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 20px;
+  padding: 14px 16px;
+  border: 1px solid;
+  border-radius: 12px;
+  box-shadow: 0 4px 13px rgba(15, 23, 42, .045);
+}
+
+.aq-alert-banner.is-clear {
+  border-color: #a9dfbd;
+  background: linear-gradient(105deg, #effaf2, #fbfffc);
+  color: #166534;
+}
+
+.aq-alert-banner.is-pending {
+  border-color: #dbe4ee;
+  background: #f8fafc;
+  color: #42546a;
+}
+
+.aq-alert-banner:not(.is-clear):not(.is-pending) {
+  border-color: #f2c987;
+  background: linear-gradient(105deg, #fff5df, #fffdf8);
+  color: #9a4f00;
+}
+
+.aq-alert-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: currentColor;
+  color: inherit;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.aq-alert-banner.is-clear .aq-alert-icon { color: #fff; background: #22a45a; }
+.aq-alert-banner.is-pending .aq-alert-icon { color: #fff; background: #8493a5; }
+.aq-alert-banner:not(.is-clear):not(.is-pending) .aq-alert-icon { color: #fff; background: #ed9200; }
+
+.aq-alert-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.aq-alert-copy strong { font-size: .88rem; }
+.aq-alert-copy span { color: #4c5b6d; font-size: .76rem; line-height: 1.4; }
+.aq-alert-banner time { margin-left: auto; color: #657488; font-size: .72rem; white-space: nowrap; }
+
+.aqi-reading-layout {
+  display: grid;
+  grid-template-columns: 96px minmax(180px, 1fr) minmax(170px, 0.72fr);
+  align-items: center;
+  gap: 22px;
+}
+
+.aqi-mini-metric {
+  padding: 2px 0;
+}
+
+.aqi-mini-metric > div:last-child {
+  letter-spacing: -0.02em;
+}
+
+.station-picker-label {
+  display: block;
+  margin: 0 0 7px;
+  color: #687d95;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.station-picker-select {
+  width: 100%;
+  margin-bottom: 17px;
+  padding: 11px 13px;
+  border: 1px solid #d4dfeb;
+  border-radius: 9px;
+  outline: none;
+  background: #fbfdff;
+  color: #20334a;
+  font: inherit;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, .025);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.station-picker-select:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, .14);
+}
+
+.worst-station-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 18px;
+  border: 1px solid #f2dadd;
+  border-radius: 13px;
+  background: linear-gradient(125deg, #fff7f7 0%, #fff 72%);
+}
+
+.widget-card-worst-stations .worst-station-feature > div:first-child {
+  color: #687d95;
+  font-size: .7rem;
+  font-weight: 750;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.widget-card-worst-stations .worst-station-feature > div:nth-child(2) {
+  grid-column: 1;
+  color: #17263b;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.widget-card-worst-stations .worst-station-feature > div:nth-child(3) {
+  grid-column: 1;
+  color: #718198;
+  font-size: .82rem;
+}
+
+.widget-card-worst-stations .worst-station-feature > div:nth-child(4) {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  color: #52667f;
+  font-size: .78rem;
+}
+
+.widget-card-worst-stations .worst-station-feature > div:nth-child(4) strong {
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  letter-spacing: -.06em;
+}
+
+.worst-station-footnote {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  color: #8998aa;
+  font-size: .68rem;
+  text-align: center;
+}
+
+.worst-station-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.worst-station-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid #edf1f6;
+  border-radius: 8px;
+  background: #fff;
+  color: #31445c;
+  text-align: left;
+  cursor: pointer;
+}
+
+.worst-station-row:hover,
+.worst-station-row.is-selected {
+  border-color: #f5b9c0;
+  background: #fff7f7;
+}
+
+.worst-station-row > span:first-child {
+  color: #91a0b3;
+  font-size: .7rem;
+  font-weight: 800;
+}
+
+.worst-station-row > span:nth-child(2) {
+  overflow: hidden;
+  font-size: .8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worst-station-row strong {
+  color: #24364d;
+  font-size: .8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .aqi-publisher-brand {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .aqi-brand-logo { width: 34px; height: 34px; font-size: 1.5rem; }
+  .aqi-brand-divider { display: none; }
+  .aqi-brand-product { grid-column: 2; }
+  .aq-alert-banner { align-items: flex-start; padding: 12px; }
+  .aq-alert-banner time { display: none; }
+
+  .aqi-reading-layout {
+    grid-template-columns: 78px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .aqi-reading-layout > div:first-child {
+    width: 76px !important;
+    height: 76px !important;
+  }
+
+  .aqi-reading-layout > div:nth-child(3) {
+    grid-column: 1 / -1;
+    padding-top: 12px;
+    border-top: 1px solid #e8eef5;
+  }
+
+  .worst-station-feature {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .widget-card-worst-stations .worst-station-feature > div:nth-child(4) {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+    margin-top: 8px;
+  }
+}

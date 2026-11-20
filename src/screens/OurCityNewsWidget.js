@@ -61,6 +61,7 @@ ChartJS.register(
 // ─────────────────────────────────────────────
 const API_BASE = (process.env.REACT_APP_API_BASE || "https://try-again-test-isaiah.app.cern.ch").replace(/\/$/, "");
 const NEWS_WIDGET_BASE_URL = (process.env.REACT_APP_WIDGET_BASE_URL || window.location.origin).replace(/\/$/, "");
+const WIDGET_CACHE_TTL_MS = 5 * 60 * 1000;
 const WIDGET_TYPES = ["current-aqi", "pollutants", "trend", "alert", "station-info", "station-selector", "worst-stations"];
 const WIDGET_OPTIONS = [
   { value: "current-aqi", label: "Current air quality", description: "Latest PM2.5 reading and air quality category." },
@@ -96,6 +97,69 @@ function normalizeStationName(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function isJohannesburgStation(station) {
+  const rawCountry = String(station.country || station.countryName || station.location?.country || "").toLowerCase();
+  const country = rawCountry.replace(/[^a-z]/g, "");
+  if (country && !["southafrica", "za", "rsa", "zaf"].includes(country) && !country.startsWith("southafrica")) return false;
+
+  const rawLatitude = station.latitude ?? station.lat ?? station.location?.latitude ?? station.location?.lat;
+  const rawLongitude = station.longitude ?? station.lng ?? station.location?.longitude ?? station.location?.lng;
+  const latitude = Number(rawLatitude);
+  const longitude = Number(rawLongitude);
+  if (rawLatitude != null && String(rawLatitude).trim() !== "" && rawLongitude != null && String(rawLongitude).trim() !== "" && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+    return latitude >= -26.7 && latitude <= -25.8 && longitude >= 27.55 && longitude <= 28.55;
+  }
+
+  const city = String(station.city || station.municipality || station.location?.city || "").toLowerCase();
+  const province = String(station.province || station.state || station.location?.province || "").toLowerCase();
+  return /johannesburg|soweto/.test(city) && (!province || /gauteng/.test(province));
+}
+
+function readWidgetCache(key) {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(key) || "null");
+    if (!value || typeof value.savedAt !== "number") return null;
+    return { ...value, fresh: Date.now() - value.savedAt < WIDGET_CACHE_TTL_MS };
+  } catch {
+    return null;
+  }
+}
+
+function writeWidgetCache(key, data) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ data, savedAt: Date.now() }));
+  } catch {
+    // Storage can be disabled or full; the widget can still use live data.
+  }
+}
+
+function stationReadingCacheKey(stationId) {
+  return `sacaqm:widget:reading:${stationId}`;
+}
+
+function historyCacheKey(stationId, timeRange) {
+  return `sacaqm:widget:history:${stationId}:${timeRange}`;
+}
+
+async function fetchStationLatestReading(station) {
+  const sensorId = Array.isArray(station.sensorIds) ? station.sensorIds[0] : null;
+  let payload;
+  try {
+    ({ data: payload } = await axios.get(
+      `${API_BASE}/api/stations/${encodeURIComponent(station._id)}/sensorData?days=1`
+    ));
+  } catch (readingError) {
+    if (!sensorId) throw readingError;
+    const today = new Date().toISOString().split("T")[0];
+    const { data } = await axios.get(`${API_BASE}/api/nodedata/aggregated`, {
+      params: { sensor_id: sensorId, start: today, end: today, resolution: "hourly" },
+    });
+    payload = Array.isArray(data) ? data : data?.data || [];
+  }
+  const entries = Array.isArray(payload) ? payload : payload?.data || [];
+  return [...entries].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0] || null;
+}
+
 function findStation(stations, identifier) {
   if (!identifier) return stations[0] || null;
   const requested = normalizeStationName(identifier);
@@ -119,7 +183,7 @@ function parseWidgetConfig(search) {
   const requestedTheme = params.get("theme") || "light";
   const requestedPollutant = (params.get("pollutant") || "pm2p5").toLowerCase();
   const requestedRange = (params.get("timerange") || "24h").toLowerCase();
-  const requestedRefresh = Number(params.get("refresh") || 120);
+  const requestedRefresh = Number(params.get("refresh") || 300);
   const warnings = [];
 
   const widgetType = WIDGET_TYPES.includes(requestedWidget)
@@ -150,9 +214,9 @@ function parseWidgetConfig(search) {
 
   const refreshSeconds = REFRESH_INTERVALS.includes(requestedRefresh)
     ? requestedRefresh
-    : 120;
+    : 300;
   if (refreshSeconds !== requestedRefresh) {
-    warnings.push("Refresh must be 60, 120, or 300 seconds. Using 120 seconds.");
+    warnings.push("Refresh must be 60, 120, or 300 seconds. Using 300 seconds.");
   }
 
   return {
@@ -431,8 +495,9 @@ function useAirQualityData(
     if (!demoMode) return;
     const baseScenario = DEMO_SCENARIOS[demoScenario] || DEMO_SCENARIOS.Good;
     const merged = { ...baseScenario, ...demoValues };
-    setStations(DEMO_STATIONS);
-    const st = findStation(DEMO_STATIONS, stationId);
+    const joburgStations = DEMO_STATIONS.filter(isJohannesburgStation);
+    setStations(joburgStations);
+    const st = findStation(joburgStations, stationId);
     setSelectedStation(st);
     setLatestReading({ ...merged, timestamp: new Date().toISOString() });
     const historyPoints =
@@ -446,36 +511,65 @@ function useAirQualityData(
   useEffect(() => {
     if (demoMode) return;
     let cancelled = false;
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: stList } = await axios.get(`${API_BASE}/api/stations`);
-        if (cancelled) return;
-        const stationList = Array.isArray(stList) ? stList : stList?.stations;
-        const pubStations = Array.isArray(stationList)
-          ? stationList.filter((s) => s.visibility === "public" || !s.visibility)
-          : [];
-        setStations(pubStations);
+    const stationCache = readWidgetCache("sacaqm:widget:joburg-stations");
+    const cachedStations = Array.isArray(stationCache?.data) ? stationCache.data.filter(isJohannesburgStation) : [];
+    const cachedTarget = findStation(cachedStations, stationId) || (!stationId ? cachedStations[0] : null);
+    const cachedReading = cachedTarget ? readWidgetCache(stationReadingCacheKey(cachedTarget._id)) : null;
+    const cachedHistory = cachedTarget ? readWidgetCache(historyCacheKey(cachedTarget._id, timeRange)) : null;
 
-        if (!pubStations.length) {
+    if (cachedStations.length) setStations(cachedStations);
+    if (cachedTarget) {
+      setSelectedStation(cachedTarget);
+      if (cachedReading?.data) setLatestReading(cachedReading.data);
+      if (Array.isArray(cachedHistory?.data)) setHistoricalData(cachedHistory.data);
+    }
+
+    const stationCacheFresh = Boolean(stationCache?.fresh);
+    const targetCacheFresh = Boolean(cachedTarget && cachedReading?.fresh);
+    const historyFresh = !cachedTarget?.sensorIds?.length || Boolean(cachedHistory?.fresh);
+    if (stationCacheFresh && targetCacheFresh && historyFresh) {
+      setLoading(false);
+      setError(null);
+      return () => { cancelled = true; };
+    }
+
+    // Keep cached content visible during refresh; show skeletons only on first load.
+    setLoading(!cachedReading?.data);
+    setError(null);
+
+    const run = async () => {
+      try {
+        let joburgStations = cachedStations;
+        if (!stationCacheFresh) {
+          const { data: stList } = await axios.get(`${API_BASE}/api/stations`);
+          if (cancelled) return;
+          const stationList = Array.isArray(stList) ? stList : stList?.stations;
+          joburgStations = Array.isArray(stationList)
+            ? stationList.filter((station) => (station.visibility === "public" || !station.visibility) && isJohannesburgStation(station))
+            : [];
+          writeWidgetCache("sacaqm:widget:joburg-stations", joburgStations);
+        }
+        if (cancelled) return;
+        setStations(joburgStations);
+
+        if (!joburgStations.length) {
           setSelectedStation(null);
           setLatestReading(null);
           setHistoricalData([]);
-          setError("No public monitoring stations are currently available.");
+          setError("No public Johannesburg monitoring stations are currently available.");
           setLoading(false);
           return;
         }
 
-        const target = findStation(pubStations, stationId) || (!stationId ? pubStations[0] : null);
+        const target = findStation(joburgStations, stationId) || (!stationId ? joburgStations[0] : null);
         if (!target) {
           if (stationId) {
-            setError(`Station "${stationId}" was not found in the public network.`);
+            setError(`Station "${stationId}" was not found in the Johannesburg network.`);
             setSelectedStation(null);
             setLatestReading(null);
             setHistoricalData([]);
           } else {
-            setSelectedStation(pubStations[0]);
+            setSelectedStation(joburgStations[0]);
             setError(null);
           }
           setLoading(false);
@@ -484,37 +578,14 @@ function useAirQualityData(
         setSelectedStation(target);
 
         const sensorId = Array.isArray(target.sensorIds) ? target.sensorIds[0] : null;
-
-        // Fetch latest reading
-        let sensorRaw;
-        try {
-          ({ data: sensorRaw } = await axios.get(
-            `${API_BASE}/api/stations/${encodeURIComponent(target._id)}/sensorData?days=1`
-          ));
-        } catch (readingError) {
-          if (sensorId) {
-            const end = new Date().toISOString().split("T")[0];
-            const { data } = await axios.get(`${API_BASE}/api/nodedata/aggregated`, {
-              params: {
-                sensor_id: sensorId,
-                start: end,
-                end,
-                resolution: "hourly",
-              },
-            });
-            sensorRaw = Array.isArray(data) ? data : data?.data || [];
-          } else {
-            throw readingError;
-          }
+        const readingCache = readWidgetCache(stationReadingCacheKey(target._id));
+        let latest = readingCache?.data || null;
+        if (!readingCache?.fresh) {
+          latest = await fetchStationLatestReading(target) || latest;
+          if (latest) writeWidgetCache(stationReadingCacheKey(target._id), latest);
         }
         if (cancelled) return;
-        const readings = Array.isArray(sensorRaw) ? sensorRaw : sensorRaw?.data;
-        const sorted = Array.isArray(readings)
-          ? [...readings].sort(
-              (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-            )
-          : [];
-        setLatestReading(sorted[0] || null);
+        setLatestReading(latest);
 
         // Fetch historical aggregated
         if (sensorId) {
@@ -523,28 +594,30 @@ function useAirQualityData(
           const startDate = new Date(Date.now() - days * 24 * 3600000)
             .toISOString()
             .split("T")[0];
-          try {
+          const targetHistoryCache = readWidgetCache(historyCacheKey(target._id, timeRange));
+          if (targetHistoryCache?.fresh && Array.isArray(targetHistoryCache.data)) {
+            setHistoricalData(targetHistoryCache.data);
+          } else try {
             const { data: aggData } = await axios.get(
               `${API_BASE}/api/nodedata/aggregated`,
               { params: { sensor_id: sensorId, start: startDate, end, resolution: "hourly" } }
             );
             if (cancelled) return;
             const history = Array.isArray(aggData) ? aggData : aggData?.data;
-            setHistoricalData(Array.isArray(history) ? history : []);
+            const rows = Array.isArray(history) ? history : [];
+            setHistoricalData(rows);
+            writeWidgetCache(historyCacheKey(target._id, timeRange), rows);
           } catch {
             if (cancelled) return;
-            setHistoricalData([]);
+            if (!targetHistoryCache?.data) setHistoricalData([]);
           }
         } else {
           setHistoricalData([]);
         }
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err.response?.data?.message ||
-              err.message ||
-              "Failed to fetch live air quality data. Please try again."
-          );
+          const hasCachedReading = Boolean(cachedReading?.data);
+          setError(hasCachedReading ? null : (err.response?.data?.message || err.message || "Could not load Johannesburg air quality readings."));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -589,31 +662,31 @@ function SkeletonBox({ w = "100%", h = 24, mb = 8, radius = 6 }) {
 // ─────────────────────────────────────────────
 // Widget wrapper
 // ─────────────────────────────────────────────
-function WidgetCard({ children, accentColor = "#22c55e", style = {} }) {
+function WidgetCard({ children, accentColor = "#22c55e", style = {}, bare = false, className = "" }) {
   return (
     <div
-      className="widget-card"
+      className={`widget-card${bare ? " widget-card-bare" : ""}${className ? ` ${className}` : ""}`}
       style={{
-        background: COLORS.white,
-        borderRadius: 12,
-        padding: "20px",
-        boxShadow: COLORS.widgetShadow,
-        border: COLORS.widgetBorder,
-        borderTop: `3px solid ${accentColor}`,
+        background: bare ? "transparent" : COLORS.white,
+        borderRadius: bare ? 0 : 16,
+        padding: bare ? 0 : "22px",
+        boxShadow: bare ? "none" : "0 8px 24px rgba(15, 23, 42, .07)",
+        border: bare ? "none" : "1px solid #e6edf5",
+        borderTop: bare ? "none" : `4px solid ${accentColor}`,
         ...style,
       }}
     >
       {children}
-      <div
+      {!bare && <div
         style={{
-          marginTop: 12,
-          fontSize: "0.68rem",
-          color: "#94a3b8",
+          marginTop: 16,
+          fontSize: "0.7rem",
+          color: "#8a9ab0",
           textAlign: "right",
         }}
       >
         Powered by SACAQM · South African Clean Air Quality Monitoring
-      </div>
+      </div>}
     </div>
   );
 }
@@ -624,11 +697,12 @@ function WidgetLabel({ children }) {
       style={{
         fontSize: "0.72rem",
         textTransform: "uppercase",
-        letterSpacing: "0.1em",
-        color: COLORS.mutedLabel,
+        letterSpacing: "0.12em",
+        color: "#49627f",
         fontFamily: "system-ui, sans-serif",
-        marginBottom: 10,
-        fontWeight: 600,
+        marginBottom: 16,
+        fontWeight: 750,
+        textAlign: "center",
       }}
     >
       {children}
@@ -639,18 +713,23 @@ function WidgetLabel({ children }) {
 // ─────────────────────────────────────────────
 // 3. CurrentAQIWidget
 // ─────────────────────────────────────────────
-function CurrentAQIWidget({ data, loading, isDemo, station }) {
+function CurrentAQIWidget({ data, loading, isDemo, station, bare = false }) {
   const aqi = classifyAQI(data?.pm2p5);
   return (
-    <WidgetCard accentColor={aqi.color}>
-      <WidgetLabel>Current Air Quality Reading</WidgetLabel>
+    <WidgetCard accentColor={aqi.color} bare={bare} className="aqi-publisher-card">
+      <div className="aqi-publisher-brand">
+        <div className="aqi-brand-logo" aria-hidden="true"><span>≋</span></div>
+        <div className="aqi-brand-name"><strong>SACAQM</strong><small>South African Clean Air Quality Monitoring</small></div>
+        <span className="aqi-brand-divider" />
+        <div className="aqi-brand-product"><strong>JOBURG AIR QUALITY</strong><small>Real-time data. Healthier communities.</small></div>
+      </div>
       {loading ? (
         <>
           <SkeletonBox h={80} mb={8} />
           <SkeletonBox w="60%" h={18} />
         </>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        <div className="aqi-reading-layout">
           {/* Circle indicator */}
           <div
             style={{
@@ -659,6 +738,7 @@ function CurrentAQIWidget({ data, loading, isDemo, station }) {
               borderRadius: "50%",
               background: aqi.bgColor,
               border: `4px solid ${aqi.color}`,
+              boxShadow: `0 5px 18px ${aqi.color}24`,
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -681,17 +761,16 @@ function CurrentAQIWidget({ data, loading, isDemo, station }) {
             </span>
           </div>
 
-          <div style={{ flex: 1 }}>
+          <div className="aqi-summary">
             <div
+              className="aqi-alert-kicker"
               style={{
-                fontSize: "1.4rem",
-                fontWeight: 700,
-                color: aqi.color,
-                marginBottom: 2,
+                color: Number(data?.pm2p5) > 50 ? aqi.color : "#b66a00",
               }}
             >
-              {aqi.label}
+              {Number.isFinite(Number(data?.pm2p5)) && Number(data.pm2p5) > 50 ? "AIR QUALITY ALERT" : "AIR QUALITY UPDATE"}
             </div>
+            <div className="aqi-category-title" style={{ color: aqi.color }}>{aqi.label}</div>
             <div
               style={{ fontSize: "0.9rem", color: COLORS.bodyText, marginBottom: 6 }}
             >
@@ -729,7 +808,7 @@ function CurrentAQIWidget({ data, loading, isDemo, station }) {
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: "6px 16px",
+              gap: "12px 18px",
             }}
           >
             {[
@@ -740,7 +819,7 @@ function CurrentAQIWidget({ data, loading, isDemo, station }) {
               { key: "co2", label: "CO₂", unit: "ppm" },
               { key: "temperature", label: "Temp", unit: "°C" },
             ].map(({ key, label, unit }) => (
-              <div key={key}>
+              <div className="aqi-mini-metric" key={key}>
                 <div
                   style={{ fontSize: "0.68rem", color: COLORS.mutedLabel }}
                 >
@@ -1089,7 +1168,7 @@ function AQTrendChart({
 function StationInfoWidget({ station, loading, isDemo }) {
   const aqi = classifyAQI(undefined);
   return (
-    <WidgetCard accentColor="#0ea5e9">
+    <WidgetCard accentColor="#0ea5e9" className="widget-card-station-selector">
       <WidgetLabel>Station Information</WidgetLabel>
       {loading ? (
         Array.from({ length: 5 }).map((_, i) => (
@@ -1155,14 +1234,27 @@ function StationInfoWidget({ station, loading, isDemo }) {
 // ─────────────────────────────────────────────
 // 7. AQAlertWidget
 // ─────────────────────────────────────────────
-function AQAlertWidget({ data, alertActive, isDemo, station }) {
+function AQAlertWidget({ data, alertActive, isDemo, station, loading }) {
   const pm25 = Number(data?.pm2p5);
   const show = alertActive || (Number.isFinite(pm25) && pm25 > 50);
-  if (!show) return null;
+  if (!show) {
+    const hasReading = Number.isFinite(pm25);
+    return (
+      <div className={`aq-alert-banner${hasReading ? " is-clear" : " is-pending"}`} role="status">
+        <div className="aq-alert-icon" aria-hidden="true">{hasReading ? "✓" : "…"}</div>
+        <div className="aq-alert-copy">
+          <strong>{hasReading ? "Good news, no air quality alerts right now" : loading ? "Checking current air quality alerts" : "Current alert status is unavailable"}</strong>
+          <span>{hasReading ? `PM2.5 at ${station?.city || "Johannesburg"} is ${pm25.toFixed(1)} µg/m³.` : loading ? "We are loading the latest Johannesburg reading." : "Please check back shortly for the latest reading."}</span>
+        </div>
+        {data?.timestamp && <time>{new Date(data.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>}
+      </div>
+    );
+  }
   const aqi = classifyAQI(pm25);
 
   return (
     <div
+      className="aq-alert-banner is-warning"
       style={{
         background: pm25 > 100 ? "#fee2e2" : "#ffedd5",
         border: `1px solid ${pm25 > 100 ? "#fca5a5" : "#fdba74"}`,
@@ -1239,11 +1331,11 @@ function StationSelectorWidget({ stations, station, stationId, onStationChange, 
   return (
     <WidgetCard accentColor="#0ea5e9">
       <WidgetLabel>Choose a monitoring station</WidgetLabel>
-      <label htmlFor="sacaqm-station-select" style={{ display: "block", fontSize: "0.75rem", color: COLORS.mutedLabel, margin: "10px 0 5px" }}>STATION</label>
-      <select id="sacaqm-station-select" value={stationId || station?._id || ""} onChange={(event) => onStationChange(event.target.value)} disabled={!stations.length} style={{ width: "100%", padding: "9px 10px", borderRadius: 7, border: "1px solid #cbd5e1", color: COLORS.bodyText, background: "#fff", marginBottom: 12 }}>
+      <label htmlFor="sacaqm-station-select" className="station-picker-label">STATION</label>
+      <select className="station-picker-select" id="sacaqm-station-select" value={stationId || station?._id || ""} onChange={(event) => onStationChange(event.target.value)} disabled={!stations.length}>
         {stations.map((item) => <option key={item._id} value={item._id}>{item.name}{item.city ? ` · ${item.city}` : ""}</option>)}
       </select>
-      <CurrentAQIWidget data={data} loading={loading} isDemo={isDemo} station={station} />
+      <CurrentAQIWidget data={data} loading={loading} isDemo={isDemo} station={station} bare />
     </WidgetCard>
   );
 }
@@ -1256,33 +1348,44 @@ function WorstStationsWidget({ stations, refreshSeconds = 120 }) {
 
   useEffect(() => {
     let cancelled = false;
+    const cachedRankings = stations
+      .map((station) => ({ station, cache: readWidgetCache(stationReadingCacheKey(station._id)) }))
+      .filter(({ cache }) => cache?.data && Number.isFinite(Number(cache.data.pm2p5)))
+      .map(({ station, cache }) => ({ station, reading: cache.data, value: Number(cache.data.pm2p5) }))
+      .sort((a, b) => b.value - a.value);
+
+    if (cachedRankings.length) {
+      setRanked(cachedRankings);
+      setSelectedId((current) => cachedRankings.some((item) => item.station._id === current) ? current : cachedRankings[0].station._id);
+      setLoading(false);
+    }
+
     const loadRankings = async () => {
       if (!stations.length) {
         setRanked([]);
         setLoading(false);
         return;
       }
-      try {
-        const results = await Promise.allSettled(stations.map(async (station) => {
-          const { data: payload } = await axios.get(`${API_BASE}/api/stations/${encodeURIComponent(station._id)}/sensorData?days=1`);
-          const entries = Array.isArray(payload) ? payload : payload?.data || [];
-          const latest = [...entries].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
-          return latest && Number.isFinite(Number(latest.pm2p5)) ? { station, reading: latest, value: Number(latest.pm2p5) } : null;
-        }));
-        if (cancelled) return;
-        const next = results
-          .filter((result) => result.status === "fulfilled")
-          .map((result) => result.value)
-          .filter(Boolean)
-          .sort((a, b) => b.value - a.value);
-        setRanked(next);
-        setSelectedId(next[0]?.station._id || "");
-        setError(next.length ? "" : "No current station readings are available.");
-      } catch (fetchError) {
-        if (!cancelled) setError(fetchError.message || "Could not load station readings.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      const staleStations = stations.filter((station) => !readWidgetCache(stationReadingCacheKey(station._id))?.fresh);
+      if (!staleStations.length) return;
+      if (!cachedRankings.length) setLoading(true);
+      const results = await Promise.allSettled(staleStations.map(async (station) => {
+        const latest = await fetchStationLatestReading(station);
+        if (latest) writeWidgetCache(stationReadingCacheKey(station._id), latest);
+        return latest ? { station, reading: latest, value: Number(latest.pm2p5) } : null;
+      }));
+      if (cancelled) return;
+      const updatedById = new Map(cachedRankings.map((item) => [item.station._id, item]));
+      results.forEach((result) => {
+        if (result.status === "fulfilled" && result.value && Number.isFinite(result.value.value)) {
+          updatedById.set(result.value.station._id, result.value);
+        }
+      });
+      const next = [...updatedById.values()].sort((a, b) => b.value - a.value);
+      setRanked(next);
+      setSelectedId((current) => next.some((item) => item.station._id === current) ? current : next[0]?.station._id || "");
+      setError(next.length ? "" : "No current Johannesburg station readings are available.");
+      setLoading(false);
     };
     loadRankings();
     const refreshId = window.setInterval(loadRankings, refreshSeconds * 1000);
@@ -1302,15 +1405,24 @@ function WorstStationsWidget({ stations, refreshSeconds = 120 }) {
 
   const selected = ranked.find((item) => item.station._id === selectedId) || ranked[0];
   return (
-    <WidgetCard accentColor="#e63946">
+    <WidgetCard accentColor="#e63946" className="widget-card-worst-stations">
       <WidgetLabel>Highest PM2.5 readings</WidgetLabel>
       {loading ? <SkeletonBox h={100} /> : error ? <div role="status" style={{ color: COLORS.mutedLabel, padding: 16 }}>{error}</div> : selected ? (
-        <div aria-live="polite" style={{ padding: "12px 2px" }}>
+        <div className="worst-station-feature" aria-live="polite">
           <div style={{ fontSize: "0.72rem", color: COLORS.mutedLabel, textTransform: "uppercase", letterSpacing: "0.06em" }}>{ranked[0]?.station._id === selected.station._id ? "Currently highest reading" : `Rank #${ranked.findIndex((item) => item.station._id === selected.station._id) + 1} · rotating view`}</div>
           <div style={{ fontSize: "1.2rem", fontWeight: 750, color: COLORS.navyDark, marginTop: 6 }}>{selected.station.name}</div>
           <div style={{ fontSize: "0.82rem", color: COLORS.mutedLabel }}>{selected.station.city || "Gauteng"}</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginTop: 12 }}><strong style={{ fontSize: "2rem", color: classifyAQI(selected.value).color }}>{selected.value.toFixed(1)}</strong><span style={{ fontSize: "0.8rem", color: COLORS.mutedLabel }}>µg/m³ PM2.5 · {classifyAQI(selected.value).label}</span></div>
-          <div style={{ fontSize: "0.72rem", color: COLORS.mutedLabel, marginTop: 8 }}>Automatically rotates among the five highest stations every 12 seconds.</div>
+          <div className="worst-station-footnote">Automatically rotates among the five highest stations every 12 seconds.</div>
+          <div className="worst-station-list" aria-label="Five highest PM2.5 stations">
+            {ranked.slice(0, 5).map((item, index) => (
+              <button type="button" key={item.station._id} className={`worst-station-row${item.station._id === selected.station._id ? " is-selected" : ""}`} onClick={() => setSelectedId(item.station._id)}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{item.station.name}</span>
+                <strong>{item.value.toFixed(1)}</strong>
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
     </WidgetCard>
@@ -1335,7 +1447,7 @@ function EmbedCodeModal({ open, onClose, stationId, widgetType = "current-aqi" }
     alert: 180,
     "station-info": 280,
     "station-selector": 380,
-    "worst-stations": 300,
+    "worst-stations": 500,
   };
   const station = stationId || "STATION_ID";
   const type = selectedType;
@@ -1977,6 +2089,7 @@ function EmbeddedWidget({
           alertActive={alertActive}
           isDemo={isDemo}
           station={selectedStation}
+          loading={loading}
         />
       );
       break;
@@ -2542,6 +2655,7 @@ function OurCityNewsLayout({
               alertActive={alertActive}
               isDemo={isDemo}
               station={selectedStation}
+              loading={loading}
             />
 
             {/* ── Article body paragraph 2 ── */}

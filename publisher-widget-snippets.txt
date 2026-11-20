@@ -1,0 +1,106 @@
+SACAQM PUBLISHER WIDGET TEST SNIPPETS
+=====================================
+
+Replace YOUR_DEPLOYED_WIDGET_HOST with the public website where the SACAQM
+widget app is hosted. Do not include a trailing slash.
+
+Replace STATION_SLUG_OR_ID with a public Johannesburg station slug or ID.
+The station selector widget lets readers choose a different Johannesburg
+station. The highest PM2.5 stations widget does not need a station value.
+
+Choose either the IFRAME or JAVASCRIPT snippet for each widget. An iframe is
+the simplest test. For JavaScript snippets, add the matching <div> and include
+the shared loader script only once on the page. You can put several widget divs
+on one page.
+
+These snippets load the hosted widget app. When SACAQM changes the design and
+redeploys the app, publisher pages using these snippets receive the new design
+without changing their embed code.
+
+
+1. CURRENT AIR QUALITY
+----------------------
+Shows current PM2.5, air-quality category, station location and other readings.
+
+IFRAME:
+<iframe src="https://YOUR_DEPLOYED_WIDGET_HOST/#/news-widgets?widget=current-aqi&embed=1&theme=light&station=STATION_SLUG_OR_ID" width="100%" height="320" loading="lazy" frameborder="0" title="SACAQM Current Air Quality"></iframe>
+
+JAVASCRIPT:
+<div data-sacaqm-widget data-widget="current-aqi" data-station="STATION_SLUG_OR_ID" data-theme="light"></div>
+
+
+2. POLLUTANT BREAKDOWN
+----------------------
+Shows the selected station's latest pollutant readings.
+
+IFRAME:
+<iframe src="https://YOUR_DEPLOYED_WIDGET_HOST/#/news-widgets?widget=pollutants&embed=1&theme=light&station=STATION_SLUG_OR_ID" width="100%" height="380" loading="lazy" frameborder="0" title="SACAQM Pollutant Breakdown"></iframe>
+
+JAVASCRIPT:
+<div data-sacaqm-widget data-widget="pollutants" data-station="STATION_SLUG_OR_ID" data-theme="light"></div>
+
+
+3. POLLUTION TREND
+------------------
+Shows historical readings and lets readers choose a time range.
+
+IFRAME:
+<iframe src="https://YOUR_DEPLOYED_WIDGET_HOST/#/news-widgets?widget=trend&embed=1&theme=light&station=STATION_SLUG_OR_ID" width="100%" height="300" loading="lazy" frameborder="0" title="SACAQM Pollution Trend"></iframe>
+
+JAVASCRIPT:
+<div data-sacaqm-widget data-widget="trend" data-station="STATION_SLUG_OR_ID" data-theme="light"></div>
+
+
+4. AIR QUALITY ALERT
+--------------------
+Shows the current alert status, including a clear message when there are no
+active alerts.
+
+IFRAME:
+<iframe src="https://YOUR_DEPLOYED_WIDGET_HOST/#/news-widgets?widget=alert&embed=1&theme=light&station=STATION_SLUG_OR_ID" width="100%" height="200" loading="lazy" frameborder="0" title="SACAQM Air Quality Alert"></iframe>
+
+JAVASCRIPT:
+<div data-sacaqm-widget data-widget="alert" data-station="STATION_SLUG_OR_ID" data-theme="light"></div>
+
+
+5. STATION INFORMATION
+----------------------
+Shows the selected station's location and monitoring details.
+
+IFRAME:
+<iframe src="https://YOUR_DEPLOYED_WIDGET_HOST/#/news-widgets?widget=station-info&embed=1&theme=light&station=STATION_SLUG_OR_ID" width="100%" height="280" loading="lazy" frameborder="0" title="SACAQM Station Information"></iframe>
+
+JAVASCRIPT:
+<div data-sacaqm-widget data-widget="station-info" data-station="STATION_SLUG_OR_ID" data-theme="light"></div>
+
+
+6. STATION SELECTOR
+-------------------
+Lets readers choose a Johannesburg station and see its current reading.
+The station value sets the initially selected station.
+
+IFRAME:
+<iframe src="https://YOUR_DEPLOYED_WIDGET_HOST/#/news-widgets?widget=station-selector&embed=1&theme=light&station=STATION_SLUG_OR_ID" width="100%" height="400" loading="lazy" frameborder="0" title="SACAQM Station Selector"></iframe>
+
+JAVASCRIPT:
+<div data-sacaqm-widget data-widget="station-selector" data-station="STATION_SLUG_OR_ID" data-theme="light"></div>
+
+
+7. HIGHEST PM2.5 STATIONS (ROTATING)
+------------------------------------
+Ranks Johannesburg stations by their latest PM2.5 readings. It starts with the
+highest reading, then randomly rotates through the top five every 12 seconds.
+No station value is needed.
+
+IFRAME:
+<iframe src="https://YOUR_DEPLOYED_WIDGET_HOST/#/news-widgets?widget=worst-stations&embed=1&theme=light" width="100%" height="500" loading="lazy" frameborder="0" title="SACAQM Highest PM2.5 Stations"></iframe>
+
+JAVASCRIPT:
+<div data-sacaqm-widget data-widget="worst-stations" data-theme="light"></div>
+
+
+SHARED JAVASCRIPT LOADER
+------------------------
+Include this once if the page uses one or more JAVASCRIPT snippets above.
+
+<script src="https://YOUR_DEPLOYED_WIDGET_HOST/sacaqm-widget.js" async></script>
