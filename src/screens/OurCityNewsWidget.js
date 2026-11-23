@@ -2063,6 +2063,17 @@ function EmbeddedWidget({
     };
   }, []);
 
+  const handleStationChange = (nextStationId) => {
+    onStationChange(nextStationId);
+    if (typeof BroadcastChannel !== "undefined") {
+      const stationChannel = new BroadcastChannel("sacaqm:widget-station");
+      stationChannel.postMessage({ stationId: String(nextStationId) });
+      stationChannel.close();
+    }
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: "sacaqm:station-change", stationId: String(nextStationId) }, "*");
+    }
+  };
   let widget;
   switch (widgetType) {
     case "pollutants":
@@ -2113,7 +2124,7 @@ function EmbeddedWidget({
           stations={stations}
           station={selectedStation}
           stationId={stationId}
-          onStationChange={onStationChange}
+          onStationChange={handleStationChange}
           data={latestReading}
           loading={loading}
           isDemo={isDemo}
@@ -2270,7 +2281,7 @@ function OurCityNewsLayout({
     <div
       style={{
         background: COLORS.bg,
-        minHeight: widgetType === "worst-stations" ? "auto" : "100vh",
+        minHeight: "100vh",
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
@@ -3040,6 +3051,14 @@ export default function OurCityNewsWidget() {
     setSelectedStationId(config.station);
   }, [config.station]);
 
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return undefined;
+    const stationChannel = new BroadcastChannel("sacaqm:widget-station");
+    stationChannel.onmessage = (event) => {
+      if (typeof event.data?.stationId === "string") setSelectedStationId(event.data.stationId);
+    };
+    return () => stationChannel.close();
+  }, []);
   const handleDemoValueChange = useCallback((field, value) => {
     setDemoValues((prev) => ({ ...prev, [field]: value }));
   }, []);

@@ -62,12 +62,21 @@
           if (event.source !== iframe.contentWindow || event.origin !== appUrl.origin) {
             return;
           }
-          if (
-            event.data?.type !== "sacaqm:resize" ||
-            !Number.isFinite(event.data.height)
-          ) {
+          if (event.data?.type === "sacaqm:station-change" && typeof event.data.stationId === "string") {
+            document.querySelectorAll("iframe").forEach((sibling) => {
+              try {
+                const siblingUrl = new URL(sibling.src, window.location.href);
+                if (siblingUrl.origin !== appUrl.origin || !siblingUrl.hash.startsWith("#/news-widgets")) return;
+                const [route, query = ""] = siblingUrl.hash.slice(1).split("?");
+                const siblingParams = new URLSearchParams(query);
+                siblingParams.set("station", event.data.stationId);
+                siblingUrl.hash = `${route}?${siblingParams.toString()}`;
+                sibling.src = siblingUrl.toString();
+              } catch (_) {}
+            });
             return;
           }
+          if (event.data?.type !== "sacaqm:resize" || !Number.isFinite(event.data.height)) return;
           iframe.style.height = `${Math.max(80, Math.min(1200, event.data.height))}px`;
         });
 
