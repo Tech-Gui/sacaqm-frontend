@@ -2161,13 +2161,13 @@ function EmbeddedWidget({
         boxSizing: "border-box",
         minHeight: widgetType === "worst-stations" ? "auto" : "100vh",
         padding: 12,
-        background: isDark ? "#0f172a" : "#f8f9fa",
+        background: isDark ? "#0f172a" : "#ffffff",
         color: isDark ? "#e2e8f0" : COLORS.bodyText,
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
       <style>{`
-        html, body, #root { margin: 0; min-height: 100%; }
+        html, body, #root { margin: 0; min-height: 100%; background: ${isDark ? "#0f172a" : "#ffffff"}; }
         [data-theme="dark"] .widget-card { box-shadow: 0 2px 12px rgba(0,0,0,.35); }
       `}</style>
       {warnings.map((warning) => (
