@@ -97,6 +97,13 @@ function normalizeStationName(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function isJohannesburgCityStation(station) {
+  const cityFields = [station.city, station.municipality, station.location?.city, station.location?.municipality];
+  const city = cityFields.find((value) => String(value || "").trim());
+  const province = String(station.province || station.state || station.location?.province || "").toLowerCase();
+  const country = String(station.country || station.countryName || station.location?.country || "").toLowerCase();
+  return Boolean(city && /johannesburg/i.test(String(city)) && (!province || /gauteng/i.test(province)) && (!country || /south africa|\bza\b/i.test(country)));
+}
 function isJohannesburgStation(station) {
   const rawCountry = String(station.country || station.countryName || station.location?.country || "").toLowerCase();
   const country = rawCountry.replace(/[^a-z]/g, "");
@@ -1234,30 +1241,59 @@ function StationInfoWidget({ station, loading, isDemo }) {
 // ─────────────────────────────────────────────
 // 7. AQAlertWidget
 // ─────────────────────────────────────────────
-function AQAlertWidget({ data, alertActive, isDemo, station, loading }) {
+function useJohannesburgAverage(stations, refreshSeconds = 300) {
+  const [average, setAverage] = useState(null);
+  const averageStations = useMemo(() => stations.filter(isJohannesburgCityStation), [stations]);
+  useEffect(() => {
+    let cancelled = false;
+    const update = async () => {
+      const cached = averageStations.map((station) => ({ station, cache: readWidgetCache(stationReadingCacheKey(station._id)) }))
+        .filter(({ cache }) => cache?.data && Number.isFinite(Number(cache.data.pm2p5)));
+      if (cached.length) setAverage(cached.reduce((sum, item) => sum + Number(item.cache.data.pm2p5), 0) / cached.length);
+      const stale = averageStations.filter((station) => !readWidgetCache(stationReadingCacheKey(station._id))?.fresh);
+      const results = await Promise.allSettled(stale.map(async (station) => {
+        const reading = await fetchStationLatestReading(station);
+        if (reading) writeWidgetCache(stationReadingCacheKey(station._id), reading);
+        return Number(reading?.pm2p5);
+      }));
+      if (cancelled) return;
+      const values = new Map(cached.map(({ station, cache }) => [station._id, Number(cache.data.pm2p5)]));
+      results.forEach((result, index) => { if (result.status === 'fulfilled' && Number.isFinite(result.value)) values.set(stale[index]._id, result.value); });
+      if (values.size) setAverage([...values.values()].reduce((sum, value) => sum + value, 0) / values.size);
+    };
+    if (!averageStations.length) { setAverage(null); return undefined; }
+    update();
+    const timer = window.setInterval(update, refreshSeconds * 1000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [averageStations, refreshSeconds]);
+  return average;
+}
+function AQAlertWidget({ data, alertActive, isDemo, station, loading, averagePm25 }) {
   const pm25 = Number(data?.pm2p5);
-  const show = alertActive || (Number.isFinite(pm25) && pm25 > 50);
+  const alertPm25 = Number(averagePm25);
+  const hasAverage = Number.isFinite(alertPm25);
+  const show = alertActive || (hasAverage && alertPm25 > 50);
   if (!show) {
-    const hasReading = Number.isFinite(pm25);
+    const hasReading = hasAverage;
     return (
       <div className={`aq-alert-banner${hasReading ? " is-clear" : " is-pending"}`} role="status">
         <div className="aq-alert-icon" aria-hidden="true">{hasReading ? "✓" : "…"}</div>
         <div className="aq-alert-copy">
           <strong>{hasReading ? "Good news, no air quality alerts right now" : loading ? "Checking current air quality alerts" : "Current alert status is unavailable"}</strong>
-          <span>{hasReading ? `PM2.5 at ${station?.city || "Johannesburg"} is ${pm25.toFixed(1)} µg/m³.` : loading ? "We are loading the latest Johannesburg reading." : "Please check back shortly for the latest reading."}</span>
+          <span>{hasReading ? `Johannesburg average: ${alertPm25.toFixed(1)} ug/m3 PM2.5.` : loading ? "We are loading Johannesburg station readings." : "Please check back shortly for the latest readings."}</span>
         </div>
         {data?.timestamp && <time>{new Date(data.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>}
       </div>
     );
   }
-  const aqi = classifyAQI(pm25);
+  const aqi = classifyAQI(alertPm25);
 
   return (
     <div
       className="aq-alert-banner is-warning"
       style={{
-        background: pm25 > 100 ? "#fee2e2" : "#ffedd5",
-        border: `1px solid ${pm25 > 100 ? "#fca5a5" : "#fdba74"}`,
+        background: alertPm25 > 100 ? "#fee2e2" : "#ffedd5",
+        border: `1px solid ${alertPm25 > 100 ? "#fca5a5" : "#fdba74"}`,
         borderLeft: `4px solid ${aqi.color}`,
         borderRadius: 10,
         padding: "16px 20px",
@@ -1285,12 +1321,7 @@ function AQAlertWidget({ data, alertActive, isDemo, station, loading }) {
             ⚠️ Air Quality Alert — {aqi.label}
           </div>
           <div style={{ fontSize: "0.85rem", color: COLORS.bodyText }}>
-            PM2.5 concentration at{" "}
-            <strong>
-              {station?.name || "Unknown Station"},{" "}
-              {station?.city || "Johannesburg"}
-            </strong>{" "}
-            has reached <strong>{pm25.toFixed(1)} µg/m³</strong>.{" "}
+            Johannesburg station average is <strong>{alertPm25.toFixed(1)} ug/m3 PM2.5</strong>.{" "}
             {aqi.description}. Sensitive groups including the elderly, children,
             and those with respiratory conditions should limit outdoor
             activities.
@@ -1342,93 +1373,65 @@ function StationSelectorWidget({ stations, station, stationId, onStationChange, 
 
 function WorstStationsWidget({ stations, refreshSeconds = 120 }) {
   const [ranked, setRanked] = useState([]);
-  const [selectedId, setSelectedId] = useState("");
+  const [selectedStationId, setSelectedStationId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    const cachedRankings = stations
-      .map((station) => ({ station, cache: readWidgetCache(stationReadingCacheKey(station._id)) }))
-      .filter(({ cache }) => cache?.data && Number.isFinite(Number(cache.data.pm2p5)))
-      .map(({ station, cache }) => ({ station, reading: cache.data, value: Number(cache.data.pm2p5) }))
-      .sort((a, b) => b.value - a.value);
-
-    if (cachedRankings.length) {
-      setRanked(cachedRankings);
-      setSelectedId((current) => cachedRankings.some((item) => item.station._id === current) ? current : cachedRankings[0].station._id);
-      setLoading(false);
-    }
-
     const loadRankings = async () => {
-      if (!stations.length) {
-        setRanked([]);
-        setLoading(false);
-        return;
-      }
-      const staleStations = stations.filter((station) => !readWidgetCache(stationReadingCacheKey(station._id))?.fresh);
-      if (!staleStations.length) return;
-      if (!cachedRankings.length) setLoading(true);
-      const results = await Promise.allSettled(staleStations.map(async (station) => {
-        const latest = await fetchStationLatestReading(station);
-        if (latest) writeWidgetCache(stationReadingCacheKey(station._id), latest);
-        return latest ? { station, reading: latest, value: Number(latest.pm2p5) } : null;
+      const cached = stations.map((station) => ({ station, cache: readWidgetCache(stationReadingCacheKey(station._id)) }))
+        .filter(({ cache }) => cache?.data && Number.isFinite(Number(cache.data.pm2p5)))
+        .map(({ station, cache }) => ({ station, value: Number(cache.data.pm2p5) }))
+        .sort((a, b) => b.value - a.value);
+      if (cached.length) { setRanked(cached); setLoading(false); }
+      const stale = stations.filter((station) => !readWidgetCache(stationReadingCacheKey(station._id))?.fresh);
+      if (!stale.length) { setError(cached.length ? "" : "No current Johannesburg station readings are available."); return; }
+      const results = await Promise.allSettled(stale.map(async (station) => {
+        const reading = await fetchStationLatestReading(station);
+        if (reading) writeWidgetCache(stationReadingCacheKey(station._id), reading);
+        return reading && Number.isFinite(Number(reading.pm2p5)) ? { station, value: Number(reading.pm2p5) } : null;
       }));
       if (cancelled) return;
-      const updatedById = new Map(cachedRankings.map((item) => [item.station._id, item]));
-      results.forEach((result) => {
-        if (result.status === "fulfilled" && result.value && Number.isFinite(result.value.value)) {
-          updatedById.set(result.value.station._id, result.value);
-        }
-      });
-      const next = [...updatedById.values()].sort((a, b) => b.value - a.value);
+      const byId = new Map(cached.map((item) => [item.station._id, item]));
+      results.forEach((result) => { if (result.status === "fulfilled" && result.value) byId.set(result.value.station._id, result.value); });
+      const next = [...byId.values()].sort((a, b) => b.value - a.value);
       setRanked(next);
-      setSelectedId((current) => next.some((item) => item.station._id === current) ? current : next[0]?.station._id || "");
       setError(next.length ? "" : "No current Johannesburg station readings are available.");
       setLoading(false);
     };
-    loadRankings();
-    const refreshId = window.setInterval(loadRankings, refreshSeconds * 1000);
-    return () => { cancelled = true; window.clearInterval(refreshId); };
+    if (!stations.length) { setRanked([]); setLoading(false); setError("No Johannesburg stations are available."); }
+    else { loadRankings(); }
+    const timer = window.setInterval(loadRankings, refreshSeconds * 1000);
+    return () => { cancelled = true; window.clearInterval(timer); };
   }, [stations, refreshSeconds]);
 
   useEffect(() => {
     if (ranked.length < 2) return undefined;
-    const rotationId = window.setInterval(() => {
-      setSelectedId((current) => {
-        const options = ranked.slice(0, Math.min(5, ranked.length)).filter((item) => item.station._id !== current);
+    const timer = window.setInterval(() => {
+      setSelectedStationId((current) => {
+        const options = ranked.slice(0, 5).filter((item) => item.station._id !== current);
         return options[Math.floor(Math.random() * options.length)]?.station._id || current;
       });
     }, 12000);
-    return () => window.clearInterval(rotationId);
+    return () => window.clearInterval(timer);
   }, [ranked]);
 
-  const selected = ranked.find((item) => item.station._id === selectedId) || ranked[0];
+  const top = ranked.find((item) => item.station._id === selectedStationId) || ranked[0];
+  const condition = top ? classifyAQI(top.value) : null;
+  const isGood = top?.value <= 25;
   return (
-    <WidgetCard accentColor="#e63946" className="widget-card-worst-stations">
-      <WidgetLabel>Highest PM2.5 readings</WidgetLabel>
-      {loading ? <SkeletonBox h={100} /> : error ? <div role="status" style={{ color: COLORS.mutedLabel, padding: 16 }}>{error}</div> : selected ? (
-        <div className="worst-station-feature" aria-live="polite">
-          <div style={{ fontSize: "0.72rem", color: COLORS.mutedLabel, textTransform: "uppercase", letterSpacing: "0.06em" }}>{ranked[0]?.station._id === selected.station._id ? "Currently highest reading" : `Rank #${ranked.findIndex((item) => item.station._id === selected.station._id) + 1} · rotating view`}</div>
-          <div style={{ fontSize: "1.2rem", fontWeight: 750, color: COLORS.navyDark, marginTop: 6 }}>{selected.station.name}</div>
-          <div style={{ fontSize: "0.82rem", color: COLORS.mutedLabel }}>{selected.station.city || "Gauteng"}</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginTop: 12 }}><strong style={{ fontSize: "2rem", color: classifyAQI(selected.value).color }}>{selected.value.toFixed(1)}</strong><span style={{ fontSize: "0.8rem", color: COLORS.mutedLabel }}>µg/m³ PM2.5 · {classifyAQI(selected.value).label}</span></div>
-          <div className="worst-station-footnote">Automatically rotates among the five highest stations every 12 seconds.</div>
-          <div className="worst-station-list" aria-label="Five highest PM2.5 stations">
-            {ranked.slice(0, 5).map((item, index) => (
-              <button type="button" key={item.station._id} className={`worst-station-row${item.station._id === selected.station._id ? " is-selected" : ""}`} onClick={() => setSelectedId(item.station._id)}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <span>{item.station.name}</span>
-                <strong>{item.value.toFixed(1)}</strong>
-              </button>
-            ))}
-          </div>
+    <WidgetCard accentColor={isGood ? "#16a34a" : "#e63946"} className={`widget-card-worst-stations${isGood ? " is-healthy" : " is-unhealthy"}`}>
+      <WidgetLabel>Highest PM2.5 station</WidgetLabel>
+      {loading && !top ? <SkeletonBox h={54} /> : error && !top ? <div role="status" style={{ color: COLORS.mutedLabel, padding: 10 }}>{error}</div> : top ? (
+        <div className="worst-station-compact" aria-live="polite">
+          <div className="worst-station-compact-name"><strong>{top.station.name}</strong><span>{top.station.city || "Johannesburg"}</span></div>
+          <div className="worst-station-compact-value"><strong>{top.value.toFixed(1)}</strong><span>ug/m3 PM2.5 - {condition.label}</span></div>
         </div>
       ) : null}
     </WidgetCard>
   );
 }
-
 function EmbedCodeModal({ open, onClose, stationId, widgetType = "current-aqi" }) {
   const [copied, setCopied] = useState(null);
   const [copyError, setCopyError] = useState("");
@@ -2018,6 +2021,7 @@ function EmbeddedWidget({
   selectedStation,
   isDemo,
   alertActive,
+  averagePm25,
   warnings,
   stations,
   stationId,
@@ -2090,6 +2094,7 @@ function EmbeddedWidget({
           isDemo={isDemo}
           station={selectedStation}
           loading={loading}
+          averagePm25={averagePm25}
         />
       );
       break;
@@ -2244,6 +2249,7 @@ function OurCityNewsLayout({
   error,
   isDemo,
   alertActive,
+  averagePm25,
   selectedStationId,
   onStationChange,
   onSwitchToDemo,
@@ -2656,6 +2662,7 @@ function OurCityNewsLayout({
               isDemo={isDemo}
               station={selectedStation}
               loading={loading}
+              averagePm25={averagePm25}
             />
 
             {/* ── Article body paragraph 2 ── */}
@@ -3069,6 +3076,8 @@ export default function OurCityNewsWidget() {
       demoValues,
       config.timeRange
     );
+  const networkAveragePm25 = useJohannesburgAverage(stations, config.refreshSeconds);
+  const averagePm25 = demoMode ? Number(latestReading?.pm2p5) : networkAveragePm25;
 
   useEffect(() => {
     if (config.embed || !config.station || !stations.length) return;
@@ -3120,6 +3129,7 @@ export default function OurCityNewsWidget() {
         refreshSeconds={config.refreshSeconds}
         isDemo={demoMode}
         alertActive={alertActive}
+        averagePm25={averagePm25}
         warnings={config.warnings}
       />
     );
@@ -3136,6 +3146,7 @@ export default function OurCityNewsWidget() {
         error={error}
         isDemo={demoMode}
         alertActive={alertActive}
+        averagePm25={averagePm25}
         selectedStationId={selectedStationId}
         onStationChange={setSelectedStationId}
         onSwitchToDemo={handleSwitchToDemo}
