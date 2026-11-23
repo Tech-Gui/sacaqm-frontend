@@ -32,7 +32,7 @@
               : widget === "station-selector"
                 ? "400"
                 : widget === "worst-stations"
-                  ? "500"
+                  ? "160"
                 : "320";
         iframe.frameBorder = "0";
         iframe.style.display = "block";

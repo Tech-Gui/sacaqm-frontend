@@ -1450,7 +1450,7 @@ function EmbedCodeModal({ open, onClose, stationId, widgetType = "current-aqi" }
     alert: 180,
     "station-info": 280,
     "station-selector": 380,
-    "worst-stations": 500,
+    "worst-stations": 160,
   };
   const station = stationId || "STATION_ID";
   const type = selectedType;
@@ -2148,7 +2148,7 @@ function EmbeddedWidget({
       data-theme={theme}
       style={{
         boxSizing: "border-box",
-        minHeight: "100vh",
+        minHeight: widgetType === "worst-stations" ? "auto" : "100vh",
         padding: 12,
         background: isDark ? "#0f172a" : "#f8f9fa",
         color: isDark ? "#e2e8f0" : COLORS.bodyText,
@@ -2270,7 +2270,7 @@ function OurCityNewsLayout({
     <div
       style={{
         background: COLORS.bg,
-        minHeight: "100vh",
+        minHeight: widgetType === "worst-stations" ? "auto" : "100vh",
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
