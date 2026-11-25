@@ -877,11 +877,7 @@ function PollutantConcentrationsWidget({
   loading,
   initialPollutant = "pm2p5",
 }) {
-  const [selected, setSelected] = useState(initialPollutant);
-  useEffect(() => setSelected(initialPollutant), [initialPollutant]);
-  const selConf = POLLUTANT_CONFIGS.find((p) => p.key === selected);
-
-  const chartData = useMemo(() => {
+const chartData = useMemo(() => {
     if (!data) return null;
     const vals = POLLUTANT_CONFIGS.map((p) => ({
       label: p.label,
@@ -895,42 +891,12 @@ function PollutantConcentrationsWidget({
   const aqi = classifyAQI(data?.pm2p5);
 
   return (
-    <WidgetCard accentColor={selConf?.color || "#6366f1"}>
+    <WidgetCard accentColor="#6366f1">
       <WidgetLabel>Pollutant Breakdown</WidgetLabel>
       {loading ? (
         Array.from({ length: 6 }).map((_, i) => <SkeletonBox key={i} h={28} mb={10} />)
       ) : (
         <>
-          {/* Selector */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 6,
-              marginBottom: 16,
-            }}
-          >
-            {POLLUTANT_CONFIGS.map((p) => (
-              <button
-                key={p.key}
-                onClick={() => setSelected(p.key)}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 20,
-                  border: `1px solid ${p.color}`,
-                  background: selected === p.key ? p.color : "transparent",
-                  color: selected === p.key ? "#fff" : p.color,
-                  cursor: "pointer",
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  transition: "all 0.15s",
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
           {/* Bar chart */}
           {chartData &&
             chartData.map(({ label, value, pct, color }) => (
